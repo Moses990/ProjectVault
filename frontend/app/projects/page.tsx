@@ -1,12 +1,14 @@
 ﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, Project } from "@/lib/api";
 
 type SortField = "name" | "type" | "phase" | "last_updated_at" | "file_count" | "cad_count" | "material_count";
 
 export default function ProjectsPage() {
+  const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -111,7 +113,7 @@ export default function ProjectsPage() {
             </thead>
             <tbody>
               {projects.map((p) => (
-                <tr key={p.id} className="row-link" onClick={() => window.location.href = `/project-detail?id=${encodeURIComponent(p.id)}`}>
+                <tr key={p.id} className="row-link" onClick={() => router.push(`/project-detail?id=${encodeURIComponent(p.id)}`)}>
                   <td onClick={(e) => toggleFav(p, e)} style={{ textAlign: "center" }}>
                     <button className={`fav-btn ${p.is_favorite ? "active" : ""}`} title="收藏">
                       {p.is_favorite ? "\u2605" : "\u2606"}

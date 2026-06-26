@@ -1,10 +1,12 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, DashboardMetrics, Project } from "@/lib/api";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [recent, setRecent] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -68,9 +70,30 @@ export default function DashboardPage() {
           <Link href="/projects" className="btn btn-sm" style={{ marginLeft: "auto" }}>查看全部</Link>
         </div>
         {recent.length === 0 ? (
-          <div className="empty-state">
-            <p>暂无已索引的项目。</p>
-            <p className="text-sm">请前往设置配置根路径，然后扫描项目。</p>
+          <div className="card" style={{ textAlign: "center", padding: "40px 24px" }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>📁</div>
+            <h2 style={{ fontSize: 18, margin: "0 0 8px" }}>欢迎使用 Project Vault</h2>
+            <p style={{ color: "var(--text-dim)", margin: "0 0 20px", lineHeight: 1.6, maxWidth: 420, marginLeft: "auto", marginRight: "auto" }}>
+              Project Vault 是一个本地优先的项目文件管理工具，专为建筑/室内设计行业打造。开始使用前，请先配置项目根路径。
+            </p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+              <Link href="/settings" className="btn btn-primary">前往设置</Link>
+              <Link href="/projects" className="btn">浏览项目</Link>
+            </div>
+            <div style={{ marginTop: 24, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, maxWidth: 480, marginLeft: "auto", marginRight: "auto" }}>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 20, marginBottom: 4 }}>1</div>
+                <div className="text-sm text-dim">设置根路径</div>
+              </div>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 20, marginBottom: 4 }}>2</div>
+                <div className="text-sm text-dim">扫描发现项目</div>
+              </div>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 20, marginBottom: 4 }}>3</div>
+                <div className="text-sm text-dim">浏览与管理</div>
+              </div>
+            </div>
           </div>
         ) : (
           <table className="data-table">
@@ -86,7 +109,7 @@ export default function DashboardPage() {
             </thead>
             <tbody>
               {recent.map((p) => (
-                <tr key={p.id} className="row-link" onClick={() => window.location.href = `/project-detail?id=${encodeURIComponent(p.id)}`}>
+                <tr key={p.id} className="row-link" onClick={() => router.push(`/project-detail?id=${encodeURIComponent(p.id)}`)}>
                   <td style={{ fontWeight: 600 }}>{p.name}</td>
                   <td>{p.phase ? <span className="badge badge-accent">{p.phase}</span> : <span className="text-dim">-</span>}</td>
                   <td>{p.file_count}</td>

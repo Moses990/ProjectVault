@@ -5,8 +5,26 @@ import { Sidebar } from "./components/Sidebar";
 import { CommandPalette } from "./components/CommandPalette";
 import "./globals.css";
 
+function getInitialTheme(): string {
+  if (typeof window === "undefined") return "dark";
+  return localStorage.getItem("pv-theme") ?? "dark";
+}
+
+function applyTheme(theme: string) {
+  const root = document.documentElement;
+  root.classList.remove("theme-light");
+  if (theme === "light") {
+    root.classList.add("theme-light");
+  }
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [searchOpen, setSearchOpen] = useState(false);
+  const [theme, setTheme] = useState(getInitialTheme);
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -27,7 +45,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main className="main">{children}</main>
         </div>
         <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
+        <ThemeSync theme={theme} onThemeChange={setTheme} />
       </body>
     </html>
   );
+}
+
+function ThemeSync({ theme, onThemeChange }: { theme: string; onThemeChange: (t: string) => void }) {
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key === "pv-theme" && e.newValue) {
+        onThemeChange(e.newValue);
+      }
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, [onThemeChange]);
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
+
+  return null;
 }

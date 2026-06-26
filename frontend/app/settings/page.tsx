@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api, Settings } from "@/lib/api";
+import { formatBytes } from "@/lib/utils";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -19,6 +20,7 @@ export default function SettingsPage() {
   const [scanInterval, setScanInterval] = useState(60);
   const [theme, setTheme] = useState("system");
   const [backupName, setBackupName] = useState("");
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
 
   useEffect(() => {
     api.getSettings().then((s) => {
@@ -43,6 +45,7 @@ export default function SettingsPage() {
         theme,
       });
       setSettings(updated);
+      localStorage.setItem("pv-theme", theme);
       setSuccess(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "保存设置失败");
@@ -82,11 +85,16 @@ export default function SettingsPage() {
     }
   }
 
-  async function restoreBackup() {
+  function requestRestore() {
     if (!backupName.trim()) {
       setError("请输入备份名称。");
       return;
     }
+    setShowRestoreConfirm(true);
+  }
+
+  async function confirmRestore() {
+    setShowRestoreConfirm(false);
     setRestoring(true);
     setSystemMessage(null);
     setError(null);
@@ -122,6 +130,23 @@ export default function SettingsPage() {
       {systemMessage && (
         <div className="card mb-4" style={{ borderColor: "var(--success)", color: "var(--success)" }}>
           {systemMessage}
+        </div>
+      )}
+
+      {showRestoreConfirm && (
+        <div className="cmdk-overlay" onClick={() => setShowRestoreConfirm(false)}>
+          <div className="cmdk-box" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ margin: "0 0 12px", fontSize: 16 }}>确认恢复备份</h2>
+            <p style={{ color: "var(--text-dim)", fontSize: 13, lineHeight: 1.6, margin: "0 0 20px" }}>
+              即将恢复备份 <strong style={{ color: "var(--text)" }}>{backupName.trim()}</strong>，当前数据库将被覆盖。此操作不可撤销。
+            </p>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button className="btn" onClick={() => setShowRestoreConfirm(false)}>取消</button>
+              <button className="btn btn-danger" onClick={confirmRestore} disabled={restoring}>
+                {restoring ? <><span className="spinner" /> 恢复中...</> : "确认恢复"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -204,7 +229,7 @@ export default function SettingsPage() {
             placeholder="project_vault_20260625_120000.db"
           />
         </div>
-        <button type="button" className="btn btn-danger" onClick={restoreBackup} disabled={restoring}>
+        <button type="button" className="btn btn-danger" onClick={requestRestore} disabled={restoring}>
           {restoring ? <><span className="spinner" /> 恢复中...</> : "恢复备份"}
         </button>
 
@@ -217,9 +242,3 @@ export default function SettingsPage() {
   );
 }
 
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB"];
-  const index = Math.floor(Math.log(bytes) / Math.log(1024));
-  return `${(bytes / Math.pow(1024, index)).toFixed(1)} ${units[index]}`;
-}

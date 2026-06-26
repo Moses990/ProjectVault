@@ -1,10 +1,11 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::process::{Command, Stdio};
 use std::sync::Mutex;
 use std::thread;
+use std::time::{Duration, Instant};
 
 use tauri::{Manager, Url, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_shell::{process::CommandChild, ShellExt};
@@ -29,6 +30,29 @@ fn start_backend(app: &tauri::App, port: u16) -> Result<CommandChild, String> {
         .map_err(|error| error.to_string())?;
 
     Ok(child)
+}
+
+fn wait_for_backend_ready(port: u16, timeout_secs: u64) -> Result<(), String> {
+    let deadline = Instant::now() + Duration::from_secs(timeout_secs);
+    let health_url = format!("http://127.0.0.1:{port}/api/v1/health");
+
+    while Instant::now() < deadline {
+        if let Ok(mut stream) = TcpStream::connect_timeout(
+            &format!("127.0.0.1:{port}").parse::<SocketAddr>().map_err(|e| e.to_string())?,
+            Duration::from_millis(500),
+        ) {
+            let request = format!("GET /api/v1/health HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n");
+            let _ = stream.write_all(request.as_bytes());
+            let mut response = String::new();
+            let _ = stream.read_to_string(&mut response);
+            if response.contains("\"status\"") && response.contains("\"ok\"") {
+                return Ok(());
+            }
+        }
+        thread::sleep(Duration::from_millis(300));
+    }
+
+    Err(format!("Backend did not become ready within {timeout_secs}s (checked {health_url})"))
 }
 
 fn response_headers(status: &str, content_type: &str, body_len: usize, frontend_port: u16) -> String {
@@ -204,6 +228,9 @@ fn main() {
             let backend_port = find_free_port().map_err(|error| error.to_string())?;
             let frontend_port = start_frontend_server(app, backend_port)?;
             let child = start_backend(app, backend_port)?;
+
+            // Wait for backend to be ready before showing the UI
+            wait_for_backend_ready(backend_port, 15)?;
 
             let state = app.state::<BackendProcess>();
             *state.0.lock().map_err(|error| error.to_string())? = Some(child);

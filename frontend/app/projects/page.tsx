@@ -6,6 +6,7 @@ import Link from "next/link";
 import { api, Project } from "@/lib/api";
 
 type SortField = "name" | "type" | "phase" | "last_updated_at" | "file_count" | "cad_count" | "material_count";
+type ViewMode = "table" | "card";
 
 export default function ProjectsPage() {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function ProjectsPage() {
   const [phase, setPhase] = useState("");
   const [sortBy, setSortBy] = useState<SortField>("last_updated_at");
   const [order, setOrder] = useState<"asc" | "desc">("desc");
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
   const limit = 20;
 
   const load = useCallback(async () => {
@@ -86,6 +88,13 @@ export default function ProjectsPage() {
           <option value="construction">施工</option>
           <option value="completed">已完成</option>
         </select>
+        <button
+          className="btn btn-sm"
+          onClick={() => setViewMode(viewMode === "table" ? "card" : "table")}
+          title={viewMode === "table" ? "切换到卡片视图" : "切换到列表视图"}
+        >
+          {viewMode === "table" ? "\u25A6 卡片" : "\u2630 列表"}
+        </button>
       </div>
 
       <div className="card" style={{ padding: 0 }}>
@@ -95,6 +104,45 @@ export default function ProjectsPage() {
           <div className="empty-state">
             <p>未找到项目。</p>
             <p className="text-sm">请调整筛选条件或从设置中扫描新项目。</p>
+          </div>
+        ) : viewMode === "card" ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12, padding: 16 }}>
+            {projects.map((p) => (
+              <div
+                key={p.id}
+                className="card"
+                style={{ cursor: "pointer", margin: 0, transition: "border-color 0.15s" }}
+                onClick={() => router.push(`/project-detail?id=${encodeURIComponent(p.id)}`)}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = "")}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <button
+                    className={`fav-btn ${p.is_favorite ? "active" : ""}`}
+                    title="收藏"
+                    onClick={(e) => toggleFav(p, e)}
+                  >
+                    {p.is_favorite ? "\u2605" : "\u2606"}
+                  </button>
+                  <span style={{ fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                </div>
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
+                  {p.type && <span className="badge">{p.type}</span>}
+                  {p.phase && <span className="badge badge-accent">{p.phase}</span>}
+                </div>
+                <div style={{ display: "flex", gap: 16, fontSize: 12, color: "var(--text-dim)" }}>
+                  <span>文件 {p.file_count}</span>
+                  <span>CAD {p.cad_count}</span>
+                  <span>材料 {p.material_count}</span>
+                </div>
+                {p.manager && (
+                  <div className="text-sm text-dim mt-2">{p.manager}</div>
+                )}
+                {p.last_updated_at && (
+                  <div className="text-sm text-dim">{p.last_updated_at}</div>
+                )}
+              </div>
+            ))}
           </div>
         ) : (
           <table className="data-table">

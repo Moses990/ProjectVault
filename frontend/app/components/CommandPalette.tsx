@@ -69,10 +69,19 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   }, [open, results, selectedIndex]);
 
   function selectResult(r: SearchResult) {
+    const tabMap: Record<string, string> = {
+      file: "files",
+      cad: "drawings",
+      material: "materials",
+    };
     if (r.entity_type === "project") {
       router.push(`/project-detail?id=${encodeURIComponent(r.entity_id)}`);
     } else if (r.project_id) {
-      router.push(`/project-detail?id=${encodeURIComponent(r.project_id)}`);
+      const tab = tabMap[r.entity_type];
+      const url = tab
+        ? `/project-detail?id=${encodeURIComponent(r.project_id)}&tab=${tab}`
+        : `/project-detail?id=${encodeURIComponent(r.project_id)}`;
+      router.push(url);
     }
     onClose();
   }

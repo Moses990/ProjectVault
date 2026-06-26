@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api, Settings } from "@/lib/api";
 import { formatBytes } from "@/lib/utils";
+import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -133,22 +134,15 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {showRestoreConfirm && (
-        <div className="cmdk-overlay" onClick={() => setShowRestoreConfirm(false)}>
-          <div className="cmdk-box" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ margin: "0 0 12px", fontSize: 16 }}>确认恢复备份</h2>
-            <p style={{ color: "var(--text-dim)", fontSize: 13, lineHeight: 1.6, margin: "0 0 20px" }}>
-              即将恢复备份 <strong style={{ color: "var(--text)" }}>{backupName.trim()}</strong>，当前数据库将被覆盖。此操作不可撤销。
-            </p>
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button className="btn" onClick={() => setShowRestoreConfirm(false)}>取消</button>
-              <button className="btn btn-danger" onClick={confirmRestore} disabled={restoring}>
-                {restoring ? <><span className="spinner" /> 恢复中...</> : "确认恢复"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={showRestoreConfirm}
+        title="确认恢复备份"
+        message={`即将恢复备份 ${backupName.trim()}，当前数据库将被覆盖。此操作不可撤销。`}
+        confirmLabel="确认恢复"
+        danger
+        onConfirm={confirmRestore}
+        onCancel={() => setShowRestoreConfirm(false)}
+      />
 
       <div className="settings-grid">
       <form onSubmit={handleSave}>

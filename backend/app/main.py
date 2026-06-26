@@ -1,4 +1,5 @@
-﻿from contextlib import asynccontextmanager
+﻿import asyncio
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,12 +19,46 @@ from app.api.settings import router as settings_router
 from app.api.system import router as system_router
 from app.core.config import get_settings
 from app.db.database import initialize_database
+from app.services.settings import settings_get
+from app.watcher.processor import run_watcher_loop
+from app.watcher.queue import DebouncedEventQueue
+from app.watcher.service import FileWatcherService
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     initialize_database()
+
+    # Start file watcher if root_path is configured
+    watcher_service: FileWatcherService | None = None
+    processor_task: asyncio.Task | None = None
+
+    current_settings = settings_get()
+    root_path = current_settings.get("root_path", "")
+    if root_path:
+        from pathlib import Path
+
+        root = Path(root_path)
+        if root.exists() and root.is_dir():
+            event_queue = DebouncedEventQueue()
+            watcher_service = FileWatcherService(event_queue)
+            try:
+                watcher_service.start(root)
+                processor_task = asyncio.create_task(run_watcher_loop(event_queue))
+            except Exception:
+                watcher_service = None
+
     yield
+
+    # Shutdown watcher
+    if processor_task is not None:
+        processor_task.cancel()
+        try:
+            await processor_task
+        except asyncio.CancelledError:
+            pass
+    if watcher_service is not None:
+        watcher_service.stop()
 
 
 def create_app() -> FastAPI:

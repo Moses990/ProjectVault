@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { api, Provider } from "@/lib/api";
+import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 
 type EditingState = {
   id: string | null;
@@ -31,6 +32,7 @@ export default function AICenterPage() {
   const [saving, setSaving] = useState(false);
   const [testingId, setTestingId] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<Record<string, { ready: boolean; message: string }>>({});
+  const [deleteTarget, setDeleteTarget] = useState<Provider | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -94,13 +96,19 @@ export default function AICenterPage() {
     }
   }
 
-  async function handleDelete(p: Provider) {
-    if (!confirm(`确定删除提供商 "${p.name}" 吗？`)) return;
+  function handleDelete(p: Provider) {
+    setDeleteTarget(p);
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
     try {
-      await api.deleteProvider(p.id);
+      await api.deleteProvider(deleteTarget.id);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "删除提供商失败");
+    } finally {
+      setDeleteTarget(null);
     }
   }
 
@@ -282,6 +290,15 @@ export default function AICenterPage() {
           )}
         </>
       )}
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="确认删除提供商"
+        message={`即将删除提供商 "${deleteTarget?.name ?? ""}"，此操作不可撤销。`}
+        confirmLabel="确认删除"
+        danger
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

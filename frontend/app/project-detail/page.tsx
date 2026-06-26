@@ -25,9 +25,10 @@ function ProjectDetailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id") ?? "";
+  const initialTab = (searchParams.get("tab") as Tab) || "overview";
 
   const [overview, setOverview] = useState<ProjectOverview | null>(null);
-  const [tab, setTab] = useState<Tab>("overview");
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);

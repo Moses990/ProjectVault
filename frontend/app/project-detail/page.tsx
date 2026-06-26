@@ -79,7 +79,7 @@ function ProjectDetailContent() {
     { key: "drawings", label: "图纸", count: overview?.cad_count },
     { key: "materials", label: "材料", count: overview?.material_count },
     { key: "ai", label: "AI 元数据" },
-    { key: "history", label: "历史记录" },
+    { key: "history", label: "历史" },
   ];
 
   if (loading && !overview) {
@@ -93,7 +93,7 @@ function ProjectDetailContent() {
           <h1 className="page-title">项目</h1>
           <Link href="/projects" className="btn btn-sm">返回项目列表</Link>
         </div>
-        <div className="card" style={{ borderColor: "var(--danger)", color: "var(--danger)" }}>
+        <div className="card" style={{ borderColor: "rgba(235,87,87,0.4)", color: "var(--danger)" }}>
           {error}
         </div>
       </div>
@@ -103,27 +103,36 @@ function ProjectDetailContent() {
   return (
     <div>
       <div className="page-header">
-        <div className="flex items-center gap-2">
-          <button className="btn btn-icon" onClick={() => router.back()} title="返回">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button className="btn-icon" onClick={() => router.back()} title="返回">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
           </button>
-          <h1 className="page-title">{overview?.name ?? "项目"}</h1>
-          {overview?.phase && <span className="badge badge-accent">{overview.phase}</span>}
-          {overview?.status && <span className="badge">{overview.status}</span>}
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h1 className="page-title" style={{ margin: 0 }}>{overview?.name ?? "项目"}</h1>
+              {overview?.phase && <span className="badge badge-accent">{overview.phase}</span>}
+              {overview?.status && <span className="badge">{overview.status}</span>}
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button className="btn btn-sm" onClick={handleScan} disabled={scanning}>
-            {scanning ? <><span className="spinner" /> 扫描中...</> : "重新扫描"}
-          </button>
-        </div>
+        <button className="btn btn-sm" onClick={handleScan} disabled={scanning} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {scanning ? (
+            <><span className="spinner" style={{ width: 12, height: 12 }} /> 扫描中...</>
+          ) : (
+            <>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 11-3-6.7" /><path d="M21 3v6h-6" /></svg>
+              重新扫描
+            </>
+          )}
+        </button>
       </div>
 
       {scanResult && (
-        <div className="card mb-4" style={{ fontSize: 13 }}>{scanResult}</div>
+        <div className="card mb-4" style={{ fontSize: 13, padding: "12px 16px", borderColor: "rgba(76,183,130,0.3)", color: "var(--success)" }}>{scanResult}</div>
       )}
 
       {error && (
-        <div className="card mb-4" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>
+        <div className="card mb-4" style={{ fontSize: 13, padding: "12px 16px", borderColor: "rgba(242,190,0,0.3)", color: "var(--warn)" }}>
           {error}（显示缓存数据）
         </div>
       )}
@@ -137,7 +146,7 @@ function ProjectDetailContent() {
           >
             {t.label}
             {t.count !== undefined && t.count > 0 && (
-              <span className="badge" style={{ marginLeft: 6 }}>{t.count}</span>
+              <span style={{ marginLeft: 6, fontSize: 11, color: "var(--text-muted)", background: "var(--bg-elev2)", padding: "1px 6px", borderRadius: "var(--radius-pill)" }}>{t.count}</span>
             )}
           </button>
         ))}

@@ -1,8 +1,11 @@
 ﻿import asyncio
 from contextlib import asynccontextmanager
+from collections import defaultdict
+import time
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.api.assets import router as assets_router
 from app.api.dashboard import router as dashboard_router
@@ -20,6 +23,7 @@ from app.api.system import router as system_router
 from app.core.config import get_settings
 from app.db.database import initialize_database
 from app.services.settings import settings_get
+from app.services.system import ScannerState, set_scanner_state
 from app.watcher.processor import run_watcher_loop
 from app.watcher.queue import DebouncedEventQueue
 from app.watcher.service import FileWatcherService
@@ -32,6 +36,7 @@ async def lifespan(app: FastAPI):
     # Start file watcher if root_path is configured
     watcher_service: FileWatcherService | None = None
     processor_task: asyncio.Task | None = None
+    state: ScannerState | None = None
 
     current_settings = settings_get()
     root_path = current_settings.get("root_path", "")
@@ -42,11 +47,18 @@ async def lifespan(app: FastAPI):
         if root.exists() and root.is_dir():
             event_queue = DebouncedEventQueue()
             watcher_service = FileWatcherService(event_queue)
+            state = ScannerState()
+            state.status = "IDLE"
+            set_scanner_state(state)
             try:
                 watcher_service.start(root)
-                processor_task = asyncio.create_task(run_watcher_loop(event_queue))
+                processor_task = asyncio.create_task(
+                    run_watcher_loop(event_queue, scanner_state=state)
+                )
             except Exception:
                 watcher_service = None
+                state = None
+                set_scanner_state(None)
 
     yield
 
@@ -59,6 +71,7 @@ async def lifespan(app: FastAPI):
             pass
     if watcher_service is not None:
         watcher_service.stop()
+    set_scanner_state(None)
 
 
 def create_app() -> FastAPI:
@@ -71,6 +84,27 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # B10: Simple rate limiter (100 requests per minute per IP)
+    rate_limit_store: dict[str, list[float]] = defaultdict(list)
+    RATE_LIMIT = 100
+    RATE_WINDOW = 60.0
+
+    @app.middleware("http")
+    async def rate_limit_middleware(request: Request, call_next):
+        client_ip = request.client.host if request.client else "unknown"
+        now = time.time()
+        # Clean old entries
+        rate_limit_store[client_ip] = [t for t in rate_limit_store[client_ip] if now - t < RATE_WINDOW]
+        if len(rate_limit_store[client_ip]) >= RATE_LIMIT:
+            return JSONResponse(
+                status_code=429,
+                content={"status": "error", "message": "rate_limit_exceeded", "data": None, "meta": {}},
+            )
+        rate_limit_store[client_ip].append(now)
+        response = await call_next(request)
+        return response
+
     app.include_router(health_router, prefix=settings.api_prefix)
     app.include_router(dashboard_router, prefix=settings.api_prefix)
     app.include_router(projects_router, prefix=settings.api_prefix)

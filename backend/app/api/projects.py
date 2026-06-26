@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 from app.api.response import page_meta, success_response
 from app.core_api import (
+    analyze_project_with_ai,
     list_projects,
     project_ai_metadata,
     project_overview,
@@ -55,6 +56,8 @@ def get_projects(
     sort_by: str = "last_updated_at",
     order: str = "desc",
 ) -> dict[str, object]:
+    if q and len(q) > 200:
+        raise HTTPException(status_code=400, detail="query_too_long")
     try:
         items, total, resolved_page, resolved_limit = list_projects(
             q=q,
@@ -87,6 +90,26 @@ def post_project_favorite(
     return success_response(data, "favorite_updated")
 
 
+@router.get("/favorites")
+def get_favorite_projects() -> dict[str, object]:
+    from app.db.database import connect
+    from app.services import row_to_dict
+
+    with connect(get_database_path()) as conn:
+        rows = conn.execute(
+            """
+            SELECT p.id, p.name, p.type, p.phase, p.status, p.manager,
+                   p.file_count, p.cad_count, p.material_count, p.last_updated_at,
+                   1 AS is_favorite
+            FROM projects p
+            INNER JOIN favorites f ON f.identity_type = 'project' AND f.entity_id = p.id
+            ORDER BY p.last_updated_at DESC
+            LIMIT 20
+            """
+        ).fetchall()
+    return success_response([row_to_dict(row) for row in rows], "favorite_projects")
+
+
 @router.get("/{project_id}/overview")
 def get_project_overview(project_id: str) -> dict[str, object]:
     try:
@@ -103,3 +126,16 @@ def get_project_ai_metadata(project_id: str) -> dict[str, object]:
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return success_response(data, "project_ai_metadata")
+
+
+@router.post("/{project_id}/ai-analyze")
+def post_project_ai_analyze(project_id: str) -> dict[str, object]:
+    try:
+        data = analyze_project_with_ai(project_id, db_path=get_database_path())
+    except ValueError as exc:
+        detail = str(exc)
+        status_code = 404 if detail == "project_not_found" else 400
+        raise HTTPException(status_code=status_code, detail=detail) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"analysis_failed: {exc}") from exc
+    return success_response(data, "project_analyzed")

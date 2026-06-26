@@ -9,7 +9,13 @@ from app.services import clamp_page, clamp_limit, row_to_dict
 
 
 def settings_get(db_path: Path | None = None) -> dict[str, object]:
-    defaults: dict[str, object] = {"root_path": "", "scan_interval": 60, "theme": "system"}
+    defaults: dict[str, object] = {
+        "root_path": "",
+        "scan_interval": 60,
+        "auto_scan": True,
+        "backup_retention": 10,
+        "theme": "system",
+    }
     with connect(db_path) as conn:
         rows = conn.execute("SELECT key, value FROM system_settings").fetchall()
     values = defaults.copy()
@@ -17,6 +23,10 @@ def settings_get(db_path: Path | None = None) -> dict[str, object]:
         key = row["key"]
         value = row["value"]
         if key == "scan_interval" and value is not None:
+            values[key] = int(value)
+        elif key == "auto_scan":
+            values[key] = value.lower() not in ("false", "0", "no") if value else True
+        elif key == "backup_retention" and value is not None:
             values[key] = int(value)
         else:
             values[key] = value or ""
@@ -28,13 +38,26 @@ def settings_put(
     db_path: Path | None = None,
 ) -> dict[str, object]:
     root_path = str(data.get("root_path", ""))
+    if len(root_path) > 500:
+        raise ValueError("root_path_too_long")
     if root_path and not Path(root_path).exists():
         raise ValueError("root_path_invalid")
     scan_interval = int(data.get("scan_interval", 60))
-    if scan_interval < 1:
+    if scan_interval < 1 or scan_interval > 86400:
         raise ValueError("scan_interval_invalid")
     theme = str(data.get("theme", "system"))
-    values = {"root_path": root_path, "scan_interval": str(scan_interval), "theme": theme}
+    if theme not in ("dark", "light", "system"):
+        raise ValueError("theme_invalid")
+    backup_retention = int(data.get("backup_retention", 10))
+    if backup_retention < 1 or backup_retention > 100:
+        raise ValueError("backup_retention_invalid")
+    values = {
+        "root_path": root_path,
+        "scan_interval": str(scan_interval),
+        "theme": theme,
+        "backup_retention": str(backup_retention),
+        "auto_scan": str(data.get("auto_scan", True)).lower(),
+    }
     with connect(db_path) as conn:
         for key, value in values.items():
             conn.execute(

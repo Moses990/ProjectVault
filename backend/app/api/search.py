@@ -28,6 +28,8 @@ def get_search(
     category: str | None = None,
     limit: int = 20,
 ) -> dict[str, object]:
+    if len(q) > 200:
+        raise HTTPException(status_code=400, detail="query_too_long")
     try:
         results = search(q, category=category, limit=limit)
     except ValueError as exc:

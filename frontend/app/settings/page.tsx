@@ -19,6 +19,8 @@ export default function SettingsPage() {
 
   const [rootPath, setRootPath] = useState("");
   const [scanInterval, setScanInterval] = useState(60);
+  const [autoScan, setAutoScan] = useState(true);
+  const [backupRetention, setBackupRetention] = useState(10);
   const [theme, setTheme] = useState("system");
   const [backupName, setBackupName] = useState("");
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
@@ -28,6 +30,8 @@ export default function SettingsPage() {
       setSettings(s);
       setRootPath(s.root_path);
       setScanInterval(s.scan_interval);
+      setAutoScan(s.auto_scan !== false);
+      setBackupRetention(s.backup_retention ?? 10);
       setTheme(s.theme);
     }).catch((e) => {
       setError(e instanceof Error ? e.message : "加载设置失败");
@@ -43,6 +47,8 @@ export default function SettingsPage() {
       const updated = await api.saveSettings({
         root_path: rootPath,
         scan_interval: scanInterval,
+        auto_scan: autoScan,
+        backup_retention: backupRetention,
         theme,
       });
       setSettings(updated);
@@ -115,21 +121,20 @@ export default function SettingsPage() {
     <div>
       <div className="page-header">
         <h1 className="page-title">设置</h1>
-        <Link href="/" className="btn btn-sm">返回工作台</Link>
       </div>
 
       {error && (
-        <div className="card mb-4" style={{ borderColor: "var(--danger)", color: "var(--danger)" }}>
+        <div className="card mb-4" style={{ borderColor: "rgba(235,87,87,0.4)", color: "var(--danger)", padding: "12px 16px", fontSize: 13 }}>
           {error}
         </div>
       )}
       {success && (
-        <div className="card mb-4" style={{ borderColor: "var(--success)", color: "var(--success)" }}>
+        <div className="card mb-4" style={{ borderColor: "rgba(76,183,130,0.4)", color: "var(--success)", padding: "12px 16px", fontSize: 13 }}>
           设置保存成功。
         </div>
       )}
       {systemMessage && (
-        <div className="card mb-4" style={{ borderColor: "var(--success)", color: "var(--success)" }}>
+        <div className="card mb-4" style={{ borderColor: "rgba(76,183,130,0.4)", color: "var(--success)", padding: "12px 16px", fontSize: 13 }}>
           {systemMessage}
         </div>
       )}
@@ -145,94 +150,138 @@ export default function SettingsPage() {
       />
 
       <div className="settings-grid">
-      <form onSubmit={handleSave}>
+        <form onSubmit={handleSave}>
+          <div className="card">
+            <h2 className="section-title">常规</h2>
+
+            <div className="form-group">
+              <label className="form-label">项目根路径</label>
+              <input
+                className="form-input"
+                type="text"
+                value={rootPath}
+                onChange={(e) => setRootPath(e.target.value)}
+                placeholder="D:\Projects or /home/user/projects"
+              />
+              <div className="text-sm" style={{ color: "var(--text-muted)", marginTop: 4 }}>
+                扫描器将在此路径下发现项目。
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">扫描间隔（秒）</label>
+              <input
+                className="form-input"
+                type="number"
+                min={10}
+                max={3600}
+                value={scanInterval}
+                onChange={(e) => setScanInterval(Number(e.target.value))}
+              />
+              <div className="text-sm" style={{ color: "var(--text-muted)", marginTop: 4 }}>
+                监视器检查文件变更的频率。
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13 }}>
+                <input
+                  type="checkbox"
+                  checked={autoScan}
+                  onChange={(e) => setAutoScan(e.target.checked)}
+                />
+                <span>启用自动扫描</span>
+              </label>
+              <div className="text-sm" style={{ color: "var(--text-muted)", marginTop: 4, marginLeft: 20 }}>
+                关闭后文件监视器将停止自动检测变更。
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">备份保留数量</label>
+              <input
+                className="form-input"
+                type="number"
+                min={1}
+                max={100}
+                value={backupRetention}
+                onChange={(e) => setBackupRetention(Number(e.target.value))}
+              />
+              <div className="text-sm" style={{ color: "var(--text-muted)", marginTop: 4 }}>
+                保留最近的数据库备份数量，超出后自动清理旧备份。
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">主题</label>
+              <select
+                className="form-select"
+                value={theme}
+                onChange={(e) => setTheme(e.target.value)}
+              >
+                <option value="system">跟随系统</option>
+                <option value="dark">深色</option>
+                <option value="light">浅色</option>
+              </select>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 20 }}>
+              <button type="submit" className="btn btn-primary" disabled={saving}>
+                {saving ? <><span className="spinner" style={{ width: 12, height: 12 }} /> 保存中...</> : "保存"}
+              </button>
+              {settings && (
+                <span className="text-sm" style={{ color: "var(--text-muted)" }}>
+                  根路径: {settings.root_path || "未设置"} · 间隔: {settings.scan_interval}s
+                </span>
+              )}
+            </div>
+          </div>
+        </form>
+
         <div className="card">
-          <h2 className="section-title">常规设置</h2>
-          <div className="form-group">
-            <label className="form-label">根路径</label>
-            <input
-              className="form-input"
-              type="text"
-              value={rootPath}
-              onChange={(e) => setRootPath(e.target.value)}
-              placeholder="D:\Projects or /home/user/projects"
-            />
-            <div className="text-sm text-dim mt-2">
-              项目文件夹所在的根目录。扫描器将在此路径下发现项目。
+          <h2 className="section-title">维护</h2>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button type="button" className="btn" onClick={runMaintenance} disabled={maintaining}>
+                {maintaining ? <><span className="spinner" style={{ width: 12, height: 12 }} /> 运行中...</> : (
+                  <>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v5l3 2M21 12a9 9 0 11-3-6.7" /></svg>
+                    执行维护
+                  </>
+                )}
+              </button>
+              <button type="button" className="btn" onClick={createBackup} disabled={backupRunning}>
+                {backupRunning ? <><span className="spinner" style={{ width: 12, height: 12 }} /> 创建中...</> : (
+                  <>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v13M19 9l-7 7-7-7M5 21h14" /></svg>
+                    创建备份
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: 16 }}>
+              <div className="form-group">
+                <label className="form-label">恢复备份名称</label>
+                <input
+                  className="form-input"
+                  value={backupName}
+                  onChange={(event) => setBackupName(event.target.value)}
+                  placeholder="project_vault_20260625_120000.db"
+                />
+              </div>
+              <button type="button" className="btn btn-danger" onClick={requestRestore} disabled={restoring}>
+                {restoring ? <><span className="spinner" style={{ width: 12, height: 12 }} /> 恢复中...</> : "恢复备份"}
+              </button>
+            </div>
+
+            <div className="text-sm" style={{ color: "var(--text-muted)", lineHeight: 1.6 }}>
+              维护功能根据保留策略清理扫描历史并执行 SQLite 增量回收。备份和恢复仅操作本地 SQLite 缓存。
             </div>
           </div>
-
-          <div className="form-group">
-            <label className="form-label">扫描间隔（秒）</label>
-            <input
-              className="form-input"
-              type="number"
-              min={10}
-              max={3600}
-              value={scanInterval}
-              onChange={(e) => setScanInterval(Number(e.target.value))}
-            />
-            <div className="text-sm text-dim mt-2">
-              监视器检查文件变更的频率。值越小检测越快，但 CPU 占用越高。
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">主题</label>
-            <select
-              className="form-select"
-              value={theme}
-              onChange={(e) => setTheme(e.target.value)}
-            >
-              <option value="system">跟随系统</option>
-              <option value="dark">深色</option>
-              <option value="light">浅色</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2 mt-4">
-            <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? <><span className="spinner" /> 保存中...</> : "保存设置"}
-            </button>
-            {settings && (
-              <span className="text-sm text-dim">
-                上次保存：根路径={settings.root_path || "（空）"}，间隔={settings.scan_interval}秒
-              </span>
-            )}
-          </div>
         </div>
-      </form>
-
-      <div className="card">
-        <h2 className="section-title">系统维护</h2>
-        <div className="maintenance-actions">
-          <button type="button" className="btn" onClick={runMaintenance} disabled={maintaining}>
-            {maintaining ? <><span className="spinner" /> 运行中...</> : "执行维护"}
-          </button>
-          <button type="button" className="btn" onClick={createBackup} disabled={backupRunning}>
-            {backupRunning ? <><span className="spinner" /> 创建中...</> : "创建备份"}
-          </button>
-        </div>
-
-        <div className="form-group mt-4">
-          <label className="form-label">恢复备份名称</label>
-          <input
-            className="form-input"
-            value={backupName}
-            onChange={(event) => setBackupName(event.target.value)}
-            placeholder="project_vault_20260625_120000.db"
-          />
-        </div>
-        <button type="button" className="btn btn-danger" onClick={requestRestore} disabled={restoring}>
-          {restoring ? <><span className="spinner" /> 恢复中...</> : "恢复备份"}
-        </button>
-
-        <div className="text-sm text-dim mt-4">
-          维护功能根据保留策略清理扫描历史并执行 SQLite 增量回收。备份和恢复仅操作本地 SQLite 缓存。
-        </div>
-      </div>
       </div>
     </div>
   );
 }
-

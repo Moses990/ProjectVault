@@ -106,6 +106,12 @@ export type ProjectFile = {
   last_modified: string | null;
 };
 
+export type TreeNode = {
+  name: string;
+  file_count: number;
+  children: TreeNode[];
+};
+
 export type Drawing = {
   id: string;
   project_id: string;
@@ -177,6 +183,8 @@ export type SearchResult = {
 export type Settings = {
   root_path: string;
   scan_interval: number;
+  auto_scan: boolean;
+  backup_retention: number;
   theme: string;
 };
 
@@ -225,6 +233,7 @@ export const api = {
   // Dashboard
   dashboardMetrics: () => request<DashboardMetrics>("/dashboard/metrics"),
   recentProjects: (limit = 10) => request<Project[]>(`/dashboard/recent-projects?limit=${limit}`),
+  favoriteProjects: () => request<Project[]>("/projects/favorites"),
 
   // Projects
   projects: (params: {
@@ -248,6 +257,7 @@ export const api = {
   },
   projectOverview: (id: string) => request<ProjectOverview>(`/projects/${id}/overview`),
   projectAIMetadata: (id: string) => request<AIMetadata>(`/projects/${id}/ai-metadata`),
+  analyzeProject: (id: string) => request<AIMetadata & { provider: string; model: string }>(`/projects/${id}/ai-analyze`, { method: "POST" }),
   toggleFavorite: (id: string, isFavorite: boolean) =>
     request<{ id: string; is_favorite: boolean }>(`/projects/${id}/favorite`, {
       method: "POST",
@@ -257,6 +267,9 @@ export const api = {
   // Files
   projectFiles: (id: string, page = 1, limit = 50) =>
     requestFull<ProjectFile[]>(`/projects/${id}/files?page=${page}&limit=${limit}`),
+  projectFileTree: (id: string) => request<TreeNode>(`/projects/${id}/file-tree`),
+  filesExportUrl: (id: string) => `${baseUrl()}/projects/${id}/files/export`,
+  drawingsExportUrl: (id: string) => `${baseUrl()}/projects/${id}/drawings/export`,
 
   // Drawings
   projectDrawings: (id: string) => request<Drawing[]>(`/projects/${id}/drawings`),
@@ -336,4 +349,11 @@ export const api = {
 
   // Assets
   assetContentUrl: (fileId: string) => `${baseUrl()}/assets/${fileId}/content`,
+  assetThumbnailUrl: (fileId: string, size = 200) => `${baseUrl()}/assets/${fileId}/thumbnail?size=${size}`,
+  assetTextUrl: (fileId: string) => `${baseUrl()}/assets/${fileId}/text`,
+  fetchAssetText: async (fileId: string): Promise<string> => {
+    const res = await fetch(`${baseUrl()}/assets/${fileId}/text`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
+    return res.text();
+  },
 };

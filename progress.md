@@ -608,3 +608,17 @@ Phase 12.2：Packaged UI Render Validation，状态：in_progress。
 - 验证通过：`cargo check`，project-vault v0.1.0 编译成功（7.01s），无错误无警告。
 - 已知开发模式限制（不影响生产构建）：`next dev` 下 `process.env.NEXT_PUBLIC_BACKEND_PORT` 可能因 CMD 环境变量设置时序未被 webpack 内联；`output: "export"` + `trailingSlash: true` 在 dev 模式导致 ChunkLoadError，生产静态导出不受影响。
 - 下一步：可选择运行 `cargo tauri dev` 做完整桌面端到端验证，或继续处理审查报告中剩余的约 41 项改进建议。
+
+## 2026-06-26 Phase 13.6 Phase 2 Quick-Win 改进记录
+
+- 状态：complete。已完成审查报告中 Phase 2 全部 7 项 quick-win 改进。
+- F8/F9 共享组件与 hook：新建 `frontend/lib/useApi.ts`（通用 `useApi<T>` hook，含 data/loading/error/refetch）；新建 `frontend/app/components/ConfirmDialog.tsx`（确认弹窗，复用 cmdk-overlay 样式）、`ErrorBanner.tsx`（错误提示条）、`EmptyState.tsx`（空状态占位）、`Pagination.tsx`（分页组件）；`settings/page.tsx` 和 `ai-center/page.tsx` 已替换原生 `confirm()` 为 ConfirmDialog。
+- B1 核心 API 拆分：`backend/app/core_api.py`（856 行）拆为 `app/services/` 下 7 个领域模块（`__init__.py` 共享工具、`projects.py`、`files.py`、`drawings.py`、`settings.py`、`system.py`、`ai_providers.py`）；`core_api.py` 改为兼容重导出层，所有 API 路由无需改动；新增 `app/watcher/processor.py`（事件消费者，消费 DebouncedEventQueue 并触发增量扫描，带项目级 cooldown）。
+- P5 AI Provider 真实连通性测试：`test_ai_provider` 从仅检查字段存在改为实际 HTTP GET `{base_url}/models` + Bearer auth，10s 超时；区分 401/403（密钥无效）、网络错误、未知错误。
+- P6 Watcher 队列接入增量扫描：`app/main.py` lifespan 中读取 system_settings 的 root_path，若有效则创建 DebouncedEventQueue + FileWatcherService + asyncio.create_task(run_watcher_loop)；shutdown 时 cancel task + stop watcher。
+- P8 项目卡片视图：`projects/page.tsx` 新增 viewMode 状态和切换按钮（列表/卡片），卡片视图使用 CSS Grid `repeat(auto-fill, minmax(280px, 1fr))`，显示项目名、类型/阶段徽章、文件/CAD/材料计数、负责人、更新时间。
+- P4 搜索结果跳转：`CommandPalette.tsx` 的 `selectResult` 根据 entity_type 拼接 tab 参数（file→files、cad→drawings、material→materials）；`project-detail/page.tsx` 新增读取 URL `tab` 参数作为初始 tab。
+- 验证通过：`python3 -m compileall app` 后端全量编译通过。
+- 验证通过：`npm run build` 前端 9 路由静态生成通过（828.5ms）。
+- 验证通过：`cargo check` 桌面 Rust 主进程编译通过（1.10s）。
+- Git 提交：`5884567 Phase 2: 7 quick-win improvements`，20 files changed, 1320 insertions(+), 877 deletions(-)；tag v1.1.0 已推送远程。

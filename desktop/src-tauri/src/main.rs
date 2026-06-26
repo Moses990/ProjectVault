@@ -220,17 +220,78 @@ fn stop_backend(state: &BackendProcess) {
     }
 }
 
+fn check_webview2_runtime() -> Result<(), String> {
+    // Try to detect WebView2 by checking if the Evergreen runtime exists
+    let local_app_data = std::env::var("LOCALAPPDATA").unwrap_or_default();
+    let evergreen_path = format!(
+        r"{local_app_data}\Microsoft\EdgeWebView\Application"
+    );
+    if std::path::Path::new(&evergreen_path).exists() {
+        return Ok(());
+    }
+
+    // Check registry for installed WebView2 runtime
+    #[cfg(target_os = "windows")]
+    {
+        use std::process::Command;
+        let output = Command::new("reg")
+            .args([
+                "query",
+                r"SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BEB-E15AB5810CD5}",
+                "/v",
+                "pv",
+            ])
+            .stdin(Stdio::null())
+            .output();
+        if let Ok(output) = output {
+            if output.status.success() {
+                return Ok(());
+            }
+        }
+    }
+
+    Err(
+        "WebView2 runtime not found. Project Vault requires Microsoft Edge WebView2 runtime. \
+         Please install it from: https://developer.microsoft.com/en-us/microsoft-edge/webview2/"
+            .to_string(),
+    )
+}
+
 fn main() {
+    // Initialize structured logging
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+        )
+        .init();
+
+    tracing::info!("Project Vault desktop starting");
+
+    // Check WebView2 runtime availability
+    if let Err(error) = check_webview2_runtime() {
+        tracing::error!("{error}");
+        eprintln!("{error}");
+        return;
+    }
+    tracing::info!("WebView2 runtime detected");
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .manage(BackendProcess(Mutex::new(None)))
         .setup(|app| {
             let backend_port = find_free_port().map_err(|error| error.to_string())?;
+            tracing::info!("Backend port allocated: {backend_port}");
+
             let frontend_port = start_frontend_server(app, backend_port)?;
+            tracing::info!("Frontend server started on port {frontend_port}");
+
             let child = start_backend(app, backend_port)?;
+            tracing::info!("Backend process spawned (PID: {})", child.pid());
 
             // Wait for backend to be ready before showing the UI
             wait_for_backend_ready(backend_port, 15)?;
+            tracing::info!("Backend health check passed");
 
             let state = app.state::<BackendProcess>();
             *state.0.lock().map_err(|error| error.to_string())? = Some(child);
@@ -244,10 +305,12 @@ fn main() {
                 .build()
                 .map_err(|error| error.to_string())?;
 
+            tracing::info!("Main window created, application ready");
             Ok(())
         })
         .on_window_event(|window, event| {
             if matches!(event, tauri::WindowEvent::Destroyed) {
+                tracing::info!("Main window destroyed, stopping backend");
                 let state = window.state::<BackendProcess>();
                 stop_backend(&state);
             }
@@ -256,6 +319,7 @@ fn main() {
         .expect("failed to build Project Vault desktop app")
         .run(|app_handle, event| {
             if matches!(event, tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit) {
+                tracing::info!("Application exit requested, cleaning up");
                 let state = app_handle.state::<BackendProcess>();
                 stop_backend(&state);
             }

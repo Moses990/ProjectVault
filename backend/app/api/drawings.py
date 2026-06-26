@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 
 from app.api.response import page_meta, success_response
 from app.core_api import drawing_versions, drawings_center, list_project_drawings
@@ -56,3 +57,35 @@ def get_drawing_versions(drawing_id: str) -> dict[str, object]:
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return success_response(data, "drawing_versions")
+
+
+@router.get("/projects/{project_id}/drawings/export")
+def export_project_drawings_csv(project_id: str) -> StreamingResponse:
+    """Export project drawing list as CSV."""
+    import csv
+    import io
+
+    try:
+        items = list_project_drawings(project_id, db_path=get_database_path())
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["file_name", "relative_path", "dwg_category", "version_group", "version_number", "is_current", "last_modified"])
+    for item in items:
+        writer.writerow([
+            item.get("file_name", ""),
+            item.get("relative_path", ""),
+            item.get("dwg_category", ""),
+            item.get("version_group", ""),
+            item.get("version_number", ""),
+            "是" if item.get("is_current") else "否",
+            item.get("last_modified", ""),
+        ])
+
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename=project_{project_id}_drawings.csv"},
+    )

@@ -12,15 +12,46 @@ from app.db.database import connect
 from app.services import _parse_datetime
 
 
+class ScannerState:
+    """Shared mutable state for the file watcher / processor pipeline."""
+
+    def __init__(self) -> None:
+        self.status: str = "IDLE"
+        self.queue_length: int = 0
+        self.current_project: str = ""
+        self.current_file: str = ""
+        self.total_events_processed: int = 0
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "status": self.status,
+            "progress": 0.0,
+            "queue_length": self.queue_length,
+            "pending_projects": 0,
+            "current_project": self.current_project,
+            "current_file": self.current_file,
+            "total_events_processed": self.total_events_processed,
+        }
+
+
+_scanner_state: ScannerState | None = None
+
+
+def get_scanner_state_instance() -> ScannerState:
+    global _scanner_state
+    if _scanner_state is None:
+        _scanner_state = ScannerState()
+    return _scanner_state
+
+
+def set_scanner_state(state: ScannerState | None) -> None:
+    global _scanner_state
+    _scanner_state = state
+
+
 def scanner_status() -> dict[str, object]:
-    return {
-        "status": "IDLE",
-        "progress": 0.0,
-        "queue_length": 0,
-        "pending_projects": 0,
-        "current_project": "",
-        "current_file": "",
-    }
+    state = get_scanner_state_instance()
+    return state.to_dict()
 
 
 def scan_project_by_id(project_id: str, db_path: Path | None = None) -> dict[str, object]:
@@ -153,14 +184,23 @@ def create_database_backup(db_path: Path | None = None) -> dict[str, object]:
         dst.close()
         src.close()
 
+    # Read retention count from settings (default 10)
+    retention_count = 10
+    try:
+        from app.services.settings import settings_get
+        settings = settings_get(db_path=db_path)
+        retention_count = int(settings.get("backup_retention", 10))
+    except Exception:
+        pass
+
     backups = sorted(backup_dir.glob("project_vault_*.db"), key=lambda p: p.stat().st_mtime, reverse=True)
-    for old_backup in backups[10:]:
+    for old_backup in backups[retention_count:]:
         old_backup.unlink(missing_ok=True)
 
     return {
         "name": backup_path.name,
         "size_bytes": backup_path.stat().st_size,
-        "retention_count": 10,
+        "retention_count": retention_count,
     }
 
 

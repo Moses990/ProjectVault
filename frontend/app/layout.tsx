@@ -39,6 +39,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="zh-CN">
+      <head>
+        <title>Project Vault</title>
+        <meta name="description" content="本地优先的项目文件管理工具" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </head>
       <body>
         <div className="app-shell">
           <Sidebar onOpenSearch={() => setSearchOpen(true)} />

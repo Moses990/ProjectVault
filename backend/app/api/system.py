@@ -21,6 +21,12 @@ class ExplorerOpenRequest(BaseModel):
 class MaintenanceRequest(BaseModel):
     now: str | None = None
 
+    @classmethod
+    def validate_now(cls, v: str | None) -> str | None:
+        if v is not None and len(v) > 50:
+            raise ValueError("now_too_long")
+        return v
+
 
 class BackupRestoreRequest(BaseModel):
     name: str

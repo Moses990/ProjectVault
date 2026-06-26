@@ -11,7 +11,7 @@ export default function Error({
     <div style={{ padding: "48px 24px", textAlign: "center" }}>
       <div className="card" style={{ maxWidth: 480, margin: "0 auto" }}>
         <h2 style={{ marginBottom: 12, color: "var(--danger)" }}>页面出错了</h2>
-        <p style={{ color: "var(--text-secondary)", marginBottom: 20 }}>
+        <p style={{ color: "var(--text-dim)", marginBottom: 20, fontSize: 13, lineHeight: 1.6 }}>
           {error.message || "发生未知错误，请尝试重新加载。"}
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>

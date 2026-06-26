@@ -15,6 +15,7 @@ from app.services import (
     row_to_dict,
 )
 from app.services.ai_providers import (
+    analyze_project_with_ai,
     create_ai_provider,
     delete_ai_provider,
     list_ai_providers,
@@ -28,8 +29,10 @@ from app.services.drawings import (
     list_project_materials,
 )
 from app.services.files import (
+    get_project_file_tree,
     list_project_files,
     open_explorer_target,
+    read_asset_text,
     resolve_asset,
 )
 from app.services.projects import (

@@ -136,15 +136,18 @@ export default function AICenterPage() {
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">AI 中心</h1>
-        <div className="flex items-center gap-2">
-          <button className="btn btn-primary btn-sm" onClick={startCreate}>+ 添加提供商</button>
-          <Link href="/" className="btn btn-sm">返回工作台</Link>
+        <div>
+          <h1 className="page-title">AI 中心</h1>
+          <p className="text-sm" style={{ color: "var(--text-dim)", marginTop: 4 }}>管理 AI 提供商以启用智能元数据提取。</p>
         </div>
+        <button className="btn btn-primary btn-sm" onClick={startCreate}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+          添加提供商
+        </button>
       </div>
 
       {error && (
-        <div className="card mb-4" style={{ borderColor: "var(--danger)", color: "var(--danger)" }}>
+        <div className="card mb-4" style={{ borderColor: "rgba(235,87,87,0.4)", color: "var(--danger)", padding: "12px 16px", fontSize: 13 }}>
           {error}
         </div>
       )}
@@ -152,46 +155,52 @@ export default function AICenterPage() {
       {loading ? (
         <div className="empty-state"><span className="spinner" /> 加载提供商列表...</div>
       ) : providers.length === 0 && !showForm ? (
-        <div className="card empty-state">
-          <p>尚未配置 AI 提供商。</p>
-          <p className="text-sm mt-2">添加提供商以启用 AI 驱动的元数据提取。</p>
-          <button className="btn btn-primary btn-sm mt-4" onClick={startCreate}>+ 添加提供商</button>
+        <div className="card" style={{ textAlign: "center", padding: "48px 24px" }}>
+          <div style={{ width: 48, height: 48, borderRadius: "var(--radius-lg)", background: "var(--accent-bg)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 4l8 4-8 4-8-4 8-4zM4 12l8 4 8-4M4 16l8 4 8-4" />
+            </svg>
+          </div>
+          <p style={{ color: "var(--text)", fontWeight: 500, margin: "0 0 4px" }}>尚未配置 AI 提供商</p>
+          <p className="text-sm" style={{ color: "var(--text-dim)", margin: "0 0 20px" }}>添加提供商以启用 AI 驱动的元数据提取。</p>
+          <button className="btn btn-primary btn-sm" onClick={startCreate}>添加提供商</button>
         </div>
       ) : (
         <>
           {providers.length > 0 && (
-            <div style={{ display: "grid", gap: "10px", marginBottom: 16 }}>
+            <div style={{ display: "grid", gap: "10px", marginBottom: 20 }}>
               {providers.map((p) => {
                 const testResult = testResults[p.id];
                 return (
                   <div key={p.id} className="provider-card">
                     <div className="provider-info">
-                      <div className="flex items-center gap-2">
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                         <span className="provider-name">{p.name}</span>
                         {p.is_enabled
                           ? <span className="badge badge-success">已启用</span>
                           : <span className="badge">已禁用</span>}
                         {p.has_key
-                          ? <span className="badge badge-accent">已设置密钥</span>
+                          ? <span className="badge badge-accent">密钥已设置</span>
                           : <span className="badge badge-warn">未设置密钥</span>}
                       </div>
                       <div className="provider-url">{p.base_url}</div>
                       {p.default_model && (
-                        <div className="text-sm text-dim">模型：{p.default_model}</div>
+                        <div className="text-sm" style={{ color: "var(--text-muted)", marginTop: 2 }}>模型: {p.default_model}</div>
                       )}
                       {testResult && (
-                        <div className="text-sm mt-2" style={{ color: testResult.ready ? "var(--success)" : "var(--danger)" }}>
-                          {testResult.ready ? "\u2713" : "\u2717"} {testResult.message}
+                        <div className="text-sm" style={{ marginTop: 6, color: testResult.ready ? "var(--success)" : "var(--danger)", display: "flex", alignItems: "center", gap: 4 }}>
+                          <span style={{ fontSize: 11 }}>{testResult.ready ? "\u2713" : "\u2717"}</span>
+                          {testResult.message}
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                       <button
                         className="btn btn-sm"
                         onClick={() => handleTest(p)}
                         disabled={testingId === p.id}
                       >
-                        {testingId === p.id ? <><span className="spinner" /> 测试中...</> : "测试"}
+                        {testingId === p.id ? <><span className="spinner" style={{ width: 11, height: 11 }} /> 测试中...</> : "测试连接"}
                       </button>
                       <button className="btn btn-sm" onClick={() => startEdit(p)}>编辑</button>
                       <button className="btn btn-sm" onClick={() => toggleEnabled(p)}>
@@ -206,9 +215,9 @@ export default function AICenterPage() {
           )}
 
           {showForm && (
-            <form onSubmit={handleSave} style={{ maxWidth: 560 }}>
+            <form onSubmit={handleSave} style={{ maxWidth: 520 }}>
               <div className="card">
-                <h2 className="page-title mb-4" style={{ fontSize: 16 }}>
+                <h2 style={{ fontSize: 15, fontWeight: 600, margin: "0 0 20px", letterSpacing: "-0.01em" }}>
                   {editing.id ? "编辑提供商" : "添加提供商"}
                 </h2>
 
@@ -249,7 +258,7 @@ export default function AICenterPage() {
 
                 <div className="form-group">
                   <label className="form-label">
-                    API 密钥 {editing.id && <span className="text-dim">（留空则保持不变）</span>}
+                    API 密钥 {editing.id && <span style={{ color: "var(--text-muted)" }}>（留空则保持不变）</span>}
                   </label>
                   <input
                     className="form-input"
@@ -259,27 +268,27 @@ export default function AICenterPage() {
                     placeholder="sk-..."
                     autoComplete="off"
                   />
-                  <div className="text-sm text-dim mt-2">
+                  <div className="text-sm" style={{ color: "var(--text-muted)", marginTop: 4 }}>
                     密钥安全存储，不会在 API 响应中暴露。
                   </div>
                 </div>
 
                 {editing.id && (
                   <div className="form-group">
-                    <label className="flex items-center gap-2" style={{ cursor: "pointer" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13 }}>
                       <input
                         type="checkbox"
                         checked={editing.isEnabled}
                         onChange={(e) => setEditing({ ...editing, isEnabled: e.target.checked })}
                       />
-                      <span>启用</span>
+                      <span>启用此提供商</span>
                     </label>
                   </div>
                 )}
 
-                <div className="flex items-center gap-2 mt-4">
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border-subtle)" }}>
                   <button type="submit" className="btn btn-primary" disabled={saving}>
-                    {saving ? <><span className="spinner" /> 保存中...</> : (editing.id ? "更新提供商" : "创建提供商")}
+                    {saving ? <><span className="spinner" style={{ width: 12, height: 12 }} /> 保存中...</> : (editing.id ? "更新" : "创建")}
                   </button>
                   <button type="button" className="btn" onClick={() => { setShowForm(false); setEditing(EMPTY_FORM); }}>
                     取消

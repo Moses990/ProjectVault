@@ -1,0 +1,6 @@
+﻿Project Vault Clean Windows Validation
+Passed: True
+Installer: C:\Users\WDAGUtilityAccount\Desktop\nsis\Project Vault_0.1.0_x64-setup.exe
+InstallDir: C:\Users\WDAGUtilityAccount\AppData\Local\Programs\ProjectVaultCleanTest
+Report: C:\Users\WDAGUtilityAccount\Desktop\release-validation\clean-windows-validation.json
+Error: 

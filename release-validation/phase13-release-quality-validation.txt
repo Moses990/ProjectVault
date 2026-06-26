@@ -1,0 +1,7 @@
+﻿Project Vault Phase 13 Release Quality Validation
+Passed: True
+Installer: D:\Workflows\ProjectVault\desktop\src-tauri\target\release\bundle\nsis\Project Vault_0.1.0_x64-setup.exe
+InstallDir: C:\Users\admin\AppData\Local\Programs\ProjectVaultPhase13QualityTest
+FixtureRoot: D:\Workflows\ProjectVault\release-validation\phase13-quality-fixture
+Report: D:\Workflows\ProjectVault\release-validation\phase13-release-quality-validation.json
+Error: 

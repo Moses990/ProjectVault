@@ -1,0 +1,286 @@
+﻿{
+    "startedAt":  "2026-06-26T10:24:40.4042605+08:00",
+    "projectRoot":  "D:\\Workflows\\ProjectVault",
+    "installerPath":  "D:\\Workflows\\ProjectVault\\desktop\\src-tauri\\target\\release\\bundle\\nsis\\Project Vault_0.1.0_x64-setup.exe",
+    "installDir":  "C:\\Users\\admin\\AppData\\Local\\Programs\\ProjectVaultPhase13QualityTest",
+    "fixtureRoot":  "D:\\Workflows\\ProjectVault\\release-validation\\phase13-quality-fixture",
+    "passed":  true,
+    "steps":  [
+                  {
+                      "name":  "installer_exists",
+                      "status":  "pass",
+                      "details":  {
+                                      "path":  "D:\\Workflows\\ProjectVault\\desktop\\src-tauri\\target\\release\\bundle\\nsis\\Project Vault_0.1.0_x64-setup.exe",
+                                      "sha256":  "0478EFE6C0E81D8F9B39F102E66642B129E30E06FE244D6757482AF0851772D8",
+                                      "size":  240129228
+                                  }
+                  },
+                  {
+                      "name":  "existing_local_database_backed_up",
+                      "status":  "pass",
+                      "details":  {
+                                      "databasePath":  "C:\\Users\\admin\\AppData\\Local\\ProjectVault\\database\\project_vault.db",
+                                      "existed":  true,
+                                      "backupPath":  "C:\\Users\\admin\\AppData\\Local\\ProjectVault\\database\\phase13-quality-backup\\project_vault_before_phase13_3_20260626_102440.db"
+                                  }
+                  },
+                  {
+                      "name":  "initial_install",
+                      "status":  "pass",
+                      "details":  {
+                                      "exitCode":  0,
+                                      "args":  "/S /D=C:\\Users\\admin\\AppData\\Local\\Programs\\ProjectVaultPhase13QualityTest",
+                                      "target":  "C:\\Users\\admin\\AppData\\Local\\Programs\\ProjectVaultPhase13QualityTest"
+                                  }
+                  },
+                  {
+                      "name":  "app_executable_found",
+                      "status":  "pass",
+                      "details":  {
+                                      "path":  "C:\\Users\\admin\\AppData\\Local\\Programs\\ProjectVaultPhase13QualityTest\\project-vault.exe",
+                                      "size":  7661056
+                                  }
+                  },
+                  {
+                      "name":  "uninstaller_found",
+                      "status":  "pass",
+                      "details":  {
+                                      "path":  "C:\\Users\\admin\\AppData\\Local\\Programs\\ProjectVaultPhase13QualityTest\\uninstall.exe"
+                                  }
+                  },
+                  {
+                      "name":  "initial_launch",
+                      "status":  "pass",
+                      "details":  {
+                                      "backend":  {
+                                                      "processId":  27576,
+                                                      "processName":  "project-vault-backend",
+                                                      "port":  60047,
+                                                      "uri":  "http://127.0.0.1:60047/api/v1/health",
+                                                      "health":  {
+                                                                     "status":  "ok",
+                                                                     "service":  "project-vault-backend",
+                                                                     "database":  {
+                                                                                      "path":  "C:\\Users\\admin\\AppData\\Local\\ProjectVault\\database\\project_vault.db",
+                                                                                      "exists":  true
+                                                                                  }
+                                                                 }
+                                                  },
+                                      "frontend":  {
+                                                       "processId":  6756,
+                                                       "port":  60048,
+                                                       "uri":  "http://127.0.0.1:60048/",
+                                                       "statusCode":  200,
+                                                       "containsProjectVaultShell":  true,
+                                                       "containsBackendPortInjection":  true
+                                                   },
+                                      "window":  {
+                                                     "processId":  6756,
+                                                     "processName":  "project-vault",
+                                                     "mainWindowTitle":  "Project Vault",
+                                                     "mainWindowHandle":  7800740
+                                                 }
+                                  }
+                  },
+                  {
+                      "name":  "offline_launch_loopback_only",
+                      "status":  "pass",
+                      "details":  {
+                                      "backendUri":  "http://127.0.0.1:60047/api/v1/health",
+                                      "frontendUri":  "http://127.0.0.1:60048/",
+                                      "note":  "Host network adapters are not disabled by this script; the packaged app is verified to launch using only local loopback backend/frontend endpoints."
+                                  }
+                  },
+                  {
+                      "name":  "dedicated_fixture_created",
+                      "status":  "pass",
+                      "details":  {
+                                      "root":  "D:\\Workflows\\ProjectVault\\release-validation\\phase13-quality-fixture",
+                                      "validProjectDir":  "D:\\Workflows\\ProjectVault\\release-validation\\phase13-quality-fixture\\PV-V1-Quality-Acceptance",
+                                      "damagedProjectDir":  "D:\\Workflows\\ProjectVault\\release-validation\\phase13-quality-fixture\\PV-V1-Damaged-Project",
+                                      "projectId":  "4992865c-281e-4ba8-a9ff-d6de2d9aedf2"
+                                  }
+                  },
+                  {
+                      "name":  "invalid_root_path_rejected",
+                      "status":  "pass",
+                      "details":  {
+                                      "statusCode":  400,
+                                      "response":  ""
+                                  }
+                  },
+                  {
+                      "name":  "inaccessible_directory_controlled_error",
+                      "status":  "pass",
+                      "details":  {
+                                      "path":  "C:\\System Volume Information",
+                                      "statusCode":  403,
+                                      "response":  ""
+                                  }
+                  },
+                  {
+                      "name":  "settings_root_path_saved",
+                      "status":  "pass",
+                      "details":  {
+                                      "root_path":  "D:\\Workflows\\ProjectVault\\release-validation\\phase13-quality-fixture",
+                                      "scan_interval":  60,
+                                      "theme":  "system"
+                                  }
+                  },
+                  {
+                      "name":  "candidate_discovery_skips_existing_project_json",
+                      "status":  "pass",
+                      "details":  {
+                                      "candidateCount":  1,
+                                      "damagedProjectDir":  "D:\\Workflows\\ProjectVault\\release-validation\\phase13-quality-fixture\\PV-V1-Damaged-Project",
+                                      "validProjectDir":  "D:\\Workflows\\ProjectVault\\release-validation\\phase13-quality-fixture\\PV-V1-Quality-Acceptance"
+                                  }
+                  },
+                  {
+                      "name":  "project_initialized",
+                      "status":  "pass",
+                      "details":  {
+                                      "initialized_count":  1,
+                                      "project_ids":  [
+                                                          "4992865c-281e-4ba8-a9ff-d6de2d9aedf2"
+                                                      ],
+                                      "skipped":  [
+
+                                                  ]
+                                  }
+                  },
+                  {
+                      "name":  "valid_project_scan",
+                      "status":  "pass",
+                      "details":  {
+                                      "project_id":  "4992865c-281e-4ba8-a9ff-d6de2d9aedf2",
+                                      "created_count":  4,
+                                      "updated_count":  0,
+                                      "deleted_count":  0,
+                                      "moved_count":  0,
+                                      "relocated":  false,
+                                      "duration_ms":  15
+                                  }
+                  },
+                  {
+                      "name":  "damaged_project_json_controlled_error",
+                      "status":  "pass",
+                      "details":  {
+                                      "statusCode":  404,
+                                      "response":  "",
+                                      "projectId":  "4992865c-281e-4ba8-a9ff-d6de2d9aedf2"
+                                  }
+                  },
+                  {
+                      "name":  "backend_exit_cleanup_after_initial_launch",
+                      "status":  "pass",
+                      "details":  {
+                                      "closeMainWindow":  true,
+                                      "backendExited":  true,
+                                      "checkedBackendProcessId":  27576
+                                  }
+                  },
+                  {
+                      "name":  "silent_uninstall",
+                      "status":  "pass",
+                      "details":  {
+                                      "exitCode":  0,
+                                      "installDir":  "C:\\Users\\admin\\AppData\\Local\\Programs\\ProjectVaultPhase13QualityTest",
+                                      "appExecutableStillPresent":  false
+                                  }
+                  },
+                  {
+                      "name":  "reinstall",
+                      "status":  "pass",
+                      "details":  {
+                                      "exitCode":  0,
+                                      "args":  "/S /D=C:\\Users\\admin\\AppData\\Local\\Programs\\ProjectVaultPhase13QualityTest",
+                                      "target":  "C:\\Users\\admin\\AppData\\Local\\Programs\\ProjectVaultPhase13QualityTest"
+                                  }
+                  },
+                  {
+                      "name":  "reinstall_launch",
+                      "status":  "pass",
+                      "details":  {
+                                      "backend":  {
+                                                      "processId":  1928,
+                                                      "processName":  "project-vault-backend",
+                                                      "port":  60350,
+                                                      "uri":  "http://127.0.0.1:60350/api/v1/health",
+                                                      "health":  {
+                                                                     "status":  "ok",
+                                                                     "service":  "project-vault-backend",
+                                                                     "database":  {
+                                                                                      "path":  "C:\\Users\\admin\\AppData\\Local\\ProjectVault\\database\\project_vault.db",
+                                                                                      "exists":  true
+                                                                                  }
+                                                                 }
+                                                  },
+                                      "frontend":  {
+                                                       "processId":  12040,
+                                                       "port":  60351,
+                                                       "uri":  "http://127.0.0.1:60351/",
+                                                       "statusCode":  200,
+                                                       "containsProjectVaultShell":  true,
+                                                       "containsBackendPortInjection":  true
+                                                   },
+                                      "window":  {
+                                                     "processId":  12040,
+                                                     "processName":  "project-vault",
+                                                     "mainWindowTitle":  "Project Vault",
+                                                     "mainWindowHandle":  6687626
+                                                 }
+                                  }
+                  },
+                  {
+                      "name":  "backend_exit_cleanup_after_reinstall",
+                      "status":  "pass",
+                      "details":  {
+                                      "closeMainWindow":  true,
+                                      "backendExited":  true,
+                                      "checkedBackendProcessId":  1928
+                                  }
+                  },
+                  {
+                      "name":  "release_docs_present",
+                      "status":  "pass",
+                      "details":  [
+                                      {
+                                          "path":  "D:\\Workflows\\ProjectVault\\docs\\release\\V1_RELEASE_MANIFEST.md",
+                                          "exists":  true,
+                                          "size":  2617
+                                      },
+                                      {
+                                          "path":  "D:\\Workflows\\ProjectVault\\docs\\release\\CLEAN_WINDOWS_VALIDATION.md",
+                                          "exists":  true,
+                                          "size":  7435
+                                      },
+                                      {
+                                          "path":  "D:\\Workflows\\ProjectVault\\docs\\release\\LOCAL_INSTALLED_USAGE_VALIDATION.md",
+                                          "exists":  true,
+                                          "size":  3129
+                                      },
+                                      {
+                                          "path":  "D:\\Workflows\\ProjectVault\\docs\\release\\USER_GUIDE.md",
+                                          "exists":  true,
+                                          "size":  2181
+                                      },
+                                      {
+                                          "path":  "D:\\Workflows\\ProjectVault\\docs\\release\\ROLLBACK_REBUILD.md",
+                                          "exists":  true,
+                                          "size":  1779
+                                      }
+                                  ]
+                  },
+                  {
+                      "name":  "previous_local_database_restored",
+                      "status":  "pass",
+                      "details":  {
+                                      "restored":  true,
+                                      "databasePath":  "C:\\Users\\admin\\AppData\\Local\\ProjectVault\\database\\project_vault.db",
+                                      "backupPath":  "C:\\Users\\admin\\AppData\\Local\\ProjectVault\\database\\phase13-quality-backup\\project_vault_before_phase13_3_20260626_102440.db"
+                                  }
+                  }
+              ],
+    "finishedAt":  "2026-06-26T10:25:41.0606196+08:00"
+}

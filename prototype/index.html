@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>项目资料库驾驶舱</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/web/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#workspaceContent">跳到项目内容</a>
+  <div class="app-shell">
+    <aside class="project-nav">
+      <div class="brand">
+        <div class="brand-mark">PL</div>
+        <div class="brand-copy">
+          <h1>项目资料库</h1>
+          <p id="projectRoot">加载中</p>
+        </div>
+      </div>
+
+      <div class="nav-search">
+        <label class="field-label" for="projectFilter">项目索引</label>
+        <input id="projectFilter" class="input" placeholder="搜索项目、阶段、AI 状态">
+      </div>
+
+      <div class="filter-tabs" aria-label="项目筛选">
+        <button class="filter-tab active" data-filter="all">全部</button>
+        <button class="filter-tab" data-filter="risk">有风险</button>
+        <button class="filter-tab" data-filter="ai">AI 已更新</button>
+        <button class="filter-tab" data-filter="attention">需处理</button>
+      </div>
+
+      <div class="nav-section-title">
+        <span>项目</span>
+        <span id="projectCount">0</span>
+      </div>
+      <div id="projectList" class="project-list"></div>
+    </aside>
+
+    <main class="project-workspace">
+      <section id="emptyState" class="empty-state">
+        <div>
+          <h2>选择一个项目</h2>
+          <p>工作台会显示项目概览、资料结构、会议档案、风险待办和证据搜索。</p>
+        </div>
+      </section>
+
+      <section id="workspaceContent" class="workspace-content hidden">
+        <header class="project-header">
+          <div>
+            <p class="section-kicker">当前项目</p>
+            <h2 id="projectTitle">-</h2>
+            <div id="projectMeta" class="project-meta"></div>
+          </div>
+          <div class="header-actions">
+            <button id="openFolderBtn" class="button primary">打开文件夹</button>
+          </div>
+        </header>
+
+        <nav class="page-tabs" aria-label="项目页面">
+          <button class="page-tab active" data-tab="overview">概览</button>
+          <button class="page-tab" data-tab="health">体检</button>
+          <button class="page-tab" data-tab="todos">待办闭环</button>
+          <button class="page-tab" data-tab="materials">资料</button>
+          <button class="page-tab" data-tab="meetings">会议</button>
+          <button class="page-tab" data-tab="risks">风险待办</button>
+          <button class="page-tab" data-tab="search">搜索</button>
+          <button class="page-tab" data-tab="assistant">AI 助理</button>
+        </nav>
+
+        <section id="tabContent" class="tab-content"></section>
+      </section>
+    </main>
+
+    <aside class="context-panel">
+      <section class="side-card">
+        <div class="side-card-header">
+          <h3>快捷操作</h3>
+          <button id="reloadBtn" class="icon-button" title="刷新页面数据" aria-label="刷新页面数据">刷新</button>
+        </div>
+        <div class="action-grid">
+          <button id="scanBtn" class="button ghost">扫描项目</button>
+          <button id="indexBtn" class="button ghost">生成总表</button>
+          <button id="monitorBtn" class="button ghost">监控报告</button>
+          <button id="refreshAllBtn" class="button ghost strong">一键刷新</button>
+        </div>
+      </section>
+
+      <section class="side-card">
+        <div class="side-card-header">
+          <h3>资料状态</h3>
+          <span id="sideStatus" class="status-dot muted-dot"></span>
+        </div>
+        <div id="sideSummary" class="side-summary">
+          <p class="muted">选择项目后显示状态。</p>
+        </div>
+      </section>
+
+      <section class="side-card grow">
+        <div class="side-card-header">
+          <h3>操作日志</h3>
+          <span id="actionStatus" class="muted">等待操作</span>
+        </div>
+        <pre id="actionOutput" class="action-output"></pre>
+      </section>
+    </aside>
+  </div>
+  <script src="/web/app.js"></script>
+</body>
+</html>

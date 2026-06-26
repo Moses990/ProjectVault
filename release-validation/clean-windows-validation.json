@@ -1,0 +1,148 @@
+﻿{
+    "startedAt":  "2026-06-26T09:41:27.3556800+08:00",
+    "installerPath":  "C:\\Users\\WDAGUtilityAccount\\Desktop\\nsis\\Project Vault_0.1.0_x64-setup.exe",
+    "installDir":  "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Programs\\ProjectVaultCleanTest",
+    "reportDir":  "C:\\Users\\WDAGUtilityAccount\\Desktop\\release-validation",
+    "passed":  true,
+    "steps":  [
+                  {
+                      "name":  "installer_exists",
+                      "status":  "pass",
+                      "details":  {
+                                      "path":  "C:\\Users\\WDAGUtilityAccount\\Desktop\\nsis\\Project Vault_0.1.0_x64-setup.exe",
+                                      "size":  240129228
+                                  }
+                  },
+                  {
+                      "name":  "python_unavailable",
+                      "status":  "pass",
+                      "details":  {
+                                      "command":  "python",
+                                      "found":  false,
+                                      "versionExitCode":  1,
+                                      "versionOutput":  "\u0027python\u0027 不是内部或外部命令，也不是可运行的程序\n或批处理文件。",
+                                      "unavailable":  true
+                                  }
+                  },
+                  {
+                      "name":  "node_unavailable",
+                      "status":  "pass",
+                      "details":  {
+                                      "command":  "node",
+                                      "found":  false,
+                                      "versionExitCode":  1,
+                                      "versionOutput":  "\u0027node\u0027 不是内部或外部命令，也不是可运行的程序\n或批处理文件。",
+                                      "unavailable":  true
+                                  }
+                  },
+                  {
+                      "name":  "installer_silent_run",
+                      "status":  "pass",
+                      "details":  {
+                                      "args":  "/S /D=C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Programs\\ProjectVaultCleanTest",
+                                      "exitCode":  0
+                                  }
+                  },
+                  {
+                      "name":  "fixed_webview2_runtime_bundled",
+                      "status":  "pass",
+                      "details":  {
+                                      "bundled":  true,
+                                      "path":  "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Programs\\ProjectVaultCleanTest\\binaries\\webview2-fixed-runtime\\Microsoft.WebView2.FixedVersionRuntime.149.0.4022.96.x64\\msedgewebview2.exe",
+                                      "size":  4763464
+                                  }
+                  },
+                  {
+                      "name":  "webview2_runtime_available",
+                      "status":  "pass",
+                      "details":  {
+                                      "available":  true,
+                                      "registryPath":  "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\EdgeUpdate\\Clients\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",
+                                      "name":  "Microsoft Edge WebView2 Runtime",
+                                      "version":  "141.0.3537.71"
+                                  }
+                  },
+                  {
+                      "name":  "app_executable_found",
+                      "status":  "pass",
+                      "details":  {
+                                      "path":  "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Programs\\ProjectVaultCleanTest\\project-vault.exe",
+                                      "size":  7661056
+                                  }
+                  },
+                  {
+                      "name":  "app_started",
+                      "status":  "pass",
+                      "details":  {
+                                      "processName":  "project-vault",
+                                      "processId":  4880
+                                  }
+                  },
+                  {
+                      "name":  "app_main_webview_window",
+                      "status":  "pass",
+                      "details":  {
+                                      "processId":  4880,
+                                      "processName":  "project-vault",
+                                      "mainWindowTitle":  "Project Vault",
+                                      "mainWindowHandle":  131690
+                                  }
+                  },
+                  {
+                      "name":  "webview2_runtime_error_dialog_absent",
+                      "status":  "pass",
+                      "details":  {
+                                      "checkedProcessId":  4880,
+                                      "matchingDialogs":  0
+                                  }
+                  },
+                  {
+                      "name":  "backend_health",
+                      "status":  "pass",
+                      "details":  {
+                                      "processId":  3792,
+                                      "processName":  "project-vault-backend",
+                                      "port":  49823,
+                                      "uri":  "http://127.0.0.1:49823/api/v1/health",
+                                      "health":  {
+                                                     "status":  "ok",
+                                                     "service":  "project-vault-backend",
+                                                     "database":  {
+                                                                      "path":  "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\ProjectVault\\database\\project_vault.db",
+                                                                      "exists":  true
+                                                                  }
+                                                 }
+                                  }
+                  },
+                  {
+                      "name":  "frontend_render",
+                      "status":  "pass",
+                      "details":  {
+                                      "processId":  4880,
+                                      "port":  49824,
+                                      "uri":  "http://127.0.0.1:49824/",
+                                      "statusCode":  200,
+                                      "containsProjectVaultShell":  true,
+                                      "containsBackendPortInjection":  true
+                                  }
+                  },
+                  {
+                      "name":  "database_path",
+                      "status":  "pass",
+                      "details":  {
+                                      "actual":  "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\ProjectVault\\database\\project_vault.db",
+                                      "expectedRoot":  "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\ProjectVault\\database",
+                                      "exists":  true
+                                  }
+                  },
+                  {
+                      "name":  "backend_exit_cleanup",
+                      "status":  "pass",
+                      "details":  {
+                                      "closeMainWindow":  true,
+                                      "checkedBackendProcessId":  3792
+                                  }
+                  }
+              ],
+    "finishedAt":  "2026-06-26T09:41:55.2306963+08:00"
+}

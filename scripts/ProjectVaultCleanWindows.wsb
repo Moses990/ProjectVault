@@ -1,0 +1,19 @@
+<Configuration>
+  <MappedFolders>
+    <MappedFolder>
+      <HostFolder>D:\Workflows\ProjectVault\desktop\src-tauri\target\release\bundle\nsis</HostFolder>
+      <ReadOnly>true</ReadOnly>
+    </MappedFolder>
+    <MappedFolder>
+      <HostFolder>D:\Workflows\ProjectVault\scripts</HostFolder>
+      <ReadOnly>true</ReadOnly>
+    </MappedFolder>
+    <MappedFolder>
+      <HostFolder>D:\Workflows\ProjectVault\release-validation</HostFolder>
+      <ReadOnly>false</ReadOnly>
+    </MappedFolder>
+  </MappedFolders>
+  <LogonCommand>
+    <Command>powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Users\WDAGUtilityAccount\Desktop\scripts\verify_clean_windows_release.ps1" -InstallerPath "C:\Users\WDAGUtilityAccount\Desktop\nsis\Project Vault_0.1.0_x64-setup.exe" -ReportDir "C:\Users\WDAGUtilityAccount\Desktop\release-validation"</Command>
+  </LogonCommand>
+</Configuration>

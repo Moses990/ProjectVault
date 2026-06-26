@@ -87,10 +87,10 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   }
   const groupOrder = ["project", "file", "cad", "material"];
   const typeLabels: Record<string, string> = {
-    project: "Projects",
-    file: "Files",
+    project: "项目",
+    file: "文件",
     cad: "CAD",
-    material: "Materials",
+    material: "材料",
   };
 
   let flatIndex = 0;
@@ -101,14 +101,14 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
         <input
           ref={inputRef}
           className="cmdk-input"
-          placeholder="Search projects, files, drawings, materials..."
+          placeholder="搜索项目、文件、图纸、材料..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
         <div className="cmdk-results">
-          {loading && <div className="cmdk-empty"><span className="spinner" /> Searching...</div>}
-          {!loading && !query.trim() && <div className="cmdk-empty">Type to search across all projects</div>}
-          {!loading && query.trim() && results.length === 0 && <div className="cmdk-empty">No results found</div>}
+          {loading && <div className="cmdk-empty"><span className="spinner" /> 搜索中...</div>}
+          {!loading && !query.trim() && <div className="cmdk-empty">输入关键词搜索所有项目</div>}
+          {!loading && query.trim() && results.length === 0 && <div className="cmdk-empty">未找到结果</div>}
           {!loading && results.length > 0 && groupOrder.map((g) => {
             if (!groups[g]) return null;
             return (

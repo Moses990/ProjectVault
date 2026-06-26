@@ -31,9 +31,18 @@ fn start_backend(app: &tauri::App, port: u16) -> Result<CommandChild, String> {
     Ok(child)
 }
 
-fn response_headers(status: &str, content_type: &str, body_len: usize) -> String {
+fn response_headers(status: &str, content_type: &str, body_len: usize, frontend_port: u16) -> String {
     format!(
-        "HTTP/1.1 {status}\r\nContent-Length: {body_len}\r\nContent-Type: {content_type}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n"
+        "HTTP/1.1 {status}\r\n\
+         Content-Length: {body_len}\r\n\
+         Content-Type: {content_type}\r\n\
+         Cache-Control: no-store\r\n\
+         Connection: close\r\n\
+         Content-Security-Policy: default-src 'self' 'unsafe-inline' 'unsafe-eval' http://127.0.0.1:{frontend_port}; connect-src http://127.0.0.1:*; img-src 'self' data: blob:; font-src 'self' data:\r\n\
+         X-Content-Type-Options: nosniff\r\n\
+         X-Frame-Options: DENY\r\n\
+         Referrer-Policy: no-referrer\r\n\
+         \r\n"
     )
 }
 
@@ -69,10 +78,23 @@ fn inject_backend_port(bytes: Vec<u8>, backend_port: u16) -> Vec<u8> {
     html.replace("</head>", &format!("{script}</head>")).into_bytes()
 }
 
+fn extract_host_header(request: &str) -> Option<&str> {
+    for line in request.lines().skip(1) {
+        if line.is_empty() || line == "\r" {
+            break;
+        }
+        if let Some(value) = line.strip_prefix("Host: ").or_else(|| line.strip_prefix("host: ")) {
+            return Some(value.trim());
+        }
+    }
+    None
+}
+
 fn serve_frontend_request<R: tauri::Runtime>(
     mut stream: TcpStream,
     asset_resolver: &tauri::AssetResolver<R>,
     backend_port: u16,
+    frontend_port: u16,
 ) {
     let mut buffer = [0_u8; 2048];
     let Ok(bytes_read) = stream.read(&mut buffer) else {
@@ -90,9 +112,21 @@ fn serve_frontend_request<R: tauri::Runtime>(
     let method = parts.next().unwrap_or("");
     let request_path = parts.next().unwrap_or("/");
 
+    // Host header validation — reject requests from non-local origins
+    if let Some(host) = extract_host_header(&request) {
+        let host_without_port = host.split(':').next().unwrap_or(host);
+        if host_without_port != "127.0.0.1" && host_without_port != "localhost" {
+            let body = b"Forbidden: invalid Host";
+            let headers = response_headers("403 Forbidden", "text/plain; charset=utf-8", body.len(), frontend_port);
+            let _ = stream.write_all(headers.as_bytes());
+            let _ = stream.write_all(body);
+            return;
+        }
+    }
+
     if method != "GET" && method != "HEAD" {
         let body = b"Method Not Allowed";
-        let headers = response_headers("405 Method Not Allowed", "text/plain; charset=utf-8", body.len());
+        let headers = response_headers("405 Method Not Allowed", "text/plain; charset=utf-8", body.len(), frontend_port);
         let _ = stream.write_all(headers.as_bytes());
         if method != "HEAD" {
             let _ = stream.write_all(body);
@@ -116,7 +150,7 @@ fn serve_frontend_request<R: tauri::Runtime>(
             if served_asset_path.ends_with(".html") {
                 body = inject_backend_port(body, backend_port);
             }
-            let headers = response_headers("200 OK", &asset.mime_type, body.len());
+            let headers = response_headers("200 OK", &asset.mime_type, body.len(), frontend_port);
             let _ = stream.write_all(headers.as_bytes());
             if method != "HEAD" {
                 let _ = stream.write_all(&body);
@@ -124,7 +158,7 @@ fn serve_frontend_request<R: tauri::Runtime>(
         }
         None => {
             let body = b"Not Found";
-            let headers = response_headers("404 Not Found", "text/plain; charset=utf-8", body.len());
+            let headers = response_headers("404 Not Found", "text/plain; charset=utf-8", body.len(), frontend_port);
             let _ = stream.write_all(headers.as_bytes());
             if method != "HEAD" {
                 let _ = stream.write_all(body);
@@ -140,7 +174,7 @@ fn start_frontend_server(app: &tauri::App, backend_port: u16) -> Result<u16, Str
 
     thread::spawn(move || {
         for stream in listener.incoming().flatten() {
-            serve_frontend_request(stream, &asset_resolver, backend_port);
+            serve_frontend_request(stream, &asset_resolver, backend_port, port);
         }
     });
 

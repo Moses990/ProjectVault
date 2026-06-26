@@ -27,7 +27,7 @@ export default function ProjectsPage() {
       setTotal(res.meta.total ?? 0);
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load");
+      setError(e instanceof Error ? e.message : "加载失败");
     } finally {
       setLoading(false);
     }
@@ -58,8 +58,8 @@ export default function ProjectsPage() {
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">Projects</h1>
-        <Link href="/" className="btn btn-sm">Back to Dashboard</Link>
+        <h1 className="page-title">项目</h1>
+        <Link href="/" className="btn btn-sm">返回工作台</Link>
       </div>
 
       {error && <div className="card mb-4" style={{ borderColor: "var(--danger)", color: "var(--danger)" }}>{error}</div>}
@@ -67,53 +67,53 @@ export default function ProjectsPage() {
       <div className="toolbar">
         <input
           className="topbar-search"
-          placeholder="Search projects..."
+          placeholder="搜索项目..."
           value={q}
           onChange={(e) => { setQ(e.target.value); setPage(1); }}
         />
         <select className="filter-select" value={type} onChange={(e) => { setType(e.target.value); setPage(1); }}>
-          <option value="">All Types</option>
-          <option value="residential">Residential</option>
-          <option value="commercial">Commercial</option>
-          <option value="si">SI Design</option>
+          <option value="">全部类型</option>
+          <option value="residential">住宅</option>
+          <option value="commercial">商业</option>
+          <option value="si">SI 设计</option>
         </select>
         <select className="filter-select" value={phase} onChange={(e) => { setPhase(e.target.value); setPage(1); }}>
-          <option value="">All Phases</option>
-          <option value="concept">Concept</option>
-          <option value="design">Design</option>
-          <option value="construction">Construction</option>
-          <option value="completed">Completed</option>
+          <option value="">全部阶段</option>
+          <option value="concept">概念</option>
+          <option value="design">设计</option>
+          <option value="construction">施工</option>
+          <option value="completed">已完成</option>
         </select>
       </div>
 
       <div className="card" style={{ padding: 0 }}>
         {loading ? (
-          <div className="empty-state"><span className="spinner" /> Loading...</div>
+          <div className="empty-state"><span className="spinner" /> 加载中...</div>
         ) : projects.length === 0 ? (
           <div className="empty-state">
-            <p>No projects found.</p>
-            <p className="text-sm">Adjust filters or scan new projects from Settings.</p>
+            <p>未找到项目。</p>
+            <p className="text-sm">请调整筛选条件或从设置中扫描新项目。</p>
           </div>
         ) : (
           <table className="data-table">
             <thead>
               <tr>
                 <th style={{ width: 32 }}></th>
-                <th onClick={() => toggleSort("name")} style={{ cursor: "pointer" }}>Name {sortBy === "name" && (order === "asc" ? "\u25B2" : "\u25BC")}</th>
-                <th onClick={() => toggleSort("type")} style={{ cursor: "pointer" }}>Type {sortBy === "type" && (order === "asc" ? "\u25B2" : "\u25BC")}</th>
-                <th onClick={() => toggleSort("phase")} style={{ cursor: "pointer" }}>Phase {sortBy === "phase" && (order === "asc" ? "\u25B2" : "\u25BC")}</th>
-                <th onClick={() => toggleSort("file_count")} style={{ cursor: "pointer" }}>Files {sortBy === "file_count" && (order === "asc" ? "\u25B2" : "\u25BC")}</th>
+                <th onClick={() => toggleSort("name")} style={{ cursor: "pointer" }}>名称 {sortBy === "name" && (order === "asc" ? "\u25B2" : "\u25BC")}</th>
+                <th onClick={() => toggleSort("type")} style={{ cursor: "pointer" }}>类型 {sortBy === "type" && (order === "asc" ? "\u25B2" : "\u25BC")}</th>
+                <th onClick={() => toggleSort("phase")} style={{ cursor: "pointer" }}>阶段 {sortBy === "phase" && (order === "asc" ? "\u25B2" : "\u25BC")}</th>
+                <th onClick={() => toggleSort("file_count")} style={{ cursor: "pointer" }}>文件 {sortBy === "file_count" && (order === "asc" ? "\u25B2" : "\u25BC")}</th>
                 <th onClick={() => toggleSort("cad_count")} style={{ cursor: "pointer" }}>CAD {sortBy === "cad_count" && (order === "asc" ? "\u25B2" : "\u25BC")}</th>
-                <th onClick={() => toggleSort("material_count")} style={{ cursor: "pointer" }}>Materials {sortBy === "material_count" && (order === "asc" ? "\u25B2" : "\u25BC")}</th>
-                <th>Manager</th>
-                <th onClick={() => toggleSort("last_updated_at")} style={{ cursor: "pointer" }}>Updated {sortBy === "last_updated_at" && (order === "asc" ? "\u25B2" : "\u25BC")}</th>
+                <th onClick={() => toggleSort("material_count")} style={{ cursor: "pointer" }}>材料 {sortBy === "material_count" && (order === "asc" ? "\u25B2" : "\u25BC")}</th>
+                <th>负责人</th>
+                <th onClick={() => toggleSort("last_updated_at")} style={{ cursor: "pointer" }}>更新时间 {sortBy === "last_updated_at" && (order === "asc" ? "\u25B2" : "\u25BC")}</th>
               </tr>
             </thead>
             <tbody>
               {projects.map((p) => (
                 <tr key={p.id} className="row-link" onClick={() => window.location.href = `/project-detail?id=${encodeURIComponent(p.id)}`}>
                   <td onClick={(e) => toggleFav(p, e)} style={{ textAlign: "center" }}>
-                    <button className={`fav-btn ${p.is_favorite ? "active" : ""}`} title="Favorite">
+                    <button className={`fav-btn ${p.is_favorite ? "active" : ""}`} title="收藏">
                       {p.is_favorite ? "\u2605" : "\u2606"}
                     </button>
                   </td>
@@ -133,9 +133,9 @@ export default function ProjectsPage() {
       </div>
 
       <div className="pagination">
-        <button className="btn btn-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Prev</button>
-        <span>Page {page} of {totalPages} ({total} projects)</span>
-        <button className="btn btn-sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Next</button>
+        <button className="btn btn-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>上一页</button>
+        <span>第 {page} 页 / 共 {totalPages} 页（{total} 个项目）</span>
+        <button className="btn btn-sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>下一页</button>
       </div>
     </div>
   );

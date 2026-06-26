@@ -15,7 +15,10 @@ function baseUrl(): string {
   if (port) {
     return `http://127.0.0.1:${port}/api/v1`;
   }
-  // Browser dev mode: use Next.js server-side proxy at /api/v1
+  const envPort = process.env.NEXT_PUBLIC_BACKEND_PORT?.trim();
+  if (envPort) {
+    return `http://127.0.0.1:${envPort}/api/v1`;
+  }
   return "/api/v1";
 }
 

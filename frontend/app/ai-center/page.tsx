@@ -39,7 +39,7 @@ export default function AICenterPage() {
       setProviders(data);
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load providers");
+      setError(e instanceof Error ? e.message : "加载 AI 提供商失败");
     } finally {
       setLoading(false);
     }
@@ -88,19 +88,19 @@ export default function AICenterPage() {
       setShowForm(false);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to save provider");
+      setError(e instanceof Error ? e.message : "保存提供商失败");
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(p: Provider) {
-    if (!confirm(`Delete provider "${p.name}"?`)) return;
+    if (!confirm(`确定删除提供商 "${p.name}" 吗？`)) return;
     try {
       await api.deleteProvider(p.id);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to delete provider");
+      setError(e instanceof Error ? e.message : "删除提供商失败");
     }
   }
 
@@ -110,7 +110,7 @@ export default function AICenterPage() {
       const result = await api.testProvider(p.id);
       setTestResults((prev) => ({ ...prev, [p.id]: { ready: result.ready, message: result.message } }));
     } catch (e) {
-      setTestResults((prev) => ({ ...prev, [p.id]: { ready: false, message: e instanceof Error ? e.message : "Test failed" } }));
+      setTestResults((prev) => ({ ...prev, [p.id]: { ready: false, message: e instanceof Error ? e.message : "测试失败" } }));
     } finally {
       setTestingId(null);
     }
@@ -121,17 +121,17 @@ export default function AICenterPage() {
       await api.updateProvider(p.id, { is_enabled: !p.is_enabled });
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to toggle provider");
+      setError(e instanceof Error ? e.message : "切换提供商状态失败");
     }
   }
 
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">AI Center</h1>
+        <h1 className="page-title">AI 中心</h1>
         <div className="flex items-center gap-2">
-          <button className="btn btn-primary btn-sm" onClick={startCreate}>+ Add Provider</button>
-          <Link href="/" className="btn btn-sm">Back to Dashboard</Link>
+          <button className="btn btn-primary btn-sm" onClick={startCreate}>+ 添加提供商</button>
+          <Link href="/" className="btn btn-sm">返回工作台</Link>
         </div>
       </div>
 
@@ -142,12 +142,12 @@ export default function AICenterPage() {
       )}
 
       {loading ? (
-        <div className="empty-state"><span className="spinner" /> Loading providers...</div>
+        <div className="empty-state"><span className="spinner" /> 加载提供商列表...</div>
       ) : providers.length === 0 && !showForm ? (
         <div className="card empty-state">
-          <p>No AI providers configured.</p>
-          <p className="text-sm mt-2">Add a provider to enable AI-powered metadata extraction.</p>
-          <button className="btn btn-primary btn-sm mt-4" onClick={startCreate}>+ Add Provider</button>
+          <p>尚未配置 AI 提供商。</p>
+          <p className="text-sm mt-2">添加提供商以启用 AI 驱动的元数据提取。</p>
+          <button className="btn btn-primary btn-sm mt-4" onClick={startCreate}>+ 添加提供商</button>
         </div>
       ) : (
         <>
@@ -161,15 +161,15 @@ export default function AICenterPage() {
                       <div className="flex items-center gap-2">
                         <span className="provider-name">{p.name}</span>
                         {p.is_enabled
-                          ? <span className="badge badge-success">Enabled</span>
-                          : <span className="badge">Disabled</span>}
+                          ? <span className="badge badge-success">已启用</span>
+                          : <span className="badge">已禁用</span>}
                         {p.has_key
-                          ? <span className="badge badge-accent">Key Set</span>
-                          : <span className="badge badge-warn">No Key</span>}
+                          ? <span className="badge badge-accent">已设置密钥</span>
+                          : <span className="badge badge-warn">未设置密钥</span>}
                       </div>
                       <div className="provider-url">{p.base_url}</div>
                       {p.default_model && (
-                        <div className="text-sm text-dim">Model: {p.default_model}</div>
+                        <div className="text-sm text-dim">模型：{p.default_model}</div>
                       )}
                       {testResult && (
                         <div className="text-sm mt-2" style={{ color: testResult.ready ? "var(--success)" : "var(--danger)" }}>
@@ -183,13 +183,13 @@ export default function AICenterPage() {
                         onClick={() => handleTest(p)}
                         disabled={testingId === p.id}
                       >
-                        {testingId === p.id ? <><span className="spinner" /> Testing...</> : "Test"}
+                        {testingId === p.id ? <><span className="spinner" /> 测试中...</> : "测试"}
                       </button>
-                      <button className="btn btn-sm" onClick={() => startEdit(p)}>Edit</button>
+                      <button className="btn btn-sm" onClick={() => startEdit(p)}>编辑</button>
                       <button className="btn btn-sm" onClick={() => toggleEnabled(p)}>
-                        {p.is_enabled ? "Disable" : "Enable"}
+                        {p.is_enabled ? "禁用" : "启用"}
                       </button>
-                      <button className="btn btn-sm btn-danger" onClick={() => handleDelete(p)}>Delete</button>
+                      <button className="btn btn-sm btn-danger" onClick={() => handleDelete(p)}>删除</button>
                     </div>
                   </div>
                 );
@@ -201,11 +201,11 @@ export default function AICenterPage() {
             <form onSubmit={handleSave} style={{ maxWidth: 560 }}>
               <div className="card">
                 <h2 className="page-title mb-4" style={{ fontSize: 16 }}>
-                  {editing.id ? "Edit Provider" : "Add Provider"}
+                  {editing.id ? "编辑提供商" : "添加提供商"}
                 </h2>
 
                 <div className="form-group">
-                  <label className="form-label">Name</label>
+                  <label className="form-label">名称</label>
                   <input
                     className="form-input"
                     type="text"
@@ -217,7 +217,7 @@ export default function AICenterPage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Base URL</label>
+                  <label className="form-label">基础 URL</label>
                   <input
                     className="form-input"
                     type="url"
@@ -229,7 +229,7 @@ export default function AICenterPage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Default Model</label>
+                  <label className="form-label">默认模型</label>
                   <input
                     className="form-input"
                     type="text"
@@ -241,7 +241,7 @@ export default function AICenterPage() {
 
                 <div className="form-group">
                   <label className="form-label">
-                    API Key {editing.id && <span className="text-dim">(leave blank to keep existing)</span>}
+                    API 密钥 {editing.id && <span className="text-dim">（留空则保持不变）</span>}
                   </label>
                   <input
                     className="form-input"
@@ -252,7 +252,7 @@ export default function AICenterPage() {
                     autoComplete="off"
                   />
                   <div className="text-sm text-dim mt-2">
-                    The key is stored securely and never exposed in the API response.
+                    密钥安全存储，不会在 API 响应中暴露。
                   </div>
                 </div>
 
@@ -264,17 +264,17 @@ export default function AICenterPage() {
                         checked={editing.isEnabled}
                         onChange={(e) => setEditing({ ...editing, isEnabled: e.target.checked })}
                       />
-                      <span>Enabled</span>
+                      <span>启用</span>
                     </label>
                   </div>
                 )}
 
                 <div className="flex items-center gap-2 mt-4">
                   <button type="submit" className="btn btn-primary" disabled={saving}>
-                    {saving ? <><span className="spinner" /> Saving...</> : (editing.id ? "Update Provider" : "Create Provider")}
+                    {saving ? <><span className="spinner" /> 保存中...</> : (editing.id ? "更新提供商" : "创建提供商")}
                   </button>
                   <button type="button" className="btn" onClick={() => { setShowForm(false); setEditing(EMPTY_FORM); }}>
-                    Cancel
+                    取消
                   </button>
                 </div>
               </div>

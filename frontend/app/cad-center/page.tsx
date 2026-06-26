@@ -29,7 +29,7 @@ function categoryLabel(category: string | null): string {
 
 function versionLabel(versionNumber: number | null): string {
   if (!versionNumber) return "未标记";
-  if (versionNumber === 9999) return "FINAL";
+  if (versionNumber === 9999) return "最终版";
   return `V${versionNumber}`;
 }
 
@@ -111,7 +111,7 @@ export default function CADCenterPage() {
     <div className="page-stack">
       <section className="page-header">
         <div>
-          <h1>CAD Center</h1>
+          <h1>CAD 中心</h1>
           <p>跨项目图纸汇总、分类与版本链。</p>
         </div>
         <div className="metric-inline">
@@ -235,7 +235,7 @@ export default function CADCenterPage() {
       </section>
 
       {selectedChain && (
-        <aside className="side-panel" aria-label="CAD version chain">
+        <aside className="side-panel" aria-label="CAD 版本链">
           <div className="side-panel-header">
             <div>
               <h2>版本链</h2>

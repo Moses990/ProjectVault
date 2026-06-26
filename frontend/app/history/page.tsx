@@ -28,7 +28,7 @@ export default function HistoryPage() {
       setTotal(response.meta.total ?? 0);
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load history");
+      setError(e instanceof Error ? e.message : "加载历史记录失败");
     } finally {
       setLoading(false);
     }
@@ -43,8 +43,8 @@ export default function HistoryPage() {
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">History</h1>
-        <Link href="/settings" className="btn btn-sm">Maintenance</Link>
+        <h1 className="page-title">历史记录</h1>
+        <Link href="/settings" className="btn btn-sm">系统维护</Link>
       </div>
 
       {error && (
@@ -55,20 +55,20 @@ export default function HistoryPage() {
 
       <div className="card" style={{ padding: 0 }}>
         {loading ? (
-          <div className="empty-state"><span className="spinner" /> Loading history...</div>
+          <div className="empty-state"><span className="spinner" /> 加载历史记录...</div>
         ) : items.length === 0 ? (
-          <div className="empty-state">No history events.</div>
+          <div className="empty-state">暂无历史事件。</div>
         ) : (
           <table className="data-table">
             <thead>
               <tr>
-                <th>Time</th>
-                <th>Project</th>
-                <th>Event</th>
-                <th>Status</th>
-                <th>Message</th>
-                <th>Duration</th>
-                <th>Files</th>
+                <th>时间</th>
+                <th>项目</th>
+                <th>事件</th>
+                <th>状态</th>
+                <th>消息</th>
+                <th>耗时</th>
+                <th>文件</th>
               </tr>
             </thead>
             <tbody>
@@ -97,9 +97,9 @@ export default function HistoryPage() {
       </div>
 
       <div className="pagination">
-        <button className="btn btn-sm" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>Prev</button>
-        <span>Page {page} of {totalPages} ({total} events)</span>
-        <button className="btn btn-sm" disabled={page >= totalPages} onClick={() => setPage((value) => value + 1)}>Next</button>
+        <button className="btn btn-sm" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>上一页</button>
+        <span>第 {page} 页 / 共 {totalPages} 页（{total} 个事件）</span>
+        <button className="btn btn-sm" disabled={page >= totalPages} onClick={() => setPage((value) => value + 1)}>下一页</button>
       </div>
     </div>
   );

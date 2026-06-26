@@ -27,7 +27,7 @@ export default function SettingsPage() {
       setScanInterval(s.scan_interval);
       setTheme(s.theme);
     }).catch((e) => {
-      setError(e instanceof Error ? e.message : "Failed to load settings");
+      setError(e instanceof Error ? e.message : "加载设置失败");
     }).finally(() => setLoading(false));
   }, []);
 
@@ -45,7 +45,7 @@ export default function SettingsPage() {
       setSettings(updated);
       setSuccess(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to save settings");
+      setError(e instanceof Error ? e.message : "保存设置失败");
     } finally {
       setSaving(false);
     }
@@ -58,10 +58,10 @@ export default function SettingsPage() {
     try {
       const result = await api.runMaintenance();
       setSystemMessage(
-        `Maintenance complete: ${result.deleted_count} history rows cleaned, incremental vacuum executed.`
+        `维护完成：清理了 ${result.deleted_count} 条历史记录，已执行增量回收。`
       );
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Maintenance failed");
+      setError(e instanceof Error ? e.message : "维护失败");
     } finally {
       setMaintaining(false);
     }
@@ -74,9 +74,9 @@ export default function SettingsPage() {
     try {
       const result = await api.createBackup();
       setBackupName(result.name);
-      setSystemMessage(`Backup created: ${result.name} (${formatBytes(result.size_bytes)}).`);
+      setSystemMessage(`备份已创建：${result.name}（${formatBytes(result.size_bytes)}）。`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Backup failed");
+      setError(e instanceof Error ? e.message : "备份失败");
     } finally {
       setBackupRunning(false);
     }
@@ -84,7 +84,7 @@ export default function SettingsPage() {
 
   async function restoreBackup() {
     if (!backupName.trim()) {
-      setError("Backup name is required.");
+      setError("请输入备份名称。");
       return;
     }
     setRestoring(true);
@@ -92,21 +92,21 @@ export default function SettingsPage() {
     setError(null);
     try {
       const result = await api.restoreBackup(backupName.trim());
-      setSystemMessage(`Backup restored: ${result.name}.`);
+      setSystemMessage(`备份已恢复：${result.name}。`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Restore failed");
+      setError(e instanceof Error ? e.message : "恢复失败");
     } finally {
       setRestoring(false);
     }
   }
 
-  if (loading) return <div className="empty-state"><span className="spinner" /> Loading settings...</div>;
+  if (loading) return <div className="empty-state"><span className="spinner" /> 加载设置...</div>;
 
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">Settings</h1>
-        <Link href="/" className="btn btn-sm">Back to Dashboard</Link>
+        <h1 className="page-title">设置</h1>
+        <Link href="/" className="btn btn-sm">返回工作台</Link>
       </div>
 
       {error && (
@@ -116,7 +116,7 @@ export default function SettingsPage() {
       )}
       {success && (
         <div className="card mb-4" style={{ borderColor: "var(--success)", color: "var(--success)" }}>
-          Settings saved successfully.
+          设置保存成功。
         </div>
       )}
       {systemMessage && (
@@ -128,9 +128,9 @@ export default function SettingsPage() {
       <div className="settings-grid">
       <form onSubmit={handleSave}>
         <div className="card">
-          <h2 className="section-title">General</h2>
+          <h2 className="section-title">常规设置</h2>
           <div className="form-group">
-            <label className="form-label">Root Path</label>
+            <label className="form-label">根路径</label>
             <input
               className="form-input"
               type="text"
@@ -139,12 +139,12 @@ export default function SettingsPage() {
               placeholder="D:\Projects or /home/user/projects"
             />
             <div className="text-sm text-dim mt-2">
-              The root directory where project folders are located. The scanner will discover projects under this path.
+              项目文件夹所在的根目录。扫描器将在此路径下发现项目。
             </div>
           </div>
 
           <div className="form-group">
-            <label className="form-label">Scan Interval (seconds)</label>
+            <label className="form-label">扫描间隔（秒）</label>
             <input
               className="form-input"
               type="number"
@@ -154,30 +154,30 @@ export default function SettingsPage() {
               onChange={(e) => setScanInterval(Number(e.target.value))}
             />
             <div className="text-sm text-dim mt-2">
-              How often the watcher checks for file changes. Lower values detect changes faster but use more CPU.
+              监视器检查文件变更的频率。值越小检测越快，但 CPU 占用越高。
             </div>
           </div>
 
           <div className="form-group">
-            <label className="form-label">Theme</label>
+            <label className="form-label">主题</label>
             <select
               className="form-select"
               value={theme}
               onChange={(e) => setTheme(e.target.value)}
             >
-              <option value="system">System Default</option>
-              <option value="dark">Dark</option>
-              <option value="light">Light</option>
+              <option value="system">跟随系统</option>
+              <option value="dark">深色</option>
+              <option value="light">浅色</option>
             </select>
           </div>
 
           <div className="flex items-center gap-2 mt-4">
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? <><span className="spinner" /> Saving...</> : "Save Settings"}
+              {saving ? <><span className="spinner" /> 保存中...</> : "保存设置"}
             </button>
             {settings && (
               <span className="text-sm text-dim">
-                Last saved: root={settings.root_path || "(empty)"}, interval={settings.scan_interval}s
+                上次保存：根路径={settings.root_path || "（空）"}，间隔={settings.scan_interval}秒
               </span>
             )}
           </div>
@@ -185,18 +185,18 @@ export default function SettingsPage() {
       </form>
 
       <div className="card">
-        <h2 className="section-title">System Maintenance</h2>
+        <h2 className="section-title">系统维护</h2>
         <div className="maintenance-actions">
           <button type="button" className="btn" onClick={runMaintenance} disabled={maintaining}>
-            {maintaining ? <><span className="spinner" /> Running...</> : "Run Maintenance"}
+            {maintaining ? <><span className="spinner" /> 运行中...</> : "执行维护"}
           </button>
           <button type="button" className="btn" onClick={createBackup} disabled={backupRunning}>
-            {backupRunning ? <><span className="spinner" /> Creating...</> : "Create Backup"}
+            {backupRunning ? <><span className="spinner" /> 创建中...</> : "创建备份"}
           </button>
         </div>
 
         <div className="form-group mt-4">
-          <label className="form-label">Restore Backup Name</label>
+          <label className="form-label">恢复备份名称</label>
           <input
             className="form-input"
             value={backupName}
@@ -205,11 +205,11 @@ export default function SettingsPage() {
           />
         </div>
         <button type="button" className="btn btn-danger" onClick={restoreBackup} disabled={restoring}>
-          {restoring ? <><span className="spinner" /> Restoring...</> : "Restore Backup"}
+          {restoring ? <><span className="spinner" /> 恢复中...</> : "恢复备份"}
         </button>
 
         <div className="text-sm text-dim mt-4">
-          Maintenance cleans scan history by retention policy and runs SQLite incremental vacuum. Backup and restore operate on the local SQLite cache only.
+          维护功能根据保留策略清理扫描历史并执行 SQLite 增量回收。备份和恢复仅操作本地 SQLite 缓存。
         </div>
       </div>
       </div>

@@ -595,3 +595,16 @@ Phase 12.2：Packaged UI Render Validation，状态：in_progress。
 - 验证通过：`frontend` 目录 `cmd /c npm run build`。
 - 验证通过：`desktop/src-tauri` 目录 `cargo check`。
 - V1.0 checkpoint/tag 判定：仓库卫生检查通过，可以进入提交/tag 步骤；提交前仍需人工复核 staged 文件清单。
+
+## 2026-06-26 Phase 13.5 三项优先修复与开发模式 API 修复记录
+
+- 状态：complete。已完成代码/产品审查后的三项优先修复：CSP 安全头 + Host 验证、React Error Boundaries、UI 语言统一，以及开发模式 API 连通性修复。
+- CSP 安全头 + Host 验证：`desktop/src-tauri/src/main.rs` 的 `response_headers()` 新增 `Content-Security-Policy`（default-src 'self' 'unsafe-inline' 'unsafe-eval'、connect-src http://127.0.0.1:*、img-src 'self' data: blob:、font-src 'self' data:）、`X-Content-Type-Options: nosniff`、`X-Frame-Options: DENY`、`Referrer-Policy: no-referrer`；`serve_frontend_request()` 新增 Host 头解析与校验，仅允许 `127.0.0.1:{port}` 和 `localhost:{port}`，拒绝其他 Host 防止 DNS rebinding。
+- React Error Boundaries：新建 `frontend/app/error.tsx`（路由级错误边界，"页面出错了" + 重试/返回首页）、`frontend/app/global-error.tsx`（根级错误边界，独立 html/body，"应用加载失败" + 重试）、`frontend/app/not-found.tsx`（404 页面，"页面未找到" + 返回首页）；全部使用中文界面，样式复用 globals.css 的 card/btn 类。
+- UI 语言统一：10 个前端文件约 211 处用户可见英文替换为中文，品牌名 "Project Vault" 和技术术语（CAD、API、URL 等）保留英文；覆盖 `page.tsx`、`Sidebar.tsx`、`CommandPalette.tsx`、`projects/page.tsx`、`project-detail/page.tsx`、`cad-center/page.tsx`、`history/page.tsx`、`ai-center/page.tsx`、`settings/page.tsx`；未引入 i18n 框架，V1 直接硬编码。
+- 开发模式 API 连通性修复：`frontend/lib/api.ts` 的 `baseUrl()` 新增 `NEXT_PUBLIC_BACKEND_PORT` 环境变量支持，在 `window.__BACKEND_PORT__` 不可用时（`next dev` 模式）回退到环境变量指定端口；同时增加 `.trim()` 修复 CMD `set VAR=val && cmd` 尾随空格导致 URL 包含空格的问题。
+- 浏览器验证：工作台 Dashboard 指标卡片、Projects 列表、Project Detail 六 Tab、CAD Center、History、AI Center、Settings、Command Palette、404 页面均显示正确中文文本，API 数据正常加载。
+- 验证通过：`cmd /c npm run build`，Next.js 16.1.0 编译成功（826ms），9 个路由（/、/_not-found、/ai-center、/cad-center、/history、/project-detail、/projects、/settings）全部静态生成。
+- 验证通过：`cargo check`，project-vault v0.1.0 编译成功（7.01s），无错误无警告。
+- 已知开发模式限制（不影响生产构建）：`next dev` 下 `process.env.NEXT_PUBLIC_BACKEND_PORT` 可能因 CMD 环境变量设置时序未被 webpack 内联；`output: "export"` + `trailingSlash: true` 在 dev 模式导致 ChunkLoadError，生产静态导出不受影响。
+- 下一步：可选择运行 `cargo tauri dev` 做完整桌面端到端验证，或继续处理审查报告中剩余的约 41 项改进建议。

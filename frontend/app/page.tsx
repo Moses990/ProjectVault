@@ -24,7 +24,7 @@ export default function DashboardPage() {
           setError(null);
         }
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load");
+        if (!cancelled) setError(e instanceof Error ? e.message : "加载失败");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -33,55 +33,55 @@ export default function DashboardPage() {
     return () => { cancelled = true; };
   }, []);
 
-  if (loading) return <div className="empty-state"><span className="spinner" /> Loading...</div>;
+  if (loading) return <div className="empty-state"><span className="spinner" /> 加载中...</div>;
 
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">Dashboard</h1>
+        <h1 className="page-title">工作台</h1>
       </div>
 
       {error && (
         <div className="card mb-4" style={{ borderColor: "var(--danger)", color: "var(--danger)" }}>
-          Backend connection failed. Make sure the backend is running. ({error})
+          后端连接失败，请确认后端服务正在运行。 ({error})
         </div>
       )}
 
       <div className="metric-grid">
         <div className="metric-card">
-          <div className="metric-label">Projects</div>
+          <div className="metric-label">项目总数</div>
           <div className="metric-value">{metrics?.project_total ?? 0}</div>
         </div>
         <div className="metric-card">
-          <div className="metric-label">CAD Drawings</div>
+          <div className="metric-label">CAD 图纸</div>
           <div className="metric-value">{metrics?.cad_total ?? 0}</div>
         </div>
         <div className="metric-card">
-          <div className="metric-label">Materials</div>
+          <div className="metric-label">材料文件</div>
           <div className="metric-value">{metrics?.material_total ?? 0}</div>
         </div>
       </div>
 
       <div className="card">
         <div className="flex items-center gap-2 mb-4">
-          <h2 className="page-title" style={{ fontSize: 16 }}>Recent Projects</h2>
-          <Link href="/projects" className="btn btn-sm" style={{ marginLeft: "auto" }}>View All</Link>
+          <h2 className="page-title" style={{ fontSize: 16 }}>最近项目</h2>
+          <Link href="/projects" className="btn btn-sm" style={{ marginLeft: "auto" }}>查看全部</Link>
         </div>
         {recent.length === 0 ? (
           <div className="empty-state">
-            <p>No projects indexed yet.</p>
-            <p className="text-sm">Go to Settings to configure a root path, then scan projects.</p>
+            <p>暂无已索引的项目。</p>
+            <p className="text-sm">请前往设置配置根路径，然后扫描项目。</p>
           </div>
         ) : (
           <table className="data-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Phase</th>
-                <th>Files</th>
+                <th>名称</th>
+                <th>阶段</th>
+                <th>文件</th>
                 <th>CAD</th>
-                <th>Materials</th>
-                <th>Updated</th>
+                <th>材料</th>
+                <th>更新时间</th>
               </tr>
             </thead>
             <tbody>

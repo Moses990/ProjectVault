@@ -408,6 +408,15 @@ npm run build
 - Phase 12.2 Packaged UI Render Validation / V1 Final Clean Windows 验收已完成。
 - Phase 13：V1 发布收口与实机使用验证已完成；Phase 13.1、13.2、13.3、13.4 均已完成。
 
+## V1.2.1 Installer Hotfix（2026-06-29）
+
+- 状态：complete。
+- 修复 1：WebView2 Fixed Runtime 检测——`check_webview2_runtime()` 新增 bundled Fixed Runtime 目录和 Program Files Evergreen 路径检查。
+- 修复 2：Dashboard 前端重试——`page.tsx` 增加自动重试（3 次/2s 间隔）和手动重试按钮。
+- 修复 3：FastAPI CORS origin——`main.py` 将硬编码 `allow_origins` 改为 `allow_origin_regex` 匹配任意 loopback 端口。
+- NSIS installer 重新打包验证通过：246,769,064 bytes。
+- 详细记录见 `progress.md`。
+
 ## 决策记录
 
 - 新工作区固定为 `D:\Workflows\ProjectVault`。

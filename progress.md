@@ -636,3 +636,33 @@ Phase 12.2：Packaged UI Render Validation，状态：in_progress。
 - Git 提交：`6f00151 feat: Phase 3 strategic features`，45 files changed, 5303 insertions(+), 964 deletions(-)；tag v1.2.0 已推送远程（`git push origin v1.2.0`）。
 - 审查报告 44 项发现全部处理完毕（Phase 1/2/3）。
 - task_plan.md Phase 0-13 全部标记 complete。
+
+## 2026-06-29 Installer Hotfix 记录
+
+- 状态：complete。NSIS installer 三项缺陷修复，重新打包并实机安装验证通过。
+
+### 修复 1：WebView2 Fixed Runtime 检测
+
+- 问题：`desktop/src-tauri/src/main.rs` 的 `check_webview2_runtime()` 只检查 `%LOCALAPPDATA%\Microsoft\EdgeWebView\Application` 和注册表两个 Evergreen 路径。使用 Fixed Runtime 模式（`tauri.conf.json` 配置 `webviewInstallMode.type: "fixedRuntime"`）时，两个检查点都不命中，程序启动后立即退出并报 "WebView2 runtime not found"。
+- 修复：按优先级依次检查 (1) exe 同目录 `binaries/webview2-fixed-runtime/`（Fixed Runtime）、(2) `%LOCALAPPDATA%` Evergreen、(3) `%ProgramFiles(x86)%` Evergreen、(4) `%ProgramFiles%` Evergreen、(5) 注册表。每步增加 `tracing::info!` 日志。
+- 修改文件：`desktop/src-tauri/src/main.rs`。
+
+### 修复 2：Dashboard 前端重试机制
+
+- 问题：`frontend/app/page.tsx` 的 `useEffect` 在组件挂载时并行调用三个 API（`dashboardMetrics`、`recentProjects`、`favoriteProjects`），失败后直接显示错误横幅且无重试。首次加载时如果 React 水合比后端初始化更快，会产生永久性错误显示。
+- 修复：增加自动重试（最多 3 次，间隔 2 秒）和手动"重试"按钮。`useEffect` 依赖 `loadAttempt` 状态实现重新触发。
+- 修改文件：`frontend/app/page.tsx`。
+
+### 修复 3：FastAPI CORS origin 不匹配
+
+- 问题：`backend/app/main.py` 的 `CORSMiddleware` 使用硬编码 `allow_origins=["http://127.0.0.1:3000", "http://localhost:3000", "http://127.0.0.1:3001", "http://localhost:3001"]`。Tauri 桌面应用的前端 HTTP server 每次启动分配随机端口（`TcpListener::bind("127.0.0.1:0")`），浏览器从 `http://127.0.0.1:{随机端口}` 发起跨域请求时，后端不返回 `Access-Control-Allow-Origin`，浏览器直接拒绝响应，`fetch()` 抛出 `TypeError: Failed to fetch`。
+- 修复：将 `allow_origins` 替换为 `allow_origin_regex=r"^https?://(127\.0\.0\.1|localhost)(:\d+)?$"`，匹配任意 loopback 端口。
+- 修改文件：`backend/app/main.py`。
+
+### 验证结果
+
+- NSIS installer 重新打包：246,769,064 bytes（含新 sidecar 23,468,733 bytes）。
+- 安装后实机验证：窗口标题 "Project Vault"、后端 health OK、前端 `__BACKEND_PORT__` 注入正确、CORS preflight 200 并返回正确 `Access-Control-Allow-Origin`。
+- `/projects/favorites` 端点返回 200，未被 `/{project_id}` 参数路由遮蔽。
+- Git 提交：`1ad3353 fix: WebView2 Fixed Runtime detection and dashboard retry logic`、`c64bfde chore: normalize task_plan.md line endings`。
+- 代码已推送远程 `main` 分支。

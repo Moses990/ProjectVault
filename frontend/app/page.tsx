@@ -13,9 +13,14 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [loadAttempt, setLoadAttempt] = useState(0);
+
   useEffect(() => {
     let cancelled = false;
-    async function load() {
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY_MS = 2000;
+
+    async function load(attempt: number) {
       try {
         const [m, r, f] = await Promise.all([
           api.dashboardMetrics(),
@@ -29,14 +34,28 @@ export default function DashboardPage() {
           setError(null);
         }
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "加载失败");
+        if (cancelled) return;
+        if (attempt < MAX_RETRIES) {
+          // Auto-retry with delay
+          setTimeout(() => {
+            if (!cancelled) load(attempt + 1);
+          }, RETRY_DELAY_MS);
+        } else {
+          setError(e instanceof Error ? e.message : "加载失败");
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
-    load();
+    load(0);
     return () => { cancelled = true; };
-  }, []);
+  }, [loadAttempt]);
+
+  const handleRetry = () => {
+    setError(null);
+    setLoading(true);
+    setLoadAttempt((a) => a + 1);
+  };
 
   if (loading) return <div className="empty-state"><span className="spinner" /> 加载中...</div>;
 
@@ -47,8 +66,9 @@ export default function DashboardPage() {
       </div>
 
       {error && (
-        <div className="card mb-4" style={{ borderColor: "rgba(235,87,87,0.4)", color: "var(--danger)" }}>
-          后端连接失败，请确认后端服务正在运行。({error})
+        <div className="card mb-4" style={{ borderColor: "rgba(235,87,87,0.4)", color: "var(--danger)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span>后端连接失败，请确认后端服务正在运行。({error})</span>
+          <button className="btn btn-primary" style={{ marginLeft: 16, flexShrink: 0 }} onClick={handleRetry}>重试</button>
         </div>
       )}
 

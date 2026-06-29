@@ -622,3 +622,17 @@ Phase 12.2：Packaged UI Render Validation，状态：in_progress。
 - 验证通过：`npm run build` 前端 9 路由静态生成通过（828.5ms）。
 - 验证通过：`cargo check` 桌面 Rust 主进程编译通过（1.10s）。
 - Git 提交：`5884567 Phase 2: 7 quick-win improvements`，20 files changed, 1320 insertions(+), 877 deletions(-)；tag v1.1.0 已推送远程。
+
+## 2026-06-26 V1.2.0 发布记录
+
+- 状态：complete。审查报告 Phase 3 全部战略功能已完成，V1.2.0 标签已推送。
+- 完成内容：文件预览与缩略图（Pillow，多格式）、目录树导航（递归、可展开）、AI 项目分析（OpenAI 兼容提供商）、CSV 导出（文件/图纸）、真实 scanner_status 追踪、自动扫描开关、可配置备份保留数、首页收藏项目、页面 meta 标签、查询长度校验、速率限制、路径遍历防护、Rust 结构化日志（tracing）、WebView2 运行时检测、前端测试套件（vitest + testing-library）。
+- 新增文件：`frontend/app/components/FilePreview.tsx`、`frontend/app/components/DirectoryTree.tsx`、`frontend/__tests__/`（3 个测试文件）、`frontend/vitest.config.ts`、`docs/release/V1.2.0_RELEASE_NOTES.md`。
+- 修改文件：45 files changed, 5303 insertions(+), 964 deletions(-)。
+- 后端新增端点：`GET /assets/{file_id}/thumbnail`、`GET /assets/{file_id}/text`、`GET /projects/{project_id}/file-tree`、`GET /projects/{project_id}/files/export`、`GET /projects/{project_id}/drawings/export`、`POST /projects/{project_id}/ai-analyze`、`GET /projects/favorites`。
+- 验证通过：`npm run build` 前端 9 路由静态生成通过（818ms）。
+- 验证通过：`npx vitest run` 前端测试 7 passed（2 files）。
+- 验证通过：`cargo check` 桌面 Rust 主进程编译通过（30.92s）。
+- Git 提交：`6f00151 feat: Phase 3 strategic features`，45 files changed, 5303 insertions(+), 964 deletions(-)；tag v1.2.0 已推送远程（`git push origin v1.2.0`）。
+- 审查报告 44 项发现全部处理完毕（Phase 1/2/3）。
+- task_plan.md Phase 0-13 全部标记 complete。

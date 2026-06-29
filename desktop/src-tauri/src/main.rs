@@ -221,19 +221,48 @@ fn stop_backend(state: &BackendProcess) {
 }
 
 fn check_webview2_runtime() -> Result<(), String> {
-    // Try to detect WebView2 by checking if the Evergreen runtime exists
+    // 1. Check bundled Fixed Runtime (shipped alongside the exe via tauri.conf.json)
+    if let Ok(exe_dir) = std::env::current_exe().and_then(|p| {
+        p.parent()
+            .map(|d| d.to_path_buf())
+            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "no parent dir"))
+    }) {
+        let fixed_path = exe_dir.join("binaries").join("webview2-fixed-runtime");
+        if fixed_path.exists() {
+            tracing::info!("WebView2 Fixed Runtime found at {}", fixed_path.display());
+            return Ok(());
+        }
+    }
+
+    // 2. Check Evergreen runtime in user profile (LOCALAPPDATA)
     let local_app_data = std::env::var("LOCALAPPDATA").unwrap_or_default();
-    let evergreen_path = format!(
-        r"{local_app_data}\Microsoft\EdgeWebView\Application"
-    );
-    if std::path::Path::new(&evergreen_path).exists() {
+    let evergreen_user = format!(r"{local_app_data}\Microsoft\EdgeWebView\Application");
+    if std::path::Path::new(&evergreen_user).exists() {
+        tracing::info!("WebView2 Evergreen found at {evergreen_user}");
         return Ok(());
     }
 
-    // Check registry for installed WebView2 runtime
+    // 3. Check Evergreen runtime system-wide (Program Files)
+    let program_files_x86 = std::env::var("ProgramFiles(x86)").unwrap_or_default();
+    if !program_files_x86.is_empty() {
+        let evergreen_system = format!(r"{program_files_x86}\Microsoft\EdgeWebView\Application");
+        if std::path::Path::new(&evergreen_system).exists() {
+            tracing::info!("WebView2 Evergreen found at {evergreen_system}");
+            return Ok(());
+        }
+    }
+    let program_files = std::env::var("ProgramFiles").unwrap_or_default();
+    if !program_files.is_empty() {
+        let evergreen_system = format!(r"{program_files}\Microsoft\EdgeWebView\Application");
+        if std::path::Path::new(&evergreen_system).exists() {
+            tracing::info!("WebView2 Evergreen found at {evergreen_system}");
+            return Ok(());
+        }
+    }
+
+    // 4. Check registry for installed WebView2 runtime
     #[cfg(target_os = "windows")]
     {
-        use std::process::Command;
         let output = Command::new("reg")
             .args([
                 "query",
@@ -245,6 +274,7 @@ fn check_webview2_runtime() -> Result<(), String> {
             .output();
         if let Ok(output) = output {
             if output.status.success() {
+                tracing::info!("WebView2 detected via registry");
                 return Ok(());
             }
         }

@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { api, Project } from "@/lib/api";
 
 type SortField = "name" | "type" | "phase" | "last_updated_at" | "file_count" | "cad_count" | "material_count";
@@ -37,14 +36,18 @@ export default function ProjectsPage() {
     }
   }, [q, type, phase, page, sortBy, order]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  async function toggleFav(p: Project, e: React.MouseEvent) {
+  async function toggleFavorite(project: Project, e: React.MouseEvent) {
     e.stopPropagation();
     try {
-      await api.toggleFavorite(p.id, !p.is_favorite);
-      setProjects((prev) => prev.map((x) => x.id === p.id ? { ...x, is_favorite: x.is_favorite ? 0 : 1 } : x));
-    } catch { /* ignore */ }
+      await api.toggleFavorite(project.id, !project.is_favorite);
+      setProjects((prev) => prev.map((item) => item.id === project.id ? { ...item, is_favorite: item.is_favorite ? 0 : 1 } : item));
+    } catch {
+      // Optimistic favorite is optional; keep the current list when the backend rejects it.
+    }
   }
 
   function toggleSort(field: SortField) {
@@ -62,36 +65,23 @@ export default function ProjectsPage() {
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">项目</h1>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", overflow: "hidden" }}>
-            <button
-              className={`btn btn-sm ${viewMode === "table" ? "" : ""}`}
-              style={{ border: "none", borderRadius: 0, background: viewMode === "table" ? "var(--bg-elev3)" : "transparent" }}
-              onClick={() => setViewMode("table")}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
-              列表
-            </button>
-            <button
-              className={`btn btn-sm`}
-              style={{ border: "none", borderRadius: 0, borderLeft: "1px solid var(--border)", background: viewMode === "card" ? "var(--bg-elev3)" : "transparent" }}
-              onClick={() => setViewMode("card")}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>
-              卡片
-            </button>
-          </div>
+        <div>
+          <h1 className="page-title">项目</h1>
+          <p className="panel-subtitle">浏览、筛选和打开本地项目索引</p>
+        </div>
+        <div className="segmented-control">
+          <button className={viewMode === "table" ? "active" : ""} onClick={() => setViewMode("table")}>列表</button>
+          <button className={viewMode === "card" ? "active" : ""} onClick={() => setViewMode("card")}>卡片</button>
         </div>
       </div>
 
-      {error && <div className="card mb-4" style={{ borderColor: "rgba(235,87,87,0.4)", color: "var(--danger)" }}>{error}</div>}
+      {error && <div className="notice error mb-4">{error}</div>}
 
-      <div className="toolbar">
+      <div className="toolbar card toolbar-card">
         <input
           className="topbar-search"
-          style={{ flex: 1, minWidth: 180 }}
-          placeholder="搜索项目..."
+          style={{ flex: 1, minWidth: 220 }}
+          placeholder="搜索项目名称、负责人或标签"
           value={q}
           onChange={(e) => { setQ(e.target.value); setPage(1); }}
         />
@@ -110,87 +100,89 @@ export default function ProjectsPage() {
         </select>
       </div>
 
-      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+      <section className="card table-card">
+        <div className="panel-header">
+          <div>
+            <h2 className="panel-title">项目索引</h2>
+            <div className="panel-subtitle">{total} 个项目 · 每页 {limit} 条</div>
+          </div>
+        </div>
+
         {loading ? (
           <div className="empty-state"><span className="spinner" /> 加载中...</div>
         ) : projects.length === 0 ? (
           <div className="empty-state">
-            <p style={{ color: "var(--text)" }}>未找到项目</p>
-            <p className="text-sm" style={{ marginTop: 4 }}>请调整筛选条件或从设置中扫描新项目。</p>
+            <p style={{ color: "var(--text)", marginBottom: 4 }}>未找到项目</p>
+            <p className="text-sm">调整筛选条件，或到设置中配置根路径并扫描项目。</p>
           </div>
         ) : viewMode === "card" ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12, padding: 16 }}>
-            {projects.map((p) => (
-              <div
-                key={p.id}
-                className="card"
-                style={{ cursor: "pointer", margin: 0, padding: 16, transition: "border-color 0.15s, transform 0.15s" }}
-                onClick={() => router.push(`/project-detail?id=${encodeURIComponent(p.id)}`)}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = ""; e.currentTarget.style.transform = ""; }}
+          <div className="project-card-grid">
+            {projects.map((project) => (
+              <button
+                key={project.id}
+                className="project-card"
+                onClick={() => router.push(`/project-detail?id=${encodeURIComponent(project.id)}`)}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                  <button
-                    className={`fav-btn ${p.is_favorite ? "active" : ""}`}
-                    title="收藏"
-                    onClick={(e) => toggleFav(p, e)}
+                <div className="project-card-top">
+                  <span className="project-name">{project.name}</span>
+                  <span
+                    className={`favorite-star ${project.is_favorite ? "active" : ""}`}
+                    onClick={(event) => toggleFavorite(project, event)}
                   >
-                    {p.is_favorite ? "\u2605" : "\u2606"}
-                  </button>
-                  <span style={{ fontWeight: 500, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 14 }}>{p.name}</span>
+                    {project.is_favorite ? "★" : "☆"}
+                  </span>
                 </div>
-                <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
-                  {p.type && <span className="badge">{p.type}</span>}
-                  {p.phase && <span className="badge badge-accent">{p.phase}</span>}
+                <div className="project-badges">
+                  {project.type && <span className="badge">{project.type}</span>}
+                  {project.phase && <span className="badge badge-accent">{project.phase}</span>}
+                  {project.status && <span className="badge badge-gray">{project.status}</span>}
                 </div>
-                <div style={{ display: "flex", gap: 16, fontSize: 12, color: "var(--text-dim)" }}>
-                  <span>{p.file_count} 文件</span>
-                  <span>{p.cad_count} CAD</span>
-                  <span>{p.material_count} 材料</span>
+                <div className="project-stats">
+                  <span>{project.file_count} 文件</span>
+                  <span>{project.cad_count} CAD</span>
+                  <span>{project.material_count} 材料</span>
                 </div>
-                {p.last_updated_at && (
-                  <div className="text-sm" style={{ color: "var(--text-muted)", marginTop: 8 }}>{p.last_updated_at}</div>
-                )}
-              </div>
+                <div className="project-meta">{project.manager ?? "未设置负责人"} · {project.last_updated_at ?? "未记录更新时间"}</div>
+              </button>
             ))}
           </div>
         ) : (
           <table className="data-table">
             <thead>
               <tr>
-                <th style={{ width: 36 }}></th>
-                <th onClick={() => toggleSort("name")} style={{ cursor: "pointer" }}>名称 {sortBy === "name" && (order === "asc" ? "\u2191" : "\u2193")}</th>
-                <th onClick={() => toggleSort("type")} style={{ cursor: "pointer" }}>类型 {sortBy === "type" && (order === "asc" ? "\u2191" : "\u2193")}</th>
-                <th onClick={() => toggleSort("phase")} style={{ cursor: "pointer" }}>阶段 {sortBy === "phase" && (order === "asc" ? "\u2191" : "\u2193")}</th>
-                <th onClick={() => toggleSort("file_count")} style={{ cursor: "pointer", textAlign: "center" }}>文件 {sortBy === "file_count" && (order === "asc" ? "\u2191" : "\u2193")}</th>
-                <th onClick={() => toggleSort("cad_count")} style={{ cursor: "pointer", textAlign: "center" }}>CAD {sortBy === "cad_count" && (order === "asc" ? "\u2191" : "\u2193")}</th>
-                <th onClick={() => toggleSort("material_count")} style={{ cursor: "pointer", textAlign: "center" }}>材料 {sortBy === "material_count" && (order === "asc" ? "\u2191" : "\u2193")}</th>
+                <th style={{ width: 36 }} />
+                <SortableHeader label="名称" active={sortBy === "name"} order={order} onClick={() => toggleSort("name")} />
+                <SortableHeader label="类型" active={sortBy === "type"} order={order} onClick={() => toggleSort("type")} />
+                <SortableHeader label="阶段" active={sortBy === "phase"} order={order} onClick={() => toggleSort("phase")} />
+                <SortableHeader label="文件" active={sortBy === "file_count"} order={order} align="center" onClick={() => toggleSort("file_count")} />
+                <SortableHeader label="CAD" active={sortBy === "cad_count"} order={order} align="center" onClick={() => toggleSort("cad_count")} />
+                <SortableHeader label="材料" active={sortBy === "material_count"} order={order} align="center" onClick={() => toggleSort("material_count")} />
                 <th>负责人</th>
-                <th onClick={() => toggleSort("last_updated_at")} style={{ cursor: "pointer" }}>更新时间 {sortBy === "last_updated_at" && (order === "asc" ? "\u2191" : "\u2193")}</th>
+                <SortableHeader label="更新时间" active={sortBy === "last_updated_at"} order={order} onClick={() => toggleSort("last_updated_at")} />
               </tr>
             </thead>
             <tbody>
-              {projects.map((p) => (
-                <tr key={p.id} className="row-link" onClick={() => router.push(`/project-detail?id=${encodeURIComponent(p.id)}`)}>
-                  <td onClick={(e) => toggleFav(p, e)} style={{ textAlign: "center" }}>
-                    <button className={`fav-btn ${p.is_favorite ? "active" : ""}`} title="收藏">
-                      {p.is_favorite ? "\u2605" : "\u2606"}
+              {projects.map((project) => (
+                <tr key={project.id} className="row-link" onClick={() => router.push(`/project-detail?id=${encodeURIComponent(project.id)}`)}>
+                  <td onClick={(event) => toggleFavorite(project, event)} style={{ textAlign: "center" }}>
+                    <button className={`fav-btn ${project.is_favorite ? "active" : ""}`} title="收藏">
+                      {project.is_favorite ? "★" : "☆"}
                     </button>
                   </td>
-                  <td style={{ fontWeight: 500 }}>{p.name}</td>
-                  <td>{p.type ? <span className="badge">{p.type}</span> : <span className="text-dim">-</span>}</td>
-                  <td>{p.phase ? <span className="badge badge-accent">{p.phase}</span> : <span className="text-dim">-</span>}</td>
-                  <td style={{ textAlign: "center", color: "var(--text-dim)" }}>{p.file_count}</td>
-                  <td style={{ textAlign: "center", color: "var(--text-dim)" }}>{p.cad_count}</td>
-                  <td style={{ textAlign: "center", color: "var(--text-dim)" }}>{p.material_count}</td>
-                  <td className="text-dim text-sm">{p.manager ?? "-"}</td>
-                  <td className="text-dim text-sm">{p.last_updated_at ?? "-"}</td>
+                  <td style={{ fontWeight: 600 }}>{project.name}</td>
+                  <td>{project.type ? <span className="badge">{project.type}</span> : <span className="text-dim">-</span>}</td>
+                  <td>{project.phase ? <span className="badge badge-accent">{project.phase}</span> : <span className="text-dim">-</span>}</td>
+                  <td style={{ textAlign: "center", color: "var(--text-dim)" }}>{project.file_count}</td>
+                  <td style={{ textAlign: "center", color: "var(--text-dim)" }}>{project.cad_count}</td>
+                  <td style={{ textAlign: "center", color: "var(--text-dim)" }}>{project.material_count}</td>
+                  <td className="text-dim text-sm">{project.manager ?? "-"}</td>
+                  <td className="text-dim text-sm">{project.last_updated_at ?? "-"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
-      </div>
+      </section>
 
       <div className="pagination">
         <button className="btn btn-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>上一页</button>
@@ -198,5 +190,13 @@ export default function ProjectsPage() {
         <button className="btn btn-sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>下一页</button>
       </div>
     </div>
+  );
+}
+
+function SortableHeader({ label, active, order, align, onClick }: { label: string; active: boolean; order: "asc" | "desc"; align?: "center"; onClick: () => void }) {
+  return (
+    <th onClick={onClick} style={{ cursor: "pointer", textAlign: align }}>
+      {label} {active && (order === "asc" ? "↑" : "↓")}
+    </th>
   );
 }

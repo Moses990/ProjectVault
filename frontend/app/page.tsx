@@ -12,34 +12,32 @@ export default function DashboardPage() {
   const [favorites, setFavorites] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-
   const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    const MAX_RETRIES = 3;
-    const RETRY_DELAY_MS = 2000;
+    const maxRetries = 3;
+    const retryDelayMs = 2000;
 
     async function load(attempt: number) {
       try {
-        const [m, r, f] = await Promise.all([
+        const [dashboardMetrics, recentProjects, favoriteProjects] = await Promise.all([
           api.dashboardMetrics(),
           api.recentProjects(8),
           api.favoriteProjects(),
         ]);
         if (!cancelled) {
-          setMetrics(m);
-          setRecent(r);
-          setFavorites(f);
+          setMetrics(dashboardMetrics);
+          setRecent(recentProjects);
+          setFavorites(favoriteProjects);
           setError(null);
         }
       } catch (e) {
         if (cancelled) return;
-        if (attempt < MAX_RETRIES) {
-          // Auto-retry with delay
+        if (attempt < maxRetries) {
           setTimeout(() => {
             if (!cancelled) load(attempt + 1);
-          }, RETRY_DELAY_MS);
+          }, retryDelayMs);
         } else {
           setError(e instanceof Error ? e.message : "加载失败");
         }
@@ -47,27 +45,36 @@ export default function DashboardPage() {
         if (!cancelled) setLoading(false);
       }
     }
+
     load(0);
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [loadAttempt]);
 
   const handleRetry = () => {
     setError(null);
     setLoading(true);
-    setLoadAttempt((a) => a + 1);
+    setLoadAttempt((attempt) => attempt + 1);
   };
 
-  if (loading) return <div className="empty-state"><span className="spinner" /> 加载中...</div>;
+  if (loading) {
+    return <div className="empty-state"><span className="spinner" /> 加载中...</div>;
+  }
 
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">工作台</h1>
+        <div>
+          <h1 className="page-title">工作台</h1>
+          <p className="panel-subtitle">本地项目索引、图纸和材料文件的实时概览</p>
+        </div>
+        <Link href="/settings" className="btn">配置根路径</Link>
       </div>
 
       {error && (
-        <div className="card mb-4" style={{ borderColor: "rgba(235,87,87,0.4)", color: "var(--danger)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span>后端连接失败，请确认后端服务正在运行。({error})</span>
+        <div className="card mb-4" style={{ borderColor: "var(--danger)", color: "var(--danger)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span>后端连接失败，请确认后端服务正在运行 ({error})</span>
           <button className="btn btn-primary" style={{ marginLeft: 16, flexShrink: 0 }} onClick={handleRetry}>重试</button>
         </div>
       )}
@@ -79,55 +86,56 @@ export default function DashboardPage() {
       </div>
 
       {favorites.length > 0 && (
-        <div className="card mb-4" style={{ padding: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", padding: "16px 20px", borderBottom: "1px solid var(--border-subtle)" }}>
-            <h2 style={{ fontSize: 14, fontWeight: 600, margin: 0, color: "var(--text)" }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--warn)" stroke="var(--warn)" strokeWidth="2" style={{ marginRight: 6, verticalAlign: "middle" }}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
-              收藏项目
-            </h2>
+        <section className="card mb-4" style={{ padding: 0 }}>
+          <div className="panel-header">
+            <h2 className="panel-title">收藏项目</h2>
           </div>
-          <div style={{ display: "flex", gap: 8, padding: 12, flexWrap: "wrap" }}>
-            {favorites.map((p) => (
-              <div
-                key={p.id}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 10, padding: 12 }}>
+            {favorites.map((project) => (
+              <button
+                key={project.id}
                 className="card"
-                style={{ cursor: "pointer", margin: 0, padding: "10px 14px", fontSize: 13, transition: "border-color 0.15s" }}
-                onClick={() => router.push(`/project-detail?id=${encodeURIComponent(p.id)}`)}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = ""; }}
+                style={{ cursor: "pointer", margin: 0, padding: "10px 12px", textAlign: "left" }}
+                onClick={() => router.push(`/project-detail?id=${encodeURIComponent(project.id)}`)}
               >
-                <div style={{ fontWeight: 500, marginBottom: 4 }}>{p.name}</div>
-                <div style={{ fontSize: 11, color: "var(--text-dim)" }}>{p.file_count} 文件 · {p.cad_count} CAD</div>
-              </div>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>{project.name}</div>
+                <div className="text-sm" style={{ color: "var(--text-muted)" }}>{project.file_count} 文件 · {project.cad_count} CAD</div>
+              </button>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
-      <div className="card" style={{ padding: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", padding: "16px 20px", borderBottom: "1px solid var(--border-subtle)" }}>
-          <h2 style={{ fontSize: 14, fontWeight: 600, margin: 0, color: "var(--text)" }}>最近项目</h2>
-          <Link href="/projects" className="btn btn-sm" style={{ marginLeft: "auto" }}>查看全部</Link>
+      <section className="card" style={{ padding: 0 }}>
+        <div className="panel-header">
+          <div>
+            <h2 className="panel-title">最近项目</h2>
+            <div className="panel-subtitle">最近扫描或更新的项目资产</div>
+          </div>
+          <div className="panel-actions">
+            <Link href="/projects" className="btn btn-sm">查看全部</Link>
+          </div>
         </div>
         {recent.length === 0 ? (
-          <div style={{ padding: "48px 24px", textAlign: "center" }}>
-            <div style={{ width: 48, height: 48, borderRadius: "var(--radius-lg)", background: "var(--accent-bg)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+          <div className="empty-state">
+            <div className="vault-empty-icon">
+              <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="4" y="5" width="16" height="14" rx="3" />
+                <path d="M8 10h8M8 14h5" />
               </svg>
             </div>
-            <h2 style={{ fontSize: 16, fontWeight: 600, margin: "0 0 6px", color: "var(--text)" }}>欢迎使用 Project Vault</h2>
-            <p style={{ color: "var(--text-dim)", margin: "0 0 20px", lineHeight: 1.6, maxWidth: 380, marginLeft: "auto", marginRight: "auto", fontSize: 13 }}>
-              本地优先的项目文件管理工具，专为建筑/室内设计行业打造。开始前请先配置项目根路径。
+            <h2 style={{ fontSize: 15, fontWeight: 600, margin: "0 0 6px", color: "var(--text)" }}>欢迎使用 Project Vault</h2>
+            <p style={{ color: "var(--text-muted)", margin: "0 auto 20px", lineHeight: 1.6, maxWidth: 380, fontSize: 13 }}>
+              开始前先配置项目根路径。Project Vault 会在本机建立索引，用于快速浏览项目、图纸和材料文件。
             </p>
             <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
               <Link href="/settings" className="btn btn-primary">前往设置</Link>
               <Link href="/projects" className="btn">浏览项目</Link>
             </div>
-            <div style={{ marginTop: 28, display: "flex", gap: 24, justifyContent: "center" }}>
-              {[["设置根路径"], ["扫描发现项目"], ["浏览与管理"]].map(([label], i) => (
-                <div key={i} style={{ textAlign: "center" }}>
-                  <div style={{ width: 24, height: 24, borderRadius: "50%", background: "var(--bg-elev2)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 6px", fontSize: 11, fontWeight: 600, color: "var(--text-dim)" }}>{i + 1}</div>
+            <div className="onboarding-steps">
+              {["设置根路径", "扫描发现项目", "浏览与管理"].map((label, index) => (
+                <div className="onboarding-step" key={label}>
+                  <div className="onboarding-step-index">{index + 1}</div>
                   <div className="text-sm" style={{ color: "var(--text-dim)" }}>{label}</div>
                 </div>
               ))}
@@ -146,20 +154,20 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {recent.map((p) => (
-                <tr key={p.id} className="row-link" onClick={() => router.push(`/project-detail?id=${encodeURIComponent(p.id)}`)}>
-                  <td style={{ fontWeight: 500 }}>{p.name}</td>
-                  <td>{p.phase ? <span className="badge badge-accent">{p.phase}</span> : <span className="text-dim">-</span>}</td>
-                  <td style={{ textAlign: "center", color: "var(--text-dim)" }}>{p.file_count}</td>
-                  <td style={{ textAlign: "center", color: "var(--text-dim)" }}>{p.cad_count}</td>
-                  <td style={{ textAlign: "center", color: "var(--text-dim)" }}>{p.material_count}</td>
-                  <td className="text-dim text-sm">{p.last_updated_at ?? "-"}</td>
+              {recent.map((project) => (
+                <tr key={project.id} className="row-link" onClick={() => router.push(`/project-detail?id=${encodeURIComponent(project.id)}`)}>
+                  <td style={{ fontWeight: 600 }}>{project.name}</td>
+                  <td>{project.phase ? <span className="badge badge-accent">{project.phase}</span> : <span className="text-dim">-</span>}</td>
+                  <td style={{ textAlign: "center", color: "var(--text-dim)" }}>{project.file_count}</td>
+                  <td style={{ textAlign: "center", color: "var(--text-dim)" }}>{project.cad_count}</td>
+                  <td style={{ textAlign: "center", color: "var(--text-dim)" }}>{project.material_count}</td>
+                  <td className="text-dim text-sm">{project.last_updated_at ?? "-"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
-      </div>
+      </section>
     </div>
   );
 }
@@ -168,7 +176,7 @@ function MetricCard({ label, value, accent }: { label: string; value: number; ac
   return (
     <div className="metric-card">
       <div className="metric-label">{label}</div>
-      <div className="metric-value" style={accent ? { color: "var(--accent-2)" } : undefined}>
+      <div className="metric-value" style={accent ? { color: "var(--accent)" } : undefined}>
         {value}
       </div>
     </div>

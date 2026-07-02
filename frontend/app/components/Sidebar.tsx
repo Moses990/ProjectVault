@@ -21,8 +21,17 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch: () => void }) {
   return (
     <aside className="sidebar">
       <div className="brand">
-        <div className="brand-mark">PV</div>
-        <span>Project Vault</span>
+        <div className="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 28 28" fill="none">
+            <rect x="5" y="5" width="18" height="18" rx="5" />
+            <path d="M10 14h8M14 10v8" />
+            <circle cx="14" cy="14" r="2.5" />
+          </svg>
+        </div>
+        <div className="brand-copy">
+          <span>Project Vault</span>
+          <small>Local project index</small>
+        </div>
       </div>
 
       <button className="sidebar-search" onClick={onOpenSearch}>
@@ -64,7 +73,10 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch: () => void }) {
       </nav>
 
       <div className="sidebar-spacer" />
-      <div className="sidebar-footer">Project Vault v1.1</div>
+      <div className="sidebar-footer">
+        <span className="status-dot" />
+        <span>本地服务已连接</span>
+      </div>
     </aside>
   );
 }

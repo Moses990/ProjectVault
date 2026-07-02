@@ -111,18 +111,18 @@ export default function CADCenterPage() {
     <div className="page-stack">
       <section className="page-header">
         <div>
-          <h1>CAD 中心</h1>
-          <p>跨项目图纸汇总、分类与版本链。</p>
+          <h1 className="page-title">CAD 中心</h1>
+          <p className="panel-subtitle">跨项目图纸汇总、分类和版本链</p>
         </div>
         <div className="metric-inline">
-          <FileText size={18} />
+          <FileText size={16} />
           <span>{total} 张图纸</span>
         </div>
       </section>
 
-      <section className="toolbar-row">
+      <section className="toolbar-row card toolbar-card">
         <div className="search-input">
-          <Search size={16} />
+          <Search size={15} />
           <input
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
@@ -131,10 +131,10 @@ export default function CADCenterPage() {
             }}
             placeholder="搜索图纸名称、路径或项目"
           />
-          <button className="btn small" type="button" onClick={submitSearch}>搜索</button>
+          <button className="btn btn-sm" type="button" onClick={submitSearch}>搜索</button>
         </div>
         <label className="select-field">
-          <Filter size={16} />
+          <Filter size={15} />
           <select value={categoryFilter} onChange={(event) => selectCategory(event.target.value)}>
             <option value="all">全部分类</option>
             <option value="PLAN">平面图</option>
@@ -146,7 +146,7 @@ export default function CADCenterPage() {
           </select>
         </label>
         <label className="select-field">
-          <SortAsc size={16} />
+          <SortAsc size={15} />
           <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
             <option value="last_modified">按修改时间</option>
             <option value="file_name">按文件名</option>
@@ -172,6 +172,12 @@ export default function CADCenterPage() {
       {error && <div className="notice error">{error}</div>}
 
       <section className="table-panel">
+        <div className="panel-header">
+          <div>
+            <h2 className="panel-title">图纸索引</h2>
+            <div className="panel-subtitle">按分类、版本和项目定位 CAD 文件</div>
+          </div>
+        </div>
         {loading ? (
           <div className="empty-state">加载中...</div>
         ) : drawings.length === 0 ? (
@@ -193,7 +199,7 @@ export default function CADCenterPage() {
               {drawings.map((drawing) => (
                 <tr key={drawing.drawing_id}>
                   <td className="strong-cell">
-                    <FileText size={16} />
+                    <FileText size={15} />
                     {drawing.file_name}
                   </td>
                   <td>
@@ -213,11 +219,11 @@ export default function CADCenterPage() {
                   <td>{formatDate(drawing.last_modified)}</td>
                   <td className="actions-cell">
                     <button className="icon-text-button" type="button" onClick={() => openVersionChain(drawing.drawing_id)}>
-                      <GitBranch size={15} />
+                      <GitBranch size={14} />
                       版本链
                     </button>
                     <button className="icon-text-button" type="button" onClick={() => router.push(`/project-detail?id=${encodeURIComponent(drawing.project_id)}`)}>
-                      <FolderOpen size={15} />
+                      <FolderOpen size={14} />
                       项目
                     </button>
                   </td>

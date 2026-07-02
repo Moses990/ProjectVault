@@ -32,11 +32,11 @@ function TreeNodeItem({ node, depth, path, selectedDir, onSelect }: TreeNodeItem
           padding: "5px 8px", paddingLeft: 8 + depth * 16,
           cursor: "pointer", borderRadius: "var(--radius-sm)",
           background: isSelected ? "var(--accent-bg)" : "transparent",
-          color: isSelected ? "var(--accent-2)" : "var(--text)",
+          color: isSelected ? "var(--accent)" : "var(--text)",
           fontSize: 13, transition: "background 0.1s",
         }}
         onClick={() => onSelect(currentPath)}
-        onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = "var(--bg-elev2)"; }}
+        onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = "var(--bg-elev-2)"; }}
         onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = "transparent"; }}
       >
         {hasChildren ? (
@@ -85,11 +85,11 @@ export function DirectoryTree({ tree, selectedDir, onSelect }: DirectoryTreeProp
           padding: "6px 12px", cursor: "pointer",
           borderRadius: "var(--radius-sm)", margin: "0 8px",
           background: selectedDir === null ? "var(--accent-bg)" : "transparent",
-          color: selectedDir === null ? "var(--accent-2)" : "var(--text)",
+          color: selectedDir === null ? "var(--accent)" : "var(--text)",
           fontSize: 13, fontWeight: 500, transition: "background 0.1s",
         }}
         onClick={() => onSelect(null)}
-        onMouseEnter={(e) => { if (selectedDir !== null) e.currentTarget.style.background = "var(--bg-elev2)"; }}
+        onMouseEnter={(e) => { if (selectedDir !== null) e.currentTarget.style.background = "var(--bg-elev-2)"; }}
         onMouseLeave={(e) => { if (selectedDir !== null) e.currentTarget.style.background = "transparent"; }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ flexShrink: 0 }}>

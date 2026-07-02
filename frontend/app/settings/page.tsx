@@ -124,17 +124,17 @@ export default function SettingsPage() {
       </div>
 
       {error && (
-        <div className="card mb-4" style={{ borderColor: "rgba(235,87,87,0.4)", color: "var(--danger)", padding: "12px 16px", fontSize: 13 }}>
+        <div className="card mb-4" style={{ borderColor: "var(--danger)", color: "var(--danger)", padding: "10px 14px", fontSize: 13 }}>
           {error}
         </div>
       )}
       {success && (
-        <div className="card mb-4" style={{ borderColor: "rgba(76,183,130,0.4)", color: "var(--success)", padding: "12px 16px", fontSize: 13 }}>
+        <div className="card mb-4" style={{ borderColor: "var(--success)", color: "var(--success)", padding: "10px 14px", fontSize: 13 }}>
           设置保存成功。
         </div>
       )}
       {systemMessage && (
-        <div className="card mb-4" style={{ borderColor: "rgba(76,183,130,0.4)", color: "var(--success)", padding: "12px 16px", fontSize: 13 }}>
+        <div className="card mb-4" style={{ borderColor: "var(--success)", color: "var(--success)", padding: "10px 14px", fontSize: 13 }}>
           {systemMessage}
         </div>
       )}
@@ -231,7 +231,7 @@ export default function SettingsPage() {
               </button>
               {settings && (
                 <span className="text-sm" style={{ color: "var(--text-muted)" }}>
-                  根路径: {settings.root_path || "未设置"} · 间隔: {settings.scan_interval}s
+                  根路径：{settings.root_path || "未设置"} · 间隔：{settings.scan_interval}s
                 </span>
               )}
             </div>

@@ -73,12 +73,12 @@ export function FilesTab({ projectId }: { projectId: string }) {
         {/* Breadcrumb */}
         {breadcrumb.length > 0 && (
           <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 16px", borderBottom: "1px solid var(--border)", fontSize: 12, color: "var(--text-dim)" }}>
-            <span style={{ cursor: "pointer", color: "var(--accent-2)" }} onClick={() => handleDirSelect(null)}>全部文件</span>
+            <span style={{ cursor: "pointer", color: "var(--accent)" }} onClick={() => handleDirSelect(null)}>全部文件</span>
             {breadcrumb.map((part, i) => (
               <span key={i} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <span style={{ opacity: 0.4 }}>/</span>
                 <span
-                  style={{ cursor: i < breadcrumb.length - 1 ? "pointer" : "default", color: i < breadcrumb.length - 1 ? "var(--accent-2)" : "var(--text)" }}
+                  style={{ cursor: i < breadcrumb.length - 1 ? "pointer" : "default", color: i < breadcrumb.length - 1 ? "var(--accent)" : "var(--text)" }}
                   onClick={() => i < breadcrumb.length - 1 && handleDirSelect(breadcrumb.slice(0, i + 1).join("/"))}
                 >
                   {part}

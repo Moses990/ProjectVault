@@ -103,7 +103,7 @@ export function FilePreview({ file, onClose }: FilePreviewProps) {
 
           {previewType === "unsupported" && (
             <div className="empty-state" style={{ padding: 48 }}>
-              <div style={{ width: 48, height: 48, borderRadius: "var(--radius-lg)", background: "var(--bg-elev2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+              <div style={{ width: 48, height: 48, borderRadius: "var(--radius-lg)", background: "var(--bg-elev-2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><path d="M14 2v6h6" /></svg>
               </div>
               <p style={{ color: "var(--text)", marginBottom: 4 }}>此文件类型暂不支持预览</p>

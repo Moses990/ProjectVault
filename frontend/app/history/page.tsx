@@ -22,8 +22,8 @@ function statusDot(status: string) {
   return (
     <span style={{
       display: "inline-block",
-      width: 7,
-      height: 7,
+      width: 6,
+      height: 6,
       borderRadius: "50%",
       background: color,
       marginRight: 6,
@@ -65,13 +65,13 @@ export default function HistoryPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">历史记录</h1>
-          <p className="text-sm" style={{ color: "var(--text-dim)", marginTop: 4 }}>扫描事件与系统操作日志。</p>
+          <p className="text-sm" style={{ color: "var(--text-muted)", marginTop: 4 }}>扫描事件与系统操作日志。</p>
         </div>
         <Link href="/settings" className="btn btn-sm">系统维护</Link>
       </div>
 
       {error && (
-        <div className="card mb-4" style={{ borderColor: "rgba(235,87,87,0.4)", color: "var(--danger)", padding: "12px 16px", fontSize: 13 }}>
+        <div className="card mb-4" style={{ borderColor: "var(--danger)", color: "var(--danger)", padding: "10px 14px", fontSize: 13 }}>
           {error}
         </div>
       )}

@@ -91,9 +91,9 @@ function ProjectDetailContent() {
       <div>
         <div className="page-header">
           <h1 className="page-title">项目</h1>
-          <Link href="/projects" className="btn btn-sm">返回项目列表</Link>
+          <Link href="/projects" className="btn btn-sm">返回列表</Link>
         </div>
-        <div className="card" style={{ borderColor: "rgba(235,87,87,0.4)", color: "var(--danger)" }}>
+        <div className="card" style={{ borderColor: "var(--danger)", color: "var(--danger)" }}>
           {error}
         </div>
       </div>
@@ -128,11 +128,11 @@ function ProjectDetailContent() {
       </div>
 
       {scanResult && (
-        <div className="card mb-4" style={{ fontSize: 13, padding: "12px 16px", borderColor: "rgba(76,183,130,0.3)", color: "var(--success)" }}>{scanResult}</div>
+        <div className="card mb-4" style={{ fontSize: 13, padding: "10px 14px", borderColor: "var(--success)", color: "var(--success)" }}>{scanResult}</div>
       )}
 
       {error && (
-        <div className="card mb-4" style={{ fontSize: 13, padding: "12px 16px", borderColor: "rgba(242,190,0,0.3)", color: "var(--warn)" }}>
+        <div className="card mb-4" style={{ fontSize: 13, padding: "10px 14px", borderColor: "var(--warn)", color: "var(--warn)" }}>
           {error}（显示缓存数据）
         </div>
       )}
@@ -146,7 +146,7 @@ function ProjectDetailContent() {
           >
             {t.label}
             {t.count !== undefined && t.count > 0 && (
-              <span style={{ marginLeft: 6, fontSize: 11, color: "var(--text-muted)", background: "var(--bg-elev2)", padding: "1px 6px", borderRadius: "var(--radius-pill)" }}>{t.count}</span>
+              <span style={{ marginLeft: 6, fontSize: 10, color: "var(--text-muted)", background: "var(--bg-elev-2)", padding: "1px 5px", borderRadius: "var(--radius-pill)" }}>{t.count}</span>
             )}
           </button>
         ))}

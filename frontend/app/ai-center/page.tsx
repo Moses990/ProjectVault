@@ -138,7 +138,7 @@ export default function AICenterPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">AI 中心</h1>
-          <p className="text-sm" style={{ color: "var(--text-dim)", marginTop: 4 }}>管理 AI 提供商以启用智能元数据提取。</p>
+          <p className="text-sm" style={{ color: "var(--text-muted)", marginTop: 4 }}>管理 AI 提供商以启用智能元数据提取。</p>
         </div>
         <button className="btn btn-primary btn-sm" onClick={startCreate}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
@@ -147,7 +147,7 @@ export default function AICenterPage() {
       </div>
 
       {error && (
-        <div className="card mb-4" style={{ borderColor: "rgba(235,87,87,0.4)", color: "var(--danger)", padding: "12px 16px", fontSize: 13 }}>
+        <div className="card mb-4" style={{ borderColor: "var(--danger)", color: "var(--danger)", padding: "10px 14px", fontSize: 13 }}>
           {error}
         </div>
       )}
@@ -155,14 +155,14 @@ export default function AICenterPage() {
       {loading ? (
         <div className="empty-state"><span className="spinner" /> 加载提供商列表...</div>
       ) : providers.length === 0 && !showForm ? (
-        <div className="card" style={{ textAlign: "center", padding: "48px 24px" }}>
+        <div className="card" style={{ textAlign: "center", padding: "40px 24px" }}>
           <div style={{ width: 48, height: 48, borderRadius: "var(--radius-lg)", background: "var(--accent-bg)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 4l8 4-8 4-8-4 8-4zM4 12l8 4 8-4M4 16l8 4 8-4" />
             </svg>
           </div>
           <p style={{ color: "var(--text)", fontWeight: 500, margin: "0 0 4px" }}>尚未配置 AI 提供商</p>
-          <p className="text-sm" style={{ color: "var(--text-dim)", margin: "0 0 20px" }}>添加提供商以启用 AI 驱动的元数据提取。</p>
+          <p className="text-sm" style={{ color: "var(--text-muted)", margin: "0 0 20px" }}>添加提供商以启用 AI 驱动的元数据提取。</p>
           <button className="btn btn-primary btn-sm" onClick={startCreate}>添加提供商</button>
         </div>
       ) : (
@@ -185,11 +185,11 @@ export default function AICenterPage() {
                       </div>
                       <div className="provider-url">{p.base_url}</div>
                       {p.default_model && (
-                        <div className="text-sm" style={{ color: "var(--text-muted)", marginTop: 2 }}>模型: {p.default_model}</div>
+                        <div className="text-sm" style={{ color: "var(--text-muted)", marginTop: 2 }}>模型：{p.default_model}</div>
                       )}
                       {testResult && (
                         <div className="text-sm" style={{ marginTop: 6, color: testResult.ready ? "var(--success)" : "var(--danger)", display: "flex", alignItems: "center", gap: 4 }}>
-                          <span style={{ fontSize: 11 }}>{testResult.ready ? "\u2713" : "\u2717"}</span>
+                          <span style={{ fontSize: 11 }}>{testResult.ready ? "✓" : "✗"}</span>
                           {testResult.message}
                         </div>
                       )}
@@ -302,7 +302,7 @@ export default function AICenterPage() {
       <ConfirmDialog
         open={deleteTarget !== null}
         title="确认删除提供商"
-        message={`即将删除提供商 "${deleteTarget?.name ?? ""}"，此操作不可撤销。`}
+        message={`即将删除提供商"${deleteTarget?.name ?? ""}"，此操作不可撤销。`}
         confirmLabel="确认删除"
         danger
         onConfirm={confirmDelete}

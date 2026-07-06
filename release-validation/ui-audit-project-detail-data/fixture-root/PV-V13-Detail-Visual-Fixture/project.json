@@ -1,0 +1,21 @@
+{
+  "project_id": "878fb1b3-75de-4bea-b26f-7c754beaad60",
+  "name": "PV-V13-Detail-Visual-Fixture",
+  "type": "",
+  "phase": "",
+  "status": "healthy",
+  "manager": "",
+  "tags": [
+    "v1.3",
+    "ui-audit",
+    "fixture"
+  ],
+  "ai": {
+    "summary": "",
+    "core_needs": [],
+    "special_reqs": [],
+    "risks": [],
+    "lessons": []
+  },
+  "schema_version": 1
+}

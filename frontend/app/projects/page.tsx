@@ -79,8 +79,7 @@ export default function ProjectsPage() {
 
       <div className="toolbar card toolbar-card">
         <input
-          className="topbar-search"
-          style={{ flex: 1, minWidth: 220 }}
+          className="topbar-search projects-search"
           placeholder="搜索项目名称、负责人或标签"
           value={q}
           onChange={(e) => { setQ(e.target.value); setPage(1); }}
@@ -112,7 +111,7 @@ export default function ProjectsPage() {
           <div className="empty-state"><span className="spinner" /> 加载中...</div>
         ) : projects.length === 0 ? (
           <div className="empty-state">
-            <p style={{ color: "var(--text)", marginBottom: 4 }}>未找到项目</p>
+            <p className="empty-title">未找到项目</p>
             <p className="text-sm">调整筛选条件，或到设置中配置根路径并扫描项目。</p>
           </div>
         ) : viewMode === "card" ? (
@@ -150,7 +149,7 @@ export default function ProjectsPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th style={{ width: 36 }} />
+                <th className="table-fav-col" />
                 <SortableHeader label="名称" active={sortBy === "name"} order={order} onClick={() => toggleSort("name")} />
                 <SortableHeader label="类型" active={sortBy === "type"} order={order} onClick={() => toggleSort("type")} />
                 <SortableHeader label="阶段" active={sortBy === "phase"} order={order} onClick={() => toggleSort("phase")} />
@@ -164,17 +163,17 @@ export default function ProjectsPage() {
             <tbody>
               {projects.map((project) => (
                 <tr key={project.id} className="row-link" onClick={() => router.push(`/project-detail?id=${encodeURIComponent(project.id)}`)}>
-                  <td onClick={(event) => toggleFavorite(project, event)} style={{ textAlign: "center" }}>
+                  <td onClick={(event) => toggleFavorite(project, event)} className="cell-center">
                     <button className={`fav-btn ${project.is_favorite ? "active" : ""}`} title="收藏">
                       {project.is_favorite ? "★" : "☆"}
                     </button>
                   </td>
-                  <td style={{ fontWeight: 600 }}>{project.name}</td>
+                  <td className="cell-strong">{project.name}</td>
                   <td>{project.type ? <span className="badge">{project.type}</span> : <span className="text-dim">-</span>}</td>
                   <td>{project.phase ? <span className="badge badge-accent">{project.phase}</span> : <span className="text-dim">-</span>}</td>
-                  <td style={{ textAlign: "center", color: "var(--text-dim)" }}>{project.file_count}</td>
-                  <td style={{ textAlign: "center", color: "var(--text-dim)" }}>{project.cad_count}</td>
-                  <td style={{ textAlign: "center", color: "var(--text-dim)" }}>{project.material_count}</td>
+                  <td className="cell-center cell-muted">{project.file_count}</td>
+                  <td className="cell-center cell-muted">{project.cad_count}</td>
+                  <td className="cell-center cell-muted">{project.material_count}</td>
                   <td className="text-dim text-sm">{project.manager ?? "-"}</td>
                   <td className="text-dim text-sm">{project.last_updated_at ?? "-"}</td>
                 </tr>
@@ -195,7 +194,7 @@ export default function ProjectsPage() {
 
 function SortableHeader({ label, active, order, align, onClick }: { label: string; active: boolean; order: "asc" | "desc"; align?: "center"; onClick: () => void }) {
   return (
-    <th onClick={onClick} style={{ cursor: "pointer", textAlign: align }}>
+    <th onClick={onClick} className={`sortable-header ${align === "center" ? "center" : ""}`}>
       {label} {active && (order === "asc" ? "↑" : "↓")}
     </th>
   );

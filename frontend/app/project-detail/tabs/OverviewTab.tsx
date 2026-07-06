@@ -2,10 +2,15 @@
 
 import { ProjectOverview } from "@/lib/api";
 
+function formatOverviewValue(label: string, value: string | null | undefined): string | null | undefined {
+  if (label !== "最后更新" || !value) return value;
+  return value.replace("T", " ").replace(/\.\d+.*$/, "").replace(/\+.*$/, "");
+}
+
 export function OverviewTab({ overview }: { overview: ProjectOverview }) {
   return (
-    <div className="card">
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+    <div className="card project-overview-card">
+      <div className="project-overview-grid">
         <InfoField label="类型" value={overview.type} />
         <InfoField label="负责人" value={overview.manager} />
         <InfoField label="阶段" value={overview.phase} />
@@ -14,15 +19,15 @@ export function OverviewTab({ overview }: { overview: ProjectOverview }) {
         <InfoField label="最后更新" value={overview.last_updated_at} mono />
       </div>
       {overview.summary && (
-        <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--border-subtle)" }}>
+        <div className="project-overview-section">
           <div className="form-label">摘要</div>
-          <div style={{ lineHeight: 1.7, color: "var(--text)", fontSize: 13 }}>{overview.summary}</div>
+          <div className="project-overview-copy">{overview.summary}</div>
         </div>
       )}
       {overview.tags.length > 0 && (
-        <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border-subtle)" }}>
+        <div className="project-overview-section compact">
           <div className="form-label">标签</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <div className="project-tag-list">
             {overview.tags.map((tag) => (
               <span key={tag} className="pill">{tag}</span>
             ))}
@@ -34,15 +39,13 @@ export function OverviewTab({ overview }: { overview: ProjectOverview }) {
 }
 
 function InfoField({ label, value, mono }: { label: string; value: string | null | undefined; mono?: boolean }) {
+  const displayValue = formatOverviewValue(label, value);
+
   return (
-    <div>
+    <div className="project-info-field">
       <div className="form-label">{label}</div>
-      <div style={{
-        fontSize: 13,
-        color: value ? "var(--text)" : "var(--text-muted)",
-        fontFamily: mono ? 'ui-monospace, "Cascadia Code", monospace' : undefined,
-      }}>
-        {value || "-"}
+      <div className={`project-info-value${mono ? " mono" : ""}${displayValue ? "" : " empty"}`}>
+        {displayValue || "-"}
       </div>
     </div>
   );

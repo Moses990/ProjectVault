@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { api, Settings } from "@/lib/api";
 import { formatBytes } from "@/lib/utils";
 import { ConfirmDialog } from "@/app/components/ConfirmDialog";
+import { OnboardingFlow } from "@/app/components/OnboardingFlow";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -124,17 +124,17 @@ export default function SettingsPage() {
       </div>
 
       {error && (
-        <div className="card mb-4" style={{ borderColor: "var(--danger)", color: "var(--danger)", padding: "10px 14px", fontSize: 13 }}>
+        <div className="notice error mb-4">
           {error}
         </div>
       )}
       {success && (
-        <div className="card mb-4" style={{ borderColor: "var(--success)", color: "var(--success)", padding: "10px 14px", fontSize: 13 }}>
+        <div className="notice success mb-4">
           设置保存成功。
         </div>
       )}
       {systemMessage && (
-        <div className="card mb-4" style={{ borderColor: "var(--success)", color: "var(--success)", padding: "10px 14px", fontSize: 13 }}>
+        <div className="notice success mb-4">
           {systemMessage}
         </div>
       )}
@@ -163,7 +163,7 @@ export default function SettingsPage() {
                 onChange={(e) => setRootPath(e.target.value)}
                 placeholder="D:\Projects or /home/user/projects"
               />
-              <div className="text-sm" style={{ color: "var(--text-muted)", marginTop: 4 }}>
+              <div className="form-hint">
                 扫描器将在此路径下发现项目。
               </div>
             </div>
@@ -178,13 +178,13 @@ export default function SettingsPage() {
                 value={scanInterval}
                 onChange={(e) => setScanInterval(Number(e.target.value))}
               />
-              <div className="text-sm" style={{ color: "var(--text-muted)", marginTop: 4 }}>
+              <div className="form-hint">
                 监视器检查文件变更的频率。
               </div>
             </div>
 
             <div className="form-group">
-              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13 }}>
+              <label className="checkbox-row">
                 <input
                   type="checkbox"
                   checked={autoScan}
@@ -192,7 +192,7 @@ export default function SettingsPage() {
                 />
                 <span>启用自动扫描</span>
               </label>
-              <div className="text-sm" style={{ color: "var(--text-muted)", marginTop: 4, marginLeft: 20 }}>
+              <div className="form-hint checkbox-hint">
                 关闭后文件监视器将停止自动检测变更。
               </div>
             </div>
@@ -207,7 +207,7 @@ export default function SettingsPage() {
                 value={backupRetention}
                 onChange={(e) => setBackupRetention(Number(e.target.value))}
               />
-              <div className="text-sm" style={{ color: "var(--text-muted)", marginTop: 4 }}>
+              <div className="form-hint">
                 保留最近的数据库备份数量，超出后自动清理旧备份。
               </div>
             </div>
@@ -225,12 +225,12 @@ export default function SettingsPage() {
               </select>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 20 }}>
+            <div className="form-actions">
               <button type="submit" className="btn btn-primary" disabled={saving}>
-                {saving ? <><span className="spinner" style={{ width: 12, height: 12 }} /> 保存中...</> : "保存"}
+                {saving ? <><span className="spinner spinner-sm" /> 保存中...</> : "保存"}
               </button>
               {settings && (
-                <span className="text-sm" style={{ color: "var(--text-muted)" }}>
+                <span className="text-sm settings-summary">
                   根路径：{settings.root_path || "未设置"} · 间隔：{settings.scan_interval}s
                 </span>
               )}
@@ -238,46 +238,59 @@ export default function SettingsPage() {
           </div>
         </form>
 
-        <div className="card">
-          <h2 className="section-title">维护</h2>
+        <div className="settings-side-stack">
+          <OnboardingFlow
+            settingsDraft={{
+              root_path: rootPath,
+              scan_interval: scanInterval,
+              auto_scan: autoScan,
+              backup_retention: backupRetention,
+              theme,
+            }}
+            onSettingsSaved={setSettings}
+          />
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button type="button" className="btn" onClick={runMaintenance} disabled={maintaining}>
-                {maintaining ? <><span className="spinner" style={{ width: 12, height: 12 }} /> 运行中...</> : (
-                  <>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v5l3 2M21 12a9 9 0 11-3-6.7" /></svg>
-                    执行维护
-                  </>
-                )}
-              </button>
-              <button type="button" className="btn" onClick={createBackup} disabled={backupRunning}>
-                {backupRunning ? <><span className="spinner" style={{ width: 12, height: 12 }} /> 创建中...</> : (
-                  <>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v13M19 9l-7 7-7-7M5 21h14" /></svg>
-                    创建备份
-                  </>
-                )}
-              </button>
-            </div>
+          <div className="card">
+            <h2 className="section-title">维护</h2>
 
-            <div style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: 16 }}>
-              <div className="form-group">
-                <label className="form-label">恢复备份名称</label>
-                <input
-                  className="form-input"
-                  value={backupName}
-                  onChange={(event) => setBackupName(event.target.value)}
-                  placeholder="project_vault_20260625_120000.db"
-                />
+            <div className="maintenance-stack">
+              <div className="maintenance-actions">
+                <button type="button" className="btn" onClick={runMaintenance} disabled={maintaining}>
+                  {maintaining ? <><span className="spinner spinner-sm" /> 运行中...</> : (
+                    <>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v5l3 2M21 12a9 9 0 11-3-6.7" /></svg>
+                      执行维护
+                    </>
+                  )}
+                </button>
+                <button type="button" className="btn" onClick={createBackup} disabled={backupRunning}>
+                  {backupRunning ? <><span className="spinner spinner-sm" /> 创建中...</> : (
+                    <>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v13M19 9l-7 7-7-7M5 21h14" /></svg>
+                      创建备份
+                    </>
+                  )}
+                </button>
               </div>
-              <button type="button" className="btn btn-danger" onClick={requestRestore} disabled={restoring}>
-                {restoring ? <><span className="spinner" style={{ width: 12, height: 12 }} /> 恢复中...</> : "恢复备份"}
-              </button>
-            </div>
 
-            <div className="text-sm" style={{ color: "var(--text-muted)", lineHeight: 1.6 }}>
-              维护功能根据保留策略清理扫描历史并执行 SQLite 增量回收。备份和恢复仅操作本地 SQLite 缓存。
+              <div className="maintenance-restore">
+                <div className="form-group">
+                  <label className="form-label">恢复备份名称</label>
+                  <input
+                    className="form-input"
+                    value={backupName}
+                    onChange={(event) => setBackupName(event.target.value)}
+                    placeholder="project_vault_20260625_120000.db"
+                  />
+                </div>
+                <button type="button" className="btn btn-danger" onClick={requestRestore} disabled={restoring}>
+                  {restoring ? <><span className="spinner spinner-sm" /> 恢复中...</> : "恢复备份"}
+                </button>
+              </div>
+
+              <div className="text-sm settings-note">
+                维护功能根据保留策略清理扫描历史并执行 SQLite 增量回收。备份和恢复仅操作本地 SQLite 缓存。
+              </div>
             </div>
           </div>
         </div>

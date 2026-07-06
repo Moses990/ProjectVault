@@ -188,6 +188,29 @@ export type Settings = {
   theme: string;
 };
 
+export type ProjectCandidate = {
+  folder_name: string;
+  absolute_path: string;
+  created_at: string | null;
+  estimated_files: number;
+};
+
+export type InitializeProjectsResult = {
+  initialized_count: number;
+  project_ids: string[];
+  skipped: Array<{ path: string; reason: string }>;
+};
+
+export type ScannerResult = {
+  project_id: string;
+  created_count: number;
+  updated_count: number;
+  deleted_count: number;
+  moved_count: number;
+  relocated: boolean;
+  duration_ms: number;
+};
+
 export type Provider = {
   id: string;
   name: string;
@@ -263,6 +286,13 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ is_favorite: isFavorite }),
     }),
+  projectCandidates: (rootPath: string) =>
+    request<ProjectCandidate[]>(`/projects/candidates?root_path=${encodeURIComponent(rootPath)}`),
+  initializeProjects: (paths: string[], defaultTags: string[] = []) =>
+    request<InitializeProjectsResult>("/projects/initialize", {
+      method: "POST",
+      body: JSON.stringify({ paths, default_tags: defaultTags }),
+    }),
 
   // Files
   projectFiles: (id: string, page = 1, limit = 50) =>
@@ -331,7 +361,7 @@ export const api = {
 
   // Scanner
   scanProject: (projectId: string) =>
-    request<{ project_id: string; created_count: number; updated_count: number; deleted_count: number; moved_count: number; relocated: boolean; duration_ms: number }>(
+    request<ScannerResult>(
       "/scanner/scan",
       { method: "POST", body: JSON.stringify({ project_id: projectId }) }
     ),

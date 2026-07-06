@@ -88,12 +88,12 @@ function ProjectDetailContent() {
 
   if (error && !overview) {
     return (
-      <div>
-        <div className="page-header">
+      <div className="project-detail-page">
+        <div className="page-header project-detail-header">
           <h1 className="page-title">项目</h1>
           <Link href="/projects" className="btn btn-sm">返回列表</Link>
         </div>
-        <div className="card" style={{ borderColor: "var(--danger)", color: "var(--danger)" }}>
+        <div className="project-alert error">
           {error}
         </div>
       </div>
@@ -101,23 +101,23 @@ function ProjectDetailContent() {
   }
 
   return (
-    <div>
-      <div className="page-header">
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+    <div className="project-detail-page">
+      <div className="page-header project-detail-header">
+        <div className="project-title-row">
           <button className="btn-icon" onClick={() => router.back()} title="返回">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
           </button>
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <h1 className="page-title" style={{ margin: 0 }}>{overview?.name ?? "项目"}</h1>
+            <div className="project-title-badges">
+              <h1 className="page-title project-title">{overview?.name ?? "项目"}</h1>
               {overview?.phase && <span className="badge badge-accent">{overview.phase}</span>}
               {overview?.status && <span className="badge">{overview.status}</span>}
             </div>
           </div>
         </div>
-        <button className="btn btn-sm" onClick={handleScan} disabled={scanning} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <button className="btn btn-sm" onClick={handleScan} disabled={scanning}>
           {scanning ? (
-            <><span className="spinner" style={{ width: 12, height: 12 }} /> 扫描中...</>
+            <><span className="spinner spinner-sm" /> 扫描中...</>
           ) : (
             <>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 11-3-6.7" /><path d="M21 3v6h-6" /></svg>
@@ -128,16 +128,16 @@ function ProjectDetailContent() {
       </div>
 
       {scanResult && (
-        <div className="card mb-4" style={{ fontSize: 13, padding: "10px 14px", borderColor: "var(--success)", color: "var(--success)" }}>{scanResult}</div>
+        <div className="project-alert success">{scanResult}</div>
       )}
 
       {error && (
-        <div className="card mb-4" style={{ fontSize: 13, padding: "10px 14px", borderColor: "var(--warn)", color: "var(--warn)" }}>
+        <div className="project-alert warn">
           {error}（显示缓存数据）
         </div>
       )}
 
-      <div className="tabs">
+      <div className="tabs project-tabs">
         {tabs.map((t) => (
           <button
             key={t.key}
@@ -146,7 +146,7 @@ function ProjectDetailContent() {
           >
             {t.label}
             {t.count !== undefined && t.count > 0 && (
-              <span style={{ marginLeft: 6, fontSize: 10, color: "var(--text-muted)", background: "var(--bg-elev-2)", padding: "1px 5px", borderRadius: "var(--radius-pill)" }}>{t.count}</span>
+              <span className="tab-count">{t.count}</span>
             )}
           </button>
         ))}

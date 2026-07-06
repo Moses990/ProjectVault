@@ -6,6 +6,11 @@ import { formatBytes } from "@/lib/utils";
 import { FilePreview, canPreview } from "@/app/components/FilePreview";
 import { DirectoryTree } from "@/app/components/DirectoryTree";
 
+function formatFileTime(value: string | null): string {
+  if (!value) return "-";
+  return value.replace("T", " ").replace(/\.\d+.*$/, "").replace(/\+.*$/, "");
+}
+
 export function FilesTab({ projectId }: { projectId: string }) {
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [filesTotal, setFilesTotal] = useState(0);
@@ -24,12 +29,12 @@ export function FilesTab({ projectId }: { projectId: string }) {
   // Load files for current directory
   useEffect(() => {
     setLoaded(false);
-    api.projectFiles(projectId, 1, 50).then((res) => {
+    api.projectFiles(projectId, filesPage, 50).then((res) => {
       setFiles(res.data);
       setFilesTotal(res.meta.total ?? 0);
       setLoaded(true);
     }).catch(() => setLoaded(true));
-  }, [projectId, selectedDir]);
+  }, [projectId, selectedDir, filesPage]);
 
   async function handleFileAction(fileId: string, mode: "open" | "reveal") {
     setFileActionMessage(null);
@@ -55,54 +60,52 @@ export function FilesTab({ projectId }: { projectId: string }) {
   const breadcrumb = selectedDir ? selectedDir.split("/") : [];
 
   return (
-    <div style={{ display: "flex", gap: 0, minHeight: 400 }}>
+    <div className="tab-split-card">
       {/* Sidebar: Directory Tree */}
-      <div style={{
-        width: 220, flexShrink: 0, borderRight: "1px solid var(--border)",
-        overflow: "auto", background: "var(--bg-elev)",
-      }}>
+      <div className="file-tree-pane">
         {tree ? (
           <DirectoryTree tree={tree} selectedDir={selectedDir} onSelect={handleDirSelect} />
         ) : (
-          <div style={{ padding: 16, color: "var(--text-dim)", fontSize: 13 }}>加载目录...</div>
+          <div className="file-tree-loading">加载目录...</div>
         )}
       </div>
 
       {/* Main: File List */}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="file-list-pane">
         {/* Breadcrumb */}
         {breadcrumb.length > 0 && (
-          <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 16px", borderBottom: "1px solid var(--border)", fontSize: 12, color: "var(--text-dim)" }}>
-            <span style={{ cursor: "pointer", color: "var(--accent)" }} onClick={() => handleDirSelect(null)}>全部文件</span>
+          <div className="file-breadcrumb">
+            <button className="file-breadcrumb-link" type="button" onClick={() => handleDirSelect(null)}>全部文件</button>
             {breadcrumb.map((part, i) => (
-              <span key={i} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <span style={{ opacity: 0.4 }}>/</span>
-                <span
-                  style={{ cursor: i < breadcrumb.length - 1 ? "pointer" : "default", color: i < breadcrumb.length - 1 ? "var(--accent)" : "var(--text)" }}
+              <span key={i} className="file-breadcrumb-item">
+                <span className="file-breadcrumb-separator">/</span>
+                <button
+                  className={`file-breadcrumb-link ${i === breadcrumb.length - 1 ? "current" : ""}`}
+                  type="button"
                   onClick={() => i < breadcrumb.length - 1 && handleDirSelect(breadcrumb.slice(0, i + 1).join("/"))}
+                  disabled={i === breadcrumb.length - 1}
                 >
                   {part}
-                </span>
+                </button>
               </span>
             ))}
           </div>
         )}
 
         {/* Toolbar */}
-        <div style={{ display: "flex", justifyContent: "flex-end", padding: "8px 16px", borderBottom: "1px solid var(--border-subtle)" }}>
+        <div className="tab-toolbar">
           <a
             href={api.filesExportUrl(projectId)}
             download={`project_${projectId}_files.csv`}
-            className="btn btn-sm"
-            style={{ textDecoration: "none", fontSize: 12 }}
+            className="btn btn-sm export-button"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4, verticalAlign: "middle" }}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
+            <svg className="export-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
             导出 CSV
           </a>
         </div>
 
         {fileActionMessage && (
-          <div style={{ padding: "10px 16px", borderBottom: "1px solid var(--border)" }} className="text-sm text-dim">
+          <div className="file-action-message">
             {fileActionMessage}
           </div>
         )}
@@ -111,7 +114,8 @@ export function FilesTab({ projectId }: { projectId: string }) {
         ) : files.length === 0 ? (
           <div className="empty-state"><p>此目录下暂无文件。</p></div>
         ) : (
-          <table className="data-table">
+          <div className="file-table-scroll">
+            <table className="data-table file-data-table">
             <thead>
               <tr>
                 <th>名称</th>
@@ -124,11 +128,11 @@ export function FilesTab({ projectId }: { projectId: string }) {
             <tbody>
               {files.map((f) => (
                 <tr key={f.id}>
-                  <td className="text-mono text-sm">{f.file_name}</td>
-                  <td>{f.extension ? <span className="badge">{f.extension}</span> : <span className="text-dim">-</span>}</td>
-                  <td className="text-sm">{formatBytes(f.size_bytes)}</td>
-                  <td className="text-dim text-sm">{f.last_modified ?? "-"}</td>
-                  <td>
+                  <td className="text-mono text-sm file-name-cell" data-label="名称">{f.file_name}</td>
+                  <td data-label="扩展名">{f.extension ? <span className="badge">{f.extension}</span> : <span className="text-dim">-</span>}</td>
+                  <td className="text-sm" data-label="大小">{formatBytes(f.size_bytes)}</td>
+                  <td className="text-dim text-sm file-time-cell" data-label="修改时间">{formatFileTime(f.last_modified)}</td>
+                  <td data-label="操作">
                     <div className="actions-cell">
                       {canPreview(f.extension) && (
                         <button className="link-button" type="button" onClick={() => setPreviewFile(f)}>预览</button>
@@ -140,10 +144,11 @@ export function FilesTab({ projectId }: { projectId: string }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         )}
         {filesTotal > 50 && (
-          <div className="pagination" style={{ padding: "8px 16px" }}>
+          <div className="pagination tab-pagination">
             <button className="btn btn-sm" disabled={filesPage <= 1} onClick={() => setFilesPage(filesPage - 1)}>上一页</button>
             <span>第 {filesPage} 页（{filesTotal} 个文件）</span>
             <button className="btn btn-sm" disabled={filesPage * 50 >= filesTotal} onClick={() => setFilesPage(filesPage + 1)}>下一页</button>

@@ -48,33 +48,32 @@ export function FilePreview({ file, onClose }: FilePreviewProps) {
   }, [onClose]);
 
   return (
-    <div className="confirm-overlay" onClick={onClose} style={{ zIndex: 1000 }}>
+    <div className="confirm-overlay file-preview-overlay" onClick={onClose}>
       <div
-        className="confirm-box"
+        className="confirm-box file-preview-box"
         onClick={(e) => e.stopPropagation()}
-        style={{ width: "min(90vw, 900px)", maxHeight: "85vh", display: "flex", flexDirection: "column", padding: 0 }}
       >
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.file_name}</div>
-            <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 2 }}>{file.relative_dir ?? ""}{file.extension ? ` · ${file.extension}` : ""}</div>
+        <div className="file-preview-header">
+          <div className="file-preview-title">
+            <div>{file.file_name}</div>
+            <span>{file.relative_dir ?? ""}{file.extension ? ` · ${file.extension}` : ""}</span>
           </div>
-          <button className="btn-icon" onClick={onClose} title="关闭" style={{ flexShrink: 0 }}>
+          <button className="btn-icon" onClick={onClose} title="关闭">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
           </button>
         </div>
 
         {/* Content */}
-        <div style={{ flex: 1, overflow: "auto", minHeight: 200 }}>
+        <div className="file-preview-content">
           {previewType === "image" && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 16, minHeight: 200 }}>
+            <div className="file-preview-media">
               {!imgLoaded && <span className="spinner" />}
               <img
                 src={api.assetContentUrl(file.id)}
                 alt={file.file_name}
                 onLoad={() => setImgLoaded(true)}
-                style={{ maxWidth: "100%", maxHeight: "70vh", objectFit: "contain", display: imgLoaded ? "block" : "none", borderRadius: "var(--radius-md)" }}
+                className={imgLoaded ? "file-preview-image loaded" : "file-preview-image"}
               />
             </div>
           )}
@@ -82,38 +81,34 @@ export function FilePreview({ file, onClose }: FilePreviewProps) {
           {previewType === "pdf" && (
             <iframe
               src={api.assetContentUrl(file.id)}
-              style={{ width: "100%", height: "70vh", border: "none" }}
+              className="file-preview-frame"
               title={file.file_name}
             />
           )}
 
           {previewType === "text" && (
-            <div style={{ padding: 16 }}>
+            <div className="file-preview-text">
               {textLoading && <div className="empty-state"><span className="spinner" /> 加载中...</div>}
-              {textError && <div style={{ color: "var(--danger)", fontSize: 13 }}>{textError}</div>}
+              {textError && <div className="inline-error">{textError}</div>}
               {text !== null && (
-                <pre style={{
-                  margin: 0, fontSize: 12, lineHeight: 1.6, color: "var(--text)",
-                  fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
-                  whiteSpace: "pre-wrap", wordBreak: "break-word",
-                }}>{text}</pre>
+                <pre>{text}</pre>
               )}
             </div>
           )}
 
           {previewType === "unsupported" && (
-            <div className="empty-state" style={{ padding: 48 }}>
-              <div style={{ width: 48, height: 48, borderRadius: "var(--radius-lg)", background: "var(--bg-elev-2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+            <div className="empty-state file-preview-empty">
+              <div className="file-preview-empty-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><path d="M14 2v6h6" /></svg>
               </div>
-              <p style={{ color: "var(--text)", marginBottom: 4 }}>此文件类型暂不支持预览</p>
-              <p className="text-sm" style={{ color: "var(--text-dim)" }}>请使用下方按钮在系统中打开</p>
+              <p>此文件类型暂不支持预览</p>
+              <p className="text-sm">请使用下方按钮在系统中打开</p>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", padding: "12px 20px", borderTop: "1px solid var(--border)" }}>
+        <div className="file-preview-footer">
           <button className="btn btn-sm" onClick={() => api.openFile(file.id).then(() => onClose())}>
             打开文件
           </button>

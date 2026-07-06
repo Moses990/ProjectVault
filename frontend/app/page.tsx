@@ -1,15 +1,36 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, DashboardMetrics, Project } from "@/lib/api";
+import {
+  ArrowUpRight,
+  Clock3,
+  Command,
+  Database,
+  DraftingCompass,
+  FolderKanban,
+  HardDrive,
+  Package,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Star,
+  Upload,
+} from "lucide-react";
+import { api, DashboardMetrics, HistoryItem, Project } from "@/lib/api";
+import type { Settings } from "@/lib/api";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [settings, setSettings] = useState<Settings | null>(null);
   const [recent, setRecent] = useState<Project[]>([]);
   const [favorites, setFavorites] = useState<Project[]>([]);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [candidateCount, setCandidateCount] = useState<number | null>(null);
+  const [candidateError, setCandidateError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadAttempt, setLoadAttempt] = useState(0);
@@ -21,15 +42,30 @@ export default function DashboardPage() {
 
     async function load(attempt: number) {
       try {
-        const [dashboardMetrics, recentProjects, favoriteProjects] = await Promise.all([
+        const [dashboardMetrics, recentProjects, favoriteProjects, recentHistory, currentSettings] = await Promise.all([
           api.dashboardMetrics(),
           api.recentProjects(8),
           api.favoriteProjects(),
+          api.history(1, 6).catch(() => ({ data: [] as HistoryItem[] })),
+          api.getSettings(),
         ]);
+        let discoveredCandidates: number | null = null;
+        let discoveryError: string | null = null;
+        if (currentSettings.root_path && dashboardMetrics.project_total === 0) {
+          try {
+            discoveredCandidates = (await api.projectCandidates(currentSettings.root_path)).length;
+          } catch (e) {
+            discoveryError = e instanceof Error ? e.message : "候选项目检查失败";
+          }
+        }
         if (!cancelled) {
           setMetrics(dashboardMetrics);
+          setSettings(currentSettings);
           setRecent(recentProjects);
           setFavorites(favoriteProjects);
+          setHistory(recentHistory.data);
+          setCandidateCount(discoveredCandidates);
+          setCandidateError(discoveryError);
           setError(null);
         }
       } catch (e) {
@@ -57,128 +93,314 @@ export default function DashboardPage() {
     setLoading(true);
     setLoadAttempt((attempt) => attempt + 1);
   };
+  const projectTotal = metrics?.project_total ?? 0;
+  const readinessLabel = projectTotal > 0 ? "Ready" : settings?.root_path ? "待初始化" : "待配置";
 
   if (loading) {
-    return <div className="empty-state"><span className="spinner" /> 加载中...</div>;
+    return <DashboardSkeleton />;
   }
 
   return (
-    <div>
-      <div className="page-header">
+    <div className="vault-dashboard">
+      <div className="dashboard-hero">
         <div>
-          <h1 className="page-title">工作台</h1>
-          <p className="panel-subtitle">本地项目索引、图纸和材料文件的实时概览</p>
+          <div className="eyebrow">Local-first archive</div>
+          <h1>工作台</h1>
+          <p>本地项目索引、CAD 图纸、材料文件和扫描历史的实时控制台。</p>
         </div>
-        <Link href="/settings" className="btn">配置根路径</Link>
+        <div className="hero-actions">
+          <Link href="/settings" className="btn">配置根路径</Link>
+          <Link href="/projects" className="btn btn-primary">浏览项目</Link>
+        </div>
       </div>
 
       {error && (
-        <div className="card mb-4" style={{ borderColor: "var(--danger)", color: "var(--danger)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div className="notice error dashboard-error">
           <span>后端连接失败，请确认后端服务正在运行 ({error})</span>
-          <button className="btn btn-primary" style={{ marginLeft: 16, flexShrink: 0 }} onClick={handleRetry}>重试</button>
+          <button className="btn btn-primary" onClick={handleRetry}>重试</button>
         </div>
       )}
 
-      <div className="metric-grid">
-        <MetricCard label="项目" value={metrics?.project_total ?? 0} accent />
-        <MetricCard label="CAD 图纸" value={metrics?.cad_total ?? 0} />
-        <MetricCard label="材料文件" value={metrics?.material_total ?? 0} />
-      </div>
+      <section className="dashboard-metrics">
+        <MetricCard label="项目" value={metrics?.project_total ?? 0} icon={FolderKanban} tone="violet" />
+        <MetricCard label="CAD 图纸" value={metrics?.cad_total ?? 0} icon={DraftingCompass} tone="blue" />
+        <MetricCard label="材料文件" value={metrics?.material_total ?? 0} icon={Package} tone="amber" />
+      </section>
 
-      {favorites.length > 0 && (
-        <section className="card mb-4" style={{ padding: 0 }}>
-          <div className="panel-header">
-            <h2 className="panel-title">收藏项目</h2>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 10, padding: 12 }}>
-            {favorites.map((project) => (
-              <button
-                key={project.id}
-                className="card"
-                style={{ cursor: "pointer", margin: 0, padding: "10px 12px", textAlign: "left" }}
-                onClick={() => router.push(`/project-detail?id=${encodeURIComponent(project.id)}`)}
-              >
-                <div style={{ fontWeight: 600, marginBottom: 4 }}>{project.name}</div>
-                <div className="text-sm" style={{ color: "var(--text-muted)" }}>{project.file_count} 文件 · {project.cad_count} CAD</div>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
+      <section className="dashboard-grid">
+        <div className="dashboard-main">
+          {favorites.length > 0 && (
+            <Panel title="收藏项目" subtitle="固定在手边的项目">
+              <div className="favorite-strip">
+                {favorites.slice(0, 4).map((project) => (
+                  <button
+                    key={project.id}
+                    className="favorite-tile"
+                    onClick={() => router.push(`/project-detail?id=${encodeURIComponent(project.id)}`)}
+                  >
+                    <Star size={13} aria-hidden={true} />
+                    <strong>{project.name}</strong>
+                    <span>{project.file_count} 文件 · {project.cad_count} CAD</span>
+                  </button>
+                ))}
+              </div>
+            </Panel>
+          )}
 
-      <section className="card" style={{ padding: 0 }}>
-        <div className="panel-header">
-          <div>
-            <h2 className="panel-title">最近项目</h2>
-            <div className="panel-subtitle">最近扫描或更新的项目资产</div>
-          </div>
-          <div className="panel-actions">
-            <Link href="/projects" className="btn btn-sm">查看全部</Link>
-          </div>
+          <Panel
+            title="最近项目"
+            subtitle="最近扫描或更新的项目资产"
+            action={<Link href="/projects" className="link-button">查看全部</Link>}
+          >
+            {recent.length === 0 ? (
+              <OnboardingEmpty
+                rootPath={settings?.root_path ?? ""}
+                candidateCount={candidateCount}
+                candidateError={candidateError}
+              />
+            ) : (
+              <table className="archive-table">
+                <thead>
+                  <tr>
+                    <th>项目</th>
+                    <th>阶段</th>
+                    <th>文件</th>
+                    <th>CAD</th>
+                    <th>材料</th>
+                    <th>更新</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {recent.map((project) => (
+                    <tr key={project.id} onClick={() => router.push(`/project-detail?id=${encodeURIComponent(project.id)}`)}>
+                      <td>
+                        <strong>{project.name}</strong>
+                        <span>{project.manager || project.type || "未设置负责人"}</span>
+                      </td>
+                      <td>{project.phase ? <span className="badge badge-accent">{project.phase}</span> : <span className="text-dim">-</span>}</td>
+                      <td>{project.file_count}</td>
+                      <td>{project.cad_count}</td>
+                      <td>{project.material_count}</td>
+                      <td>{project.last_updated_at ?? "-"}</td>
+                      <td><ArrowUpRight size={14} aria-hidden={true} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </Panel>
         </div>
-        {recent.length === 0 ? (
-          <div className="empty-state">
-            <div className="vault-empty-icon">
-              <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="4" y="5" width="16" height="14" rx="3" />
-                <path d="M8 10h8M8 14h5" />
-              </svg>
+
+        <aside className="dashboard-side">
+          <Panel title="快速操作" subtitle="高频入口">
+            <div className="quick-action-grid">
+              <QuickAction href="/projects" icon={FolderKanban} label="项目库" hint="P" />
+              <QuickAction href="/cad-center" icon={Upload} label="CAD 中心" hint="C" />
+              <QuickAction href="/history" icon={RefreshCw} label="扫描历史" hint="H" />
+              <QuickAction href="/settings" icon={Command} label="系统设置" hint="S" />
             </div>
-            <h2 style={{ fontSize: 15, fontWeight: 600, margin: "0 0 6px", color: "var(--text)" }}>欢迎使用 Project Vault</h2>
-            <p style={{ color: "var(--text-muted)", margin: "0 auto 20px", lineHeight: 1.6, maxWidth: 380, fontSize: 13 }}>
-              开始前先配置项目根路径。Project Vault 会在本机建立索引，用于快速浏览项目、图纸和材料文件。
-            </p>
-            <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-              <Link href="/settings" className="btn btn-primary">前往设置</Link>
-              <Link href="/projects" className="btn">浏览项目</Link>
-            </div>
-            <div className="onboarding-steps">
-              {["设置根路径", "扫描发现项目", "浏览与管理"].map((label, index) => (
-                <div className="onboarding-step" key={label}>
-                  <div className="onboarding-step-index">{index + 1}</div>
-                  <div className="text-sm" style={{ color: "var(--text-dim)" }}>{label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>名称</th>
-                <th>阶段</th>
-                <th style={{ textAlign: "center" }}>文件</th>
-                <th style={{ textAlign: "center" }}>CAD</th>
-                <th style={{ textAlign: "center" }}>材料</th>
-                <th>更新时间</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recent.map((project) => (
-                <tr key={project.id} className="row-link" onClick={() => router.push(`/project-detail?id=${encodeURIComponent(project.id)}`)}>
-                  <td style={{ fontWeight: 600 }}>{project.name}</td>
-                  <td>{project.phase ? <span className="badge badge-accent">{project.phase}</span> : <span className="text-dim">-</span>}</td>
-                  <td style={{ textAlign: "center", color: "var(--text-dim)" }}>{project.file_count}</td>
-                  <td style={{ textAlign: "center", color: "var(--text-dim)" }}>{project.cad_count}</td>
-                  <td style={{ textAlign: "center", color: "var(--text-dim)" }}>{project.material_count}</td>
-                  <td className="text-dim text-sm">{project.last_updated_at ?? "-"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+          </Panel>
+
+          <Panel title="最近活动" subtitle="来自扫描与系统历史">
+            <ul className="activity-list">
+              {history.length === 0 ? (
+                <li className="activity-empty">暂无活动记录</li>
+              ) : (
+                history.map((item) => (
+                  <li key={item.id}>
+                    <span className={`activity-dot ${item.status === "success" ? "ok" : item.status === "failed" ? "bad" : ""}`} />
+                    <div>
+                      <strong>{item.message || item.event_type}</strong>
+                      <small>{item.created_at}</small>
+                    </div>
+                  </li>
+                ))
+              )}
+            </ul>
+          </Panel>
+        </aside>
+      </section>
+
+      <section className="system-strip">
+        <div><ShieldCheck size={14} /> 系统 <strong>健康</strong></div>
+        <div><FolderKanban size={14} /> 状态 <strong>{readinessLabel}</strong></div>
+        <div><Database size={14} /> 索引 <strong>SQLite cache</strong></div>
+        <div><HardDrive size={14} /> 存储 <strong>本地优先</strong></div>
+        <div><Clock3 size={14} /> 更新 <strong>{history[0]?.created_at ?? "等待首次扫描"}</strong></div>
       </section>
     </div>
   );
 }
 
-function MetricCard({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
+function MetricCard({
+  label,
+  value,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: number;
+  icon: ComponentType<{ size?: number; "aria-hidden"?: boolean }>;
+  tone: "violet" | "blue" | "amber";
+}) {
   return (
-    <div className="metric-card">
+    <div className={`metric-card metric-${tone}`}>
+      <div className="metric-icon"><Icon size={16} aria-hidden={true} /></div>
       <div className="metric-label">{label}</div>
-      <div className="metric-value" style={accent ? { color: "var(--accent)" } : undefined}>
-        {value}
+      <div className="metric-value">{value.toLocaleString()}</div>
+      <div className="metric-spark" aria-hidden={true} />
+    </div>
+  );
+}
+
+function Panel({
+  title,
+  subtitle,
+  action,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="archive-panel">
+      <div className="archive-panel-header">
+        <div>
+          <h2>{title}</h2>
+          {subtitle && <p>{subtitle}</p>}
+        </div>
+        {action}
       </div>
+      {children}
+    </section>
+  );
+}
+
+function QuickAction({
+  href,
+  icon: Icon,
+  label,
+  hint,
+}: {
+  href: string;
+  icon: ComponentType<{ size?: number; "aria-hidden"?: boolean }>;
+  label: string;
+  hint: string;
+}) {
+  return (
+    <Link href={href} className="quick-action">
+      <span><Icon size={15} aria-hidden={true} /></span>
+      <strong>{label}</strong>
+      <kbd>{hint}</kbd>
+    </Link>
+  );
+}
+
+function OnboardingEmpty({
+  rootPath,
+  candidateCount,
+  candidateError,
+}: {
+  rootPath: string;
+  candidateCount: number | null;
+  candidateError: string | null;
+}) {
+  const hasRoot = rootPath.trim().length > 0;
+  const title = !hasRoot
+    ? "还没有项目根路径"
+    : candidateError
+      ? "项目根路径需要确认"
+      : candidateCount && candidateCount > 0
+        ? `发现 ${candidateCount} 个候选项目`
+        : "还没有项目索引";
+  const copy = !hasRoot
+    ? "先选择本地项目根路径，Project Vault 才能发现并初始化项目。"
+    : candidateError
+      ? "当前根路径无法完成候选检查，请回到设置页确认路径是否仍可访问。"
+      : candidateCount && candidateCount > 0
+        ? "前往设置页确认候选项目，系统会写入 project.json 并执行首次扫描。"
+        : "根路径已配置，但暂未发现可初始化的一级项目文件夹。";
+
+  return (
+    <div className="archive-empty grid-bg">
+      <div className="vault-empty-icon"><Search size={24} aria-hidden={true} /></div>
+      <h2>{title}</h2>
+      <p>{copy}</p>
+      <div className="hero-actions">
+        <Link href="/settings" className="btn btn-primary">{hasRoot ? "打开初始化" : "配置根路径"}</Link>
+        <Link href="/projects" className="btn">浏览项目</Link>
+      </div>
+    </div>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="vault-dashboard">
+      <div className="dashboard-hero">
+        <div>
+          <div className="eyebrow">Local-first archive</div>
+          <h1>工作台</h1>
+          <p>正在连接本地索引服务，先加载工作台框架。</p>
+        </div>
+        <div className="hero-actions">
+          <span className="skeleton-button" />
+          <span className="skeleton-button primary" />
+        </div>
+      </div>
+      <section className="dashboard-metrics">
+        {["项目", "CAD 图纸", "材料文件"].map((label) => (
+          <div className="metric-card skeleton-card" key={label}>
+            <div className="metric-icon"><span className="spinner" /></div>
+            <div className="metric-label">{label}</div>
+            <div className="skeleton-line wide" />
+            <div className="metric-spark" aria-hidden={true} />
+          </div>
+        ))}
+      </section>
+      <section className="dashboard-grid">
+        <div className="dashboard-main">
+          <section className="archive-panel">
+            <div className="archive-panel-header">
+              <div>
+                <h2>最近项目</h2>
+                <p>等待本地数据</p>
+              </div>
+            </div>
+            <div className="skeleton-table">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div key={index}>
+                  <span className="skeleton-line" />
+                  <span className="skeleton-line short" />
+                  <span className="skeleton-line tiny" />
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+        <aside className="dashboard-side">
+          <section className="archive-panel">
+            <div className="archive-panel-header">
+              <div>
+                <h2>快速操作</h2>
+                <p>高频入口</p>
+              </div>
+            </div>
+            <div className="quick-action-grid">
+              {["项目库", "CAD 中心", "扫描历史", "系统设置"].map((label) => (
+                <div className="quick-action skeleton-action" key={label}>
+                  <span />
+                  <strong>{label}</strong>
+                  <kbd>...</kbd>
+                </div>
+              ))}
+            </div>
+          </section>
+        </aside>
+      </section>
     </div>
   );
 }

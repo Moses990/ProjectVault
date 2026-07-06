@@ -1,34 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, Drawing } from "@/lib/api";
 
 export function DrawingsTab({ projectId }: { projectId: string }) {
   const [drawings, setDrawings] = useState<Drawing[]>([]);
   const [loaded, setLoaded] = useState(false);
 
-  if (!loaded) {
+  useEffect(() => {
+    setLoaded(false);
     api.projectDrawings(projectId).then((data) => {
       setDrawings(data);
       setLoaded(true);
     }).catch(() => setLoaded(true));
-  }
+  }, [projectId]);
 
   return (
-    <div className="card" style={{ padding: 0 }}>
+    <div className="card tab-card">
       {/* Toolbar */}
-      <div style={{ display: "flex", justifyContent: "flex-end", padding: "8px 16px", borderBottom: "1px solid var(--border-subtle)" }}>
+      <div className="tab-toolbar">
         <a
           href={api.drawingsExportUrl(projectId)}
           download={`project_${projectId}_drawings.csv`}
-          className="btn btn-sm"
-          style={{ textDecoration: "none", fontSize: 12 }}
+          className="btn btn-sm export-button"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4, verticalAlign: "middle" }}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
+          <svg className="export-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
           导出 CSV
         </a>
       </div>
-      {drawings.length === 0 ? (
+      {!loaded ? (
+        <div className="empty-state"><span className="spinner" /> 加载中...</div>
+      ) : drawings.length === 0 ? (
         <div className="empty-state"><p>暂无 CAD 图纸。</p></div>
       ) : (
         <table className="data-table">

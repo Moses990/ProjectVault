@@ -666,3 +666,192 @@ Phase 12.2：Packaged UI Render Validation，状态：in_progress。
 - `/projects/favorites` 端点返回 200，未被 `/{project_id}` 参数路由遮蔽。
 - Git 提交：`1ad3353 fix: WebView2 Fixed Runtime detection and dashboard retry logic`、`c64bfde chore: normalize task_plan.md line endings`。
 - 代码已推送远程 `main` 分支。
+
+## 2026-07-06 V1.3 视觉基线 Step 2/3 记录
+
+- 状态：in_progress。已完成 `archive-essence-design` 对齐后的第一轮最小 UI shell 接入。
+- 新增文档：`docs/planning/V1_3_UI_INVENTORY.md`，记录当前 UI 与参考原型的差距、迁移顺序和禁止迁移的 mock 行为。
+- 新增组件：`frontend/app/components/TopBar.tsx`，提供全局页面标题/分组、Command Palette 搜索入口和本地服务状态。
+- 修改文件：`frontend/app/layout.tsx` 接入 `TopBar` 与 skip link；`frontend/app/globals.css` 新增 topbar、workspace shell、skip link 和移动端响应样式。
+- 范围控制：未引入新依赖，未改后端、数据库、API、Tauri 打包逻辑，未复制参考项目 mock 数据。
+- 验证通过：`frontend` 目录 `cmd /c npm run build`，Next.js 16.1.0 生产构建通过，9 个路由全部静态生成。
+- 验证通过：生产预览 `http://127.0.0.1:3002/` 返回 `200`，页面 HTML 包含 `Project Vault` 与 `工作台`。
+- 说明：3000 端口已有 Next 进程占用且首页请求超时；本次未强杀旧进程，改用 3002 生产预览验证。
+- 下一步：Sidebar real data sections，先接已有 favorites API；tags 只有在现有项目数据足够时再做，不新增后端能力。
+
+## 2026-07-06 V1.3 视觉基线可见化修正记录
+
+- 状态：in_progress。针对“UI 仍像 V1”的反馈，已将 V1.3 从浅层 TopBar 接入推进到第一屏可见对齐。
+- 原因确认：上一轮只完成 TopBar 与少量 shell 样式，Dashboard、Sidebar 数据区和加载态仍保留 V1 观感；同时 3000 端口存在旧 Next 进程，可能展示旧运行态。
+- Dashboard：`frontend/app/page.tsx` 已重做为 archive 风格工作台结构，包含 hero、三项指标卡、收藏项目、最近项目表、快速操作、最近活动、系统状态条。
+- Sidebar：`frontend/app/components/Sidebar.tsx` 已改为 archive 风格 workspace switcher、紧凑 nav、收藏项目区、阶段区和本地索引状态；收藏与阶段来自现有 API，不写 mock 项目。
+- Loading：新增 archive 风格 dashboard skeleton，后端未连接或响应慢时也能显示新 UI 框架，不再是黑屏加转圈。
+- 样式：`frontend/app/globals.css` 加强深色分层、24px grid 背景、archive panel、dense table、quick action、activity list、skeleton shimmer 等样式。
+- 验证通过：`frontend` 目录 `cmd /c npm run build`，Next.js 16.1.0 生产构建通过，9 个路由全部静态生成。
+- 验证通过：新预览 `http://127.0.0.1:3003/` 已启动；Edge headless 截图生成 `release-validation/v1_3_dashboard_latest.png`，画面显示新的 Sidebar、TopBar、Dashboard skeleton 和 archive 风格面板。
+- 下一步：连接真实后端后复查 populated dashboard 数据态；继续处理 Projects/CAD/History 等二级页面的视觉对齐。
+
+## 2026-07-06 V1.3 页面间距审查与容器修正记录
+
+- 状态：in_progress。针对 Projects、CAD Center、Settings 截图中主内容边距不统一的问题，已完成横向审查和第一轮全局修正。
+- 根因：Dashboard 使用独立 `.vault-dashboard` 容器；Projects、CAD Center、History、AI Center、Settings、Project Detail 仍使用旧页面根容器，导致左距、顶距、最大宽度和卡片宽度不一致。
+- 修正：`frontend/app/globals.css` 新增 `.main > :not(.vault-dashboard)` 页面容器规则，统一非 Dashboard 页面为 `max-width: 1240px; margin: 0 auto; padding: 24px 28px 32px;`。
+- 修正：统一旧页面下的 `card/table-panel/toolbar-row` 宽度和 toolbar surface，避免卡片贴边或与 Dashboard 容器不对齐。
+- 截图审查覆盖：Dashboard、Projects、CAD Center、History、AI Center、Settings。
+- 验证截图目录：`release-validation/ui-audit/`。
+- 验证通过：`frontend` 目录 `cmd /c npm run build`，Next.js 16.1.0 生产构建通过，9 个路由全部静态生成。
+- 仍需后续处理：Projects 分页/空态、Settings 表单、AI Center 空态、History 空态仍有较多旧式 `card` 与 inline style，视觉能用但还未完全 archive 化；Project Detail 及各 tab 还需要单独复查。
+
+## 2026-07-06 V1.3 二级页面 polish Step 2 记录
+
+- 状态：in_progress。已完成 Projects、CAD Center、History、AI Center、Settings 的第二轮全局视觉 polish。
+- 修正：统一 `.empty-state` 为 archive 风格 grid 背景、中心图标、固定最小高度和紧凑文字层级。
+- 修正：统一 `.pagination` 与 `.pager-row` 间距、字号、tabular number 和换行行为。
+- 修正：统一 `.form-input`、`.form-select`、`.topbar-search`、`.filter-select`、CAD `.search-input/.select-field` 为更接近 archive 的深色输入面。
+- 修正：调整 Settings 双栏宽度和卡片内距，降低旧 V1 表单割裂感。
+- 验证通过：`frontend` 目录 `cmd /c npm run build`，Next.js 16.1.0 生产构建通过，9 个路由全部静态生成。
+- 验证截图目录：`release-validation/ui-audit-step2/`，覆盖 Projects、CAD Center、History、AI Center、Settings。
+- 仍需后续处理：Project Detail 和各 tab 的 inline style 仍多，特别是 Files/Drawings/Materials/AI tab；这一块需要单独做，不建议和全局 polish 混在同一批。
+
+## 2026-07-06 V1.3 Project Detail polish 记录
+
+- 状态：in_progress。已完成 Project Detail 壳层和主要 tabs 的最小视觉对齐。
+- 修正：`project-detail/page.tsx` 增加 `project-detail-page`、`project-detail-header`、`project-title-row`、`project-tabs`、`tab-count` 等 class，减少 tabs 计数器内联样式。
+- 修正：`FilesTab` 增加 `tab-split-card`、`file-tree-pane`、`file-list-pane`，用全局 CSS 统一文件树/文件列表 split pane 的边框、背景和移动端堆叠。
+- 修正：`OverviewTab` 增加 `project-overview-card`、`project-overview-grid`、`project-info-field`，概览字段改为密集信息块。
+- 修正：`DrawingsTab`、`MaterialsTab`、`HistoryTab` 使用统一 `tab-card`，让表格卡片和二级页面 surface 一致。
+- 验证通过：`frontend` 目录 `cmd /c npm run build`，Next.js 16.1.0 生产构建通过，9 个路由全部静态生成。
+- 验证截图目录：`release-validation/ui-audit-project-detail/`，覆盖 Project Detail 无 id / 缺失 id 错误态。
+- 限制：当前 3003 预览无法连到真实项目 API，未能截图验证 populated tabs 数据态；需要后端有项目数据后再补 Files/Drawings/Materials/AI/History tab 实图复查。
+
+## 2026-07-06 V1.3 Project Detail 数据态复查记录
+
+- 状态：in_progress。已补齐带样例项目数据的 Project Detail 复查，不使用真实项目资料。
+- 验证环境：临时后端 `127.0.0.1:8004`，临时数据库 `release-validation/ui-audit-project-detail-data/project_vault_ui_audit.db`，前端预览 `127.0.0.1:3004`。
+- 样例数据：`release-validation/ui-audit-project-detail-data/fixture-root/PV-V13-Detail-Visual-Fixture`，扫描结果为 6 个文件、2 个 CAD、2 个材料。
+- 修正：`FilesTab` 的文件时间显示压缩为短格式，并给文件表格增加 `file-table-scroll/file-data-table/file-name-cell/file-time-cell` class。
+- 修正：移动端 Files 表格改为两列卡片行，避免 390px 宽度下时间列和文件名挤出屏幕。
+- 修正：移动端 Sidebar 改为单行图标轨道，隐藏收藏、阶段和底部状态区，避免导航竖排挤占首屏。
+- 修正：`OverviewTab` 的最后更新时间压缩为短格式，空值保持弱色层级。
+- 验证通过：`frontend` 目录 `cmd /c npm run build`，Next.js 16.1.0 生产构建通过，9 个路由全部静态生成。
+- 验证通过：API 复查 `overview=PV-V13-Detail-Visual-Fixture`、`files=6`、`drawings=2`、`materials=2`。
+- 验证截图目录：`release-validation/ui-audit-project-detail-data/`，包含 `detail-files-desktop-final.png`、`detail-overview-desktop-final.png`、`detail-files-mobile-final2.png`。
+- 限制：内置 Browser 插件在读取页面时返回 `incrementalAriaSnapshot is not a function`，本轮改用 Edge headless 截图验证。
+
+## 2026-07-06 V1.3 Project Detail 收尾 polish 记录
+
+- 状态：in_progress。已完成 Project Detail 剩余视觉债的最小收口，范围限定在 AI tab、文件预览弹窗和目录树。
+- 修正：`AiTab` 从 render 阶段发起 API 请求改为 `useEffect`，避免重复请求；同时把空态、加载态、结果列表和错误提示改为 class 驱动样式。
+- 修正：`FilePreview` 去掉主要内联布局样式，新增统一的 preview header/content/footer、媒体、文本、空态样式；弹窗仍复用现有 `confirm-overlay/confirm-box`。
+- 修正：`DirectoryTree` 去掉 hover 内联样式，改用 `tree-node/tree-root/tree-count/tree-chevron` 等 class；仅保留动态层级缩进变量。
+- 修正：移动端 Files 操作链接左对齐，避免小屏下链接被推到边缘不可见。
+- 验证通过：`frontend` 目录 `cmd /c npm run build`，Next.js 16.1.0 生产构建通过，9 个路由全部静态生成。
+- 浏览器验证：内置 Browser 插件可打开 `127.0.0.1:3004` 并点击文件预览，`detail-preview-modal-browser-final.png` 已生成；控制台 error/warn 数量为 0。
+- 截图验证：`release-validation/ui-audit-project-detail-data/detail-ai-final.png`、`detail-files-mobile-finish2.png`。
+- 范围控制：未引入新依赖，未改后端、API、数据库或 Tauri。
+
+## 2026-07-06 V1.3 Project Detail 最终收尾核查记录
+
+- 状态：in_progress。已完成 Project Detail 当前范围内的最终轻量收尾，未扩大到 Settings、AI Center、Projects 的剩余全局内联样式清理。
+- 修正：`ProjectDetailPage` 的错误/成功/警告提示条、标题和扫描按钮 spinner 改为统一 class；移除该页剩余提示类内联样式。
+- 修正：`FilesTab` 的目录加载、面包屑、导出工具条、文件操作提示和分页内距改为 class 驱动；文件分页请求改为使用当前 `filesPage`。
+- 修正：`DrawingsTab`、`MaterialsTab`、`HistoryTab` 从 render 阶段请求数据改为 `useEffect`；加载态改为明确 spinner 空态，避免切换 tab 时误显示空数据。
+- 修正：`OverviewTab` 摘要和标签区改为统一 section/tag list 样式。
+- 验证通过：`frontend` 目录默认 `cmd /c npm run build` 通过，Next.js 16.1.0 生产构建 9 个路由全部静态生成。
+- 验证通过：使用 fixture 数据库和临时端口 `127.0.0.1:8004 / 127.0.0.1:3004` 完成浏览器复查；Project Detail 文件 tab 显示 `PV-V13-Detail-Visual-Fixture`、6 个文件和导出入口。
+- 交互验证：内置 Browser 依次切换 `文件 / 图纸 / 材料 / 历史` tab，均显示 fixture 数据，无 Next.js 错误覆盖层，控制台 error/warn 数量为 0。
+- 范围控制：未引入新依赖，未改后端、API、数据库或 Tauri；临时验证服务已停止。
+- 剩余风险：全局残余内联样式仍存在于 Settings、AI Center、Projects、History 页面和全局 error/not-found 兜底页；这些属于下一轮全局残余样式清理，不阻塞本次 Project Detail 收口。
+
+## 2026-07-06 V1.3 全局残余样式清理收尾记录
+
+- 状态：in_progress。已完成 Settings、AI Center、Projects、History 和 error/not-found/global-error 兜底页的残余内联样式清理。
+- 修正：新增 `page-description`、`form-hint`、`checkbox-row`、`form-actions`、`notice success/error`、Provider、History、Projects 表格单元格和兜底页 class，统一交给 `globals.css` 管理。
+- 修正：`ErrorBanner`、`EmptyState` 改为 class 驱动样式；页面提示条、空态标题、表单说明、Provider 空态、测试结果、History 状态点、Projects 表格对齐不再依赖内联样式。
+- 扫描结果：`rg -n 'style=\{\{|style="' frontend/app` 仅剩 `DirectoryTree.tsx` 的 `--tree-depth` 动态 CSS 变量；该变量用于目录树层级缩进，属于有意保留。
+- 验证通过：`frontend` 目录默认 `cmd /c npm run build` 通过，Next.js 16.1.0 生产构建 9 个路由全部静态生成；仅保留既有 `output: export` 与 rewrites 警告。
+- 浏览器验证：使用 `frontend/out` 临时静态预览 `127.0.0.1:3005` 并注入后端端口 `8000`，内置 Browser 验证 Settings、Projects、History、AI Center 均能渲染目标页面，无 Next.js 错误覆盖层，控制台 error/warn 数量为 0。
+- 交互验证：Projects 页面列表/卡片切换成功，激活状态变为“卡片”。
+- 范围控制：未引入新依赖，未改后端、API、数据库或 Tauri；3005 临时静态预览已停止。
+
+## 2026-07-06 V1.4 Onboarding Step 1 记录
+
+- 状态：in_progress。已开始 V1.4 初始化工作流，完成第一块真实 onboarding 入口。
+- 修正：新增 `frontend/app/components/OnboardingFlow.tsx`，在 Settings 右侧接入“保存并发现 / 全选清空 / 初始化选中项目”流程。
+- 修正：`frontend/lib/api.ts` 增加候选项目、初始化结果、扫描结果类型，并封装既有 `/projects/candidates`、`/projects/initialize`、`/scanner/scan` 调用。
+- 修正：`frontend/app/settings/page.tsx` 将维护区改为右侧 stack，接入 OnboardingFlow；`frontend/app/globals.css` 增加候选列表、onboarding 卡片和次级按钮样式。
+- 测试修正：`frontend/__tests__/DirectoryTree.test.tsx` 的选中态断言从旧内联 style 改为当前 `selected` class。
+- API 验证：使用 fixture 根目录 `release-validation/v1_4_onboarding-fixture-20260706-143934/root` 和临时数据库 `project_vault.db`，发现 2 个候选、初始化 2 个、扫描 2 个，项目列表返回 2 个项目；浏览器交互追加验证 1 个候选并成功初始化扫描。
+- 浏览器验证：临时后端 `127.0.0.1:8004`，静态预览 `127.0.0.1:3006`，Settings 页面显示 onboarding 区，按钮流程完成，控制台 error/warn 数量为 0。
+- 验证通过：`frontend` 目录 `cmd /c npm run build` 通过；`cmd /c npm run test` 通过，2 个测试文件 7 个测试；`backend` 目录 `.venv\Scripts\python.exe -m unittest tests.test_projects_api -v` 通过，2 个测试。
+- 扫描结果：`rg -n 'style=\{\{|style="' frontend/app` 仍仅剩 `DirectoryTree.tsx` 的 `--tree-depth` 动态 CSS 变量。
+- 范围控制：未改后端逻辑、数据库 schema、Tauri 或依赖；本轮只使用既有后端 API 串联 V1.4 首步工作流。
+- 剩余风险：当前入口在 Settings 页，不是完整 first-run wizard；下一步需要把 Dashboard 空状态/ready 状态也接入同一真实流程。
+
+## 2026-07-06 V1.4 Dashboard readiness 记录
+
+- 状态：in_progress。已把 Dashboard 空状态接入真实 onboarding 状态，不再只显示泛化“无项目”提示。
+- 修正：`frontend/app/page.tsx` 读取 `settings`，在项目数为 0 且根路径存在时调用既有 `/projects/candidates` 做只读候选检查。
+- 修正：Dashboard 空态按三种状态显示：未配置根路径、已发现候选项目、根路径已配置但暂无候选；系统状态条显示 `待配置 / 待初始化 / Ready`。
+- 范围控制：未新增后端接口，未改数据库、Tauri 或依赖；候选检查只读，不写 `project.json`。
+- 验证通过：`frontend` 目录 `cmd /c npm run build` 通过；`cmd /c npm run test` 通过，2 个测试文件 7 个测试。
+- 浏览器验证：临时后端 `127.0.0.1:8004`，静态预览 `127.0.0.1:3006`，fixture 根目录 `release-validation/v1_4_dashboard-readiness-20260706-150930/root`。
+- 浏览器验证结果：无根路径时显示“还没有项目根路径 / 待配置”；设置 fixture 根路径后显示“发现 1 个候选项目 / 待初始化”；初始化并扫描后显示 `Delta Studio` 和 `Ready`；控制台 error/warn 数量为 0。
+- 剩余风险：Dashboard 目前只给出跳转到 Settings 的入口，没有把完整初始化表单嵌入首页；如后续要做真正 first-run wizard，再复用 `OnboardingFlow` 或抽出共享表单。
+
+## 2026-07-06 V1.4 Sidebar 状态接入记录
+
+- 状态：in_progress。已完成 V1.4 Sidebar Integration 的最小真实状态接入。
+- 修正：`frontend/app/components/Sidebar.tsx` 复用现有 `settings`、`dashboardMetrics`、`projects`、`favorites` API，底部状态从硬编码“运行中/实时监听”改为真实 `根路径 / 项目数 / 待配置|待初始化|Ready`。
+- 修正：`frontend/app/globals.css` 增加 `storage-bar` 和 `status-dot` 的 `ready/pending/empty` 状态样式；未新增依赖。
+- 范围控制：未新增后端接口，未读取或展示绝对根路径，未改数据库、Tauri 或 API 契约。
+- 验证通过：`frontend` 目录 `cmd /c npm run build` 通过；`cmd /c npm run test` 通过，2 个测试文件 7 个测试。
+- 浏览器验证：临时后端 `127.0.0.1:8004`，静态预览 `127.0.0.1:3006`，fixture 根目录 `release-validation/v1_4_sidebar-status-20260706-151940/root`。
+- 浏览器验证结果：无根路径时 Sidebar 显示 `未配置 / 项目 0 / 待配置`；设置根路径后显示 `已配置 / 项目 0 / 待初始化`；初始化并扫描后显示 `已配置 / 项目 1 / Ready`，且项目 `Echo Showroom` 可见；控制台 error/warn 数量为 0。
+- 剩余风险：阶段筛选仍只来自当前项目列表第一页的 phase 字段；后续如果需要全局标签/阶段聚合，再加只读 summary API。
+
+## 2026-07-06 V1.4 可选 AI Provider 设置入口记录
+
+- 状态：in_progress。已完成 V1.4 Optional AI Provider Setup 的最小真实入口，不阻塞项目初始化流程。
+- 修正：`frontend/app/components/OnboardingFlow.tsx` 读取真实 `/providers` 列表，按 `已配置 / 需检查 / 可选 / 已跳过` 显示 AI Provider 状态。
+- 修正：Onboarding 卡片新增跳转 AI 中心、刷新状态、跳过 AI 配置操作；跳过状态仅保存在当前浏览器 `localStorage`，不写业务数据、不伪造 AI 测试结果。
+- 修正：`frontend/app/globals.css` 增加 `optional-setup-*` 样式，保持 Settings 右栏与 archive 风格一致，移动端改为单列布局。
+- 范围控制：未新增后端接口，未改 AI Provider API、数据库 schema、Tauri、依赖或真实项目资料；AI 仍只做 Provider 管理和真实连接测试，不进入聊天、Agent、RAG。
+- 验证通过：`frontend` 目录默认 `cmd /c npm run build` 通过；`cmd /c npm run test` 通过，2 个测试文件 7 个测试。
+- 浏览器验证：临时后端 `127.0.0.1:8004`，临时数据库 `release-validation/v1_4_ai-provider-optional-20260706-152622/project_vault.db`，归一化静态预览 `127.0.0.1:3006`。
+- 浏览器验证结果：Settings 显示 `可选 AI Provider / 可选 / 配置 AI / 刷新 / 跳过`；点击 `跳过` 后状态变为 `已跳过`；点击 `配置 AI` 跳转 AI Center；点击 `添加提供商` 显示真实 Provider 表单字段；控制台 error/warn 数量为 0。
+- 扫描结果：`rg -n 'style=\{\{|style="' frontend/app` 仍仅剩 `DirectoryTree.tsx` 的 `--tree-depth` 动态 CSS 变量，属于有意保留。
+- 验证限制：内置 Browser 的 `domSnapshot()` 在本轮仍触发 `incrementalAriaSnapshot is not a function`，因此页面验证使用 URL、页面文本、截图、控制台日志和实际点击结果完成。
+- 下一步：继续 V1.4 Optional Backup Setup，把 Settings 维护区的备份/恢复入口整理为 onboarding 可选状态，仍复用现有备份 API。
+
+## 2026-07-06 V1.4 可选备份设置入口记录
+
+- 状态：in_progress。已完成 V1.4 Optional Backup Setup 的最小真实入口，不阻塞项目初始化流程。
+- 修正：`frontend/app/components/OnboardingFlow.tsx` 新增 `可选缓存备份` 卡片，显示当前 `backup_retention`，并说明备份只复制本地 SQLite 索引缓存，不修改项目业务文件。
+- 修正：`创建备份` 会先保存当前 Settings 草稿，再调用既有 `/system/backup/create`；创建成功后显示备份文件名、大小和保留数量。
+- 修正：支持跳过备份配置；跳过状态仅保存在当前浏览器 `localStorage`。成功创建备份后会清除该跳过标记，避免刷新后误回到 `已跳过`。
+- 范围控制：未新增后端接口，未改备份 API、数据库 schema、Tauri、依赖或真实项目资料；仍只操作 SQLite 缓存备份。
+- 验证通过：`frontend` 目录默认 `cmd /c npm run build` 通过；`cmd /c npm run test` 通过，2 个测试文件 7 个测试。
+- 浏览器验证：临时后端 `127.0.0.1:8004`，临时数据库 `release-validation/v1_4_backup-optional-20260706-161015/project_vault.db`，归一化静态预览 `127.0.0.1:3006`。
+- 浏览器验证结果：Settings 显示 `可选缓存备份 / 可选 / 创建备份 / 跳过`；点击 `跳过` 后状态变为 `已跳过`；点击 `创建备份` 后状态变为 `已创建` 并显示 `project_vault_20260706_161159.db`、大小和保留数量；控制台 error/warn 数量为 0。
+- 磁盘验证：备份文件已生成在 `release-validation/v1_4_backup-optional-20260706-161015/backups/project_vault_20260706_161159.db`，大小与临时测试库一致，为 `237568` bytes。
+- 扫描结果：`rg -n 'style=\{\{|style="' frontend/app` 仍仅剩 `DirectoryTree.tsx` 的 `--tree-depth` 动态 CSS 变量，属于有意保留。
+- 清理结果：临时后端/静态预览已停止，`8004 / 3006` 均无监听。
+- 下一步：V1.4 首轮 onboarding 已覆盖 root path、候选发现、初始化扫描、Dashboard readiness、Sidebar 状态、可选 AI、可选备份；下一步应做一次端到端 onboarding 回归，并视结果更新本地安装使用验证脚本或计划状态。
+
+## 2026-07-06 V1.4 Onboarding 端到端回归记录
+
+- 状态：completed。已用全新 fixture 完成 V1.4 onboarding 开发态端到端回归，未触碰真实项目资料或默认数据库。
+- Fixture：`release-validation/v1_4_onboarding-e2e-20260706-171509/`，临时数据库 `project_vault.db`，根目录下创建 `Aurora Showroom` 与 `Banyan Retail` 两个候选项目；每个项目包含 `.dwg`、`.pdf`、`.png`、`.csv` 和文本测试文件。
+- 浏览器回归：初始 Dashboard 显示 `待配置`；Settings 保存 fixture root 后发现 2 个候选；全选初始化并扫描后显示初始化 2 个项目、完成 2 次扫描、更新 12 个文件记录。
+- 浏览器回归：Dashboard 返回 `Ready`，指标为项目 2、CAD 2、材料 6；Sidebar 显示 `根路径 已配置 / 项目 2 / Ready`，并能看到初始化项目。
+- 可选流程：Settings 的 AI 卡片保持 `已跳过` 状态但 `配置 AI` 入口可用；进入 AI Center 后 `添加提供商` 表单可打开，字段包含名称、基础 URL、默认模型、API 密钥和创建按钮。
+- 可选流程：Settings 的 `可选缓存备份` 点击 `创建备份` 后显示 `已创建 project_vault_20260706_172348.db（240.0 KB）`。
+- API 复核：`/dashboard/metrics` 返回项目 2、CAD 2、材料 6；`/projects` 返回 2 个项目且每个项目为 6 个文件、1 个 CAD、3 个材料；`/history` 返回 2 条扫描事件；`/search?q=Aurora` 返回 `Aurora Showroom`。
+- 磁盘复核：两个初始化项目目录均生成 `project.json`；fixture `backups/` 下存在 `project_vault_20260706_172348.db`，大小 `245760` bytes。
+- 验证通过：`NEXT_PUBLIC_BACKEND_PORT=8004 cmd /c npm run build` 通过；默认 `cmd /c npm run build` 通过；`cmd /c npm run test` 通过，2 个测试文件 7 个测试。
+- 验证通过：`rg -n 'style=\{\{|style="' frontend/app` 仍仅剩 `frontend/app/components/DirectoryTree.tsx:31` 的动态 CSS 变量；`git diff --check` 通过，仅有既有 LF/CRLF 提示。
+- Console 复核：内置 Browser 完成实际点击与截图；随后用系统 Edge + 归一化静态预览 `127.0.0.1:3007` 复核 `/`、`/settings/`、`/ai-center/`、`/projects/`、`/history/`，页面非空、无错误覆盖层，console error/warn 为 0。
+- 清理结果：临时后端 `8004`、静态预览 `3006` 与 `3007` 均已停止并确认无监听。
+- 范围控制：未新增后端/API/数据库 schema/Tauri/依赖；未更新 `scripts/verify_local_installed_usage.ps1`；只新增本轮 release-validation fixture 证据并更新 `progress.md`。
+- 剩余风险：本轮不覆盖 packaged installer；`/history` 当前接口返回扫描事件数量和状态，但不 join 项目名，这是既有 API 形态，未在本轮扩大调整。

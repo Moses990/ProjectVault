@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { CommandPalette } from "./components/CommandPalette";
+import { TopBar } from "./components/TopBar";
 import "./globals.css";
 
 function getInitialTheme(): string {
@@ -45,9 +46,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body>
+        <a className="skip-link" href="#main-content">跳到主要内容</a>
         <div className="app-shell">
           <Sidebar onOpenSearch={() => setSearchOpen(true)} />
-          <main className="main">{children}</main>
+          <div className="workspace-shell">
+            <TopBar onOpenSearch={() => setSearchOpen(true)} />
+            <main id="main-content" className="main">{children}</main>
+          </div>
         </div>
         <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
         <ThemeSync theme={theme} onThemeChange={setTheme} />

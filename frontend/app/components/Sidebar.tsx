@@ -1,44 +1,80 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  Bot,
+  ChevronsUpDown,
+  CircleDot,
+  Clock3,
+  DraftingCompass,
+  FolderKanban,
+  History,
+  LayoutDashboard,
+  Plus,
+  Search,
+  Settings,
+} from "lucide-react";
+import { api, Project } from "@/lib/api";
 
 const NAV_ITEMS = [
-  { href: "/", label: "工作台", icon: "M3 12l9-9 9 9M5 10v10h5v-6h4v6h5V10" },
-  { href: "/projects", label: "项目", icon: "M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" },
-  { href: "/cad-center", label: "CAD 中心", icon: "M4 5h16v14H4zM8 9h8M8 13h5" },
+  { href: "/", label: "工作台", icon: LayoutDashboard, hint: "G D" },
+  { href: "/projects", label: "项目", icon: FolderKanban, hint: "G P" },
+  { href: "/cad-center", label: "CAD 中心", icon: DraftingCompass, hint: "G C" },
 ];
 
 const SECONDARY_ITEMS = [
-  { href: "/history", label: "历史记录", icon: "M12 8v5l3 2M21 12a9 9 0 11-3-6.7" },
-  { href: "/ai-center", label: "AI 中心", icon: "M12 4l8 4-8 4-8-4 8-4zM4 12l8 4 8-4M4 16l8 4 8-4" },
-  { href: "/settings", label: "设置", icon: "M12 8a4 4 0 100 8 4 4 0 000-8z" },
+  { href: "/history", label: "历史记录", icon: History, hint: "G H" },
+  { href: "/ai-center", label: "AI 中心", icon: Bot, hint: "G A" },
+  { href: "/settings", label: "设置", icon: Settings, hint: "G S" },
 ];
 
 export function Sidebar({ onOpenSearch }: { onOpenSearch: () => void }) {
   const pathname = usePathname();
+  const [favorites, setFavorites] = useState<Project[]>([]);
+  const [phases, setPhases] = useState<string[]>([]);
+  const [rootConfigured, setRootConfigured] = useState(false);
+  const [projectTotal, setProjectTotal] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      api.favoriteProjects().catch(() => [] as Project[]),
+      api.projects({ page: 1, limit: 40 }).catch(() => ({ data: [] as Project[] })),
+      api.getSettings().catch(() => null),
+      api.dashboardMetrics().catch(() => null),
+    ]).then(([favoriteProjects, projectPage, settings, metrics]) => {
+      if (cancelled) return;
+      setFavorites(favoriteProjects.slice(0, 4));
+      setPhases(Array.from(new Set(projectPage.data.map((p) => p.phase).filter(Boolean) as string[])).slice(0, 5));
+      setRootConfigured(Boolean(settings?.root_path));
+      setProjectTotal(metrics?.project_total ?? projectPage.data.length);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const readiness = projectTotal > 0 ? "ready" : rootConfigured ? "pending" : "empty";
+  const readinessText = readiness === "ready" ? "Ready" : readiness === "pending" ? "待初始化" : "待配置";
 
   return (
     <aside className="sidebar">
-      <div className="brand">
-        <div className="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 28 28" fill="none">
-            <rect x="5" y="5" width="18" height="18" rx="5" />
-            <path d="M10 14h8M14 10v8" />
-            <circle cx="14" cy="14" r="2.5" />
-          </svg>
+      <button className="workspace-switcher">
+        <div className="brand-mark" aria-hidden={true}>
+          <img src="/project-vault-logo.svg" alt="" />
         </div>
         <div className="brand-copy">
           <span>Project Vault</span>
-          <small>Local project index</small>
+          <small>本地工作区 · v1.3</small>
         </div>
-      </div>
+        <ChevronsUpDown size={14} aria-hidden={true} />
+      </button>
 
       <button className="sidebar-search" onClick={onOpenSearch}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="11" cy="11" r="8" />
-          <path d="M21 21l-4-4" />
-        </svg>
+        <Search size={14} aria-hidden={true} />
         <span>搜索</span>
         <kbd>Ctrl K</kbd>
       </button>
@@ -46,27 +82,57 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch: () => void }) {
       <nav className="nav">
         {NAV_ITEMS.map((item) => {
           const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+          const Icon = item.icon;
           return (
             <Link key={item.href} href={item.href} className={`nav-item ${active ? "active" : ""}`}>
-              <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d={item.icon} />
-              </svg>
-              {item.label}
+              <Icon className="nav-icon" size={15} strokeWidth={1.8} aria-hidden={true} />
+              <span>{item.label}</span>
+              <kbd>{item.hint}</kbd>
             </Link>
           );
         })}
       </nav>
 
+      <SidebarSection title="收藏项目" action={<Plus size={12} aria-hidden={true} />}>
+        {favorites.length === 0 ? (
+          <div className="sidebar-empty">暂无收藏</div>
+        ) : (
+          favorites.map((project) => (
+            <Link
+              key={project.id}
+              href={`/project-detail?id=${encodeURIComponent(project.id)}`}
+              className="sidebar-project"
+            >
+              <CircleDot size={12} aria-hidden={true} />
+              <span>{project.name}</span>
+            </Link>
+          ))
+        )}
+      </SidebarSection>
+
+      <SidebarSection title="阶段">
+        {phases.length === 0 ? (
+          <div className="sidebar-empty">等待项目数据</div>
+        ) : (
+          phases.map((phase, index) => (
+            <Link key={phase} href={`/projects?phase=${encodeURIComponent(phase)}`} className="sidebar-project">
+              <span className={`phase-dot phase-${index % 4}`} />
+              <span>{phase}</span>
+            </Link>
+          ))
+        )}
+      </SidebarSection>
+
       <div className="nav-section-label">工具</div>
       <nav className="nav">
         {SECONDARY_ITEMS.map((item) => {
           const active = pathname.startsWith(item.href);
+          const Icon = item.icon;
           return (
             <Link key={item.href} href={item.href} className={`nav-item ${active ? "active" : ""}`}>
-              <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d={item.icon} />
-              </svg>
-              {item.label}
+              <Icon className="nav-icon" size={15} strokeWidth={1.8} aria-hidden={true} />
+              <span>{item.label}</span>
+              <kbd>{item.hint}</kbd>
             </Link>
           );
         })}
@@ -74,9 +140,41 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch: () => void }) {
 
       <div className="sidebar-spacer" />
       <div className="sidebar-footer">
-        <span className="status-dot" />
-        <span>本地服务已连接</span>
+        <div className="storage-line">
+          <span>根路径</span>
+          <strong>{rootConfigured ? "已配置" : "未配置"}</strong>
+        </div>
+        <div className="storage-line">
+          <span>项目</span>
+          <strong>{projectTotal}</strong>
+        </div>
+        <div className={`storage-bar ${readiness}`}><span /></div>
+        <div className="storage-status">
+          <span className={`status-dot ${readiness}`} />
+          <Clock3 size={12} />
+          <span>{readinessText}</span>
+        </div>
       </div>
     </aside>
+  );
+}
+
+function SidebarSection({
+  title,
+  action,
+  children,
+}: {
+  title: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="sidebar-section">
+      <div className="sidebar-section-head">
+        <span>{title}</span>
+        {action && <span>{action}</span>}
+      </div>
+      <div className="sidebar-section-body">{children}</div>
+    </section>
   );
 }

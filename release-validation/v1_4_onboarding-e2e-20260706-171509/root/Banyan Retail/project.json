@@ -1,0 +1,17 @@
+{
+  "project_id": "f472d61a-fbb7-43c4-bdb3-b6a739914665",
+  "name": "Banyan Retail",
+  "type": "",
+  "phase": "",
+  "status": "healthy",
+  "manager": "",
+  "tags": [],
+  "ai": {
+    "summary": "",
+    "core_needs": [],
+    "special_reqs": [],
+    "risks": [],
+    "lessons": []
+  },
+  "schema_version": 1
+}

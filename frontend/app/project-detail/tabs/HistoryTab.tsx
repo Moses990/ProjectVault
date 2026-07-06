@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, HistoryItem } from "@/lib/api";
 
 export function HistoryTab({ projectId }: { projectId: string }) {
@@ -9,17 +9,20 @@ export function HistoryTab({ projectId }: { projectId: string }) {
   const [historyPage, setHistoryPage] = useState(1);
   const [loaded, setLoaded] = useState(false);
 
-  if (!loaded) {
-    api.projectHistory(projectId, 1, 50).then((res) => {
+  useEffect(() => {
+    setLoaded(false);
+    api.projectHistory(projectId, historyPage, 50).then((res) => {
       setHistory(res.data);
       setHistoryTotal(res.meta.total ?? 0);
       setLoaded(true);
     }).catch(() => setLoaded(true));
-  }
+  }, [projectId, historyPage]);
 
   return (
-    <div className="card" style={{ padding: 0 }}>
-      {history.length === 0 ? (
+    <div className="card tab-card">
+      {!loaded ? (
+        <div className="empty-state"><span className="spinner" /> 加载中...</div>
+      ) : history.length === 0 ? (
         <div className="empty-state"><p>暂无历史事件。</p></div>
       ) : (
         <table className="data-table">
@@ -52,7 +55,7 @@ export function HistoryTab({ projectId }: { projectId: string }) {
         </table>
       )}
       {historyTotal > 50 && (
-        <div className="pagination" style={{ padding: "8px 16px" }}>
+        <div className="pagination tab-pagination">
           <button className="btn btn-sm" disabled={historyPage <= 1} onClick={() => setHistoryPage(historyPage - 1)}>上一页</button>
           <span>第 {historyPage} 页（{historyTotal} 条事件）</span>
           <button className="btn btn-sm" disabled={historyPage * 50 >= historyTotal} onClick={() => setHistoryPage(historyPage + 1)}>下一页</button>

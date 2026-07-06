@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, Material } from "@/lib/api";
 import { formatBytes } from "@/lib/utils";
 
@@ -8,16 +8,19 @@ export function MaterialsTab({ projectId }: { projectId: string }) {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loaded, setLoaded] = useState(false);
 
-  if (!loaded) {
+  useEffect(() => {
+    setLoaded(false);
     api.projectMaterials(projectId).then((data) => {
       setMaterials(data);
       setLoaded(true);
     }).catch(() => setLoaded(true));
-  }
+  }, [projectId]);
 
   return (
-    <div className="card" style={{ padding: 0 }}>
-      {materials.length === 0 ? (
+    <div className="card tab-card">
+      {!loaded ? (
+        <div className="empty-state"><span className="spinner" /> 加载中...</div>
+      ) : materials.length === 0 ? (
         <div className="empty-state"><p>暂无材料文件。</p></div>
       ) : (
         <table className="data-table">

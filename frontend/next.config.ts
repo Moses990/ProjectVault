@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // 开发模式：代理 /api/v1 到后端
+  // 开发模式：代理 /api/v1 到后端。
   async rewrites() {
     return [
       {
@@ -10,10 +10,10 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  // 生产构建时再启用静态导出
-  // output: "export",
-  // trailingSlash: true,
-  // assetPrefix: ".",
+  // 生产构建：导出 Tauri 使用的静态前端。
+  output: "export",
+  trailingSlash: true,
+  assetPrefix: ".",
 };
 
 export default nextConfig;

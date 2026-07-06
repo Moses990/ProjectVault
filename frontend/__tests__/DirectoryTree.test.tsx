@@ -31,7 +31,7 @@ describe("DirectoryTree", () => {
       <DirectoryTree tree={tree} selectedDir={null} onSelect={() => {}} />
     );
     const root = container.querySelector(".tree-node");
-    expect(root?.getAttribute("style")).toContain("var(--accent-bg)");
+    expect(root).toHaveClass("selected");
   });
 
   it("calls onSelect with null when root is clicked", () => {

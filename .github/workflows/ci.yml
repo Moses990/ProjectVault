@@ -15,6 +15,10 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Prepare WebView2 fixed runtime
+        shell: pwsh
+        run: ./scripts/prepare_webview2_fixed_runtime.ps1
+
       - name: Backend tests
         working-directory: backend
         run: |

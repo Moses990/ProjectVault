@@ -855,3 +855,54 @@ Phase 12.2：Packaged UI Render Validation，状态：in_progress。
 - 清理结果：临时后端 `8004`、静态预览 `3006` 与 `3007` 均已停止并确认无监听。
 - 范围控制：未新增后端/API/数据库 schema/Tauri/依赖；未更新 `scripts/verify_local_installed_usage.ps1`；只新增本轮 release-validation fixture 证据并更新 `progress.md`。
 - 剩余风险：本轮不覆盖 packaged installer；`/history` 当前接口返回扫描事件数量和状态，但不 join 项目名，这是既有 API 形态，未在本轮扩大调整。
+
+## 2026-07-07 V1.4 仓库卫生风险修复记录
+
+- 状态：completed。已修复 release-validation 测试产物进入源码索引的风险。
+- 修正：`.gitignore` 增加 `release-validation/**/*.db`、`**/backups/`、`**/root/`、`**/fixture-root/`、`**/paths.txt` 规则，覆盖 V1.3/V1.4 回归产生的运行库、备份和 fixture 根目录。
+- 修正：已从 Git 索引移除被跟踪的 release-validation 运行数据库、备份、root/fixture-root 样例项目和 paths.txt；本地文件保留，后续提交不再污染源码。
+- 验证通过：`git ls-files release-validation` 复查不再返回 `.db`、`backups/`、`root/`、`fixture-root/`、`paths.txt` 高风险路径。
+- 验证通过：`git diff --check` 通过，仅有既有 LF/CRLF 提示。
+- 范围控制：未删除本地验证证据，未改产品代码、后端/API、数据库 schema、Tauri 或依赖。
+- 下一步风险：继续处理 packaged installer 未覆盖 V1.4 onboarding 的风险；优先复用现有本机安装包验证脚本，只有脚本无法覆盖当前 V1.4 流程时再做最小更新。
+
+## 2026-07-07 V1.4 packaged installer 回归风险修复记录
+
+- 状态：completed。已重建当前源码的 Windows x64 NSIS 安装包，并完成本机正式安装后主流程回归。
+- 修正：`scripts/verify_local_installed_usage.ps1` 的 packaged frontend 探测从旧文案 `Project Vault V1 / Dashboard` 改为当前 UI 可稳定命中的 `Project Vault / 工作台`；根因是 V1.4 中文 UI 改动导致旧脚本误判前端未渲染。
+- 构建通过：`desktop` 目录 `cmd /c npm run build` 通过，输出 `desktop/src-tauri/target/release/bundle/nsis/Project Vault_0.1.0_x64-setup.exe`。
+- Installer：大小 `247,308,252` bytes，SHA256 `A4451C69D06821AAFAB6E1FFE4D43E04DFC26D423C343D13FA8839551F3E1B11`。
+- 验证通过：`scripts/verify_local_installed_usage.ps1` 通过，27 个步骤全部 pass，包括窗口、后端 health、frontend render、Settings root path、候选发现、初始化、扫描、Dashboard、Project Detail、CAD Center、Search、History、备份/恢复、数据库路径、本机数据库恢复和后端退出清理。
+- 报告：`release-validation/local-installed-usage-validation.json`，SHA256 `DE61122DC565B9D59AA08B2A2993B3CEF70EAF74D1B807E046D484494D1382DF`。
+- 文档同步：已更新 `docs/release/LOCAL_INSTALLED_USAGE_VALIDATION.md` 和 `docs/release/V1_RELEASE_MANIFEST.md` 的 installer/report hash。
+- 清理结果：验证后未残留 `project-vault*` 进程。
+- 范围控制：未新增依赖，未改后端/API/数据库 schema；脚本只修正前端渲染探测文案。
+- 剩余风险：本轮是本机正式安装包回归，不是 clean Windows Sandbox 复验；若要重新宣称 clean Windows 通过，需要再跑 clean Windows 验证脚本。
+
+## 2026-07-07 V1.4 CI 与剩余风险收尾记录
+
+- 状态：completed。已处理 V1.4 收尾后剩余的 CI/check 风险，补上远端可运行的最小 GitHub Actions 工作流。
+- 修正：新增 `.github/workflows/ci.yml`，在 `windows-latest` 上运行后端 unittest、前端 build 和前端 test；不新增依赖，不改产品运行路径。
+- 修正：`backend/tests/test_phase11_system_maintenance.py` 的 Explorer 打开测试 mock 目标改为当前真实调用点 `app.services.files._launch_system_path`，避免旧导出路径导致测试误失败。
+- 修正：`backend/tests/test_providers_api.py` 的 AI Provider 连通性测试改为 mock `urllib.request.urlopen` 的成功路径，避免 CI 访问外网；仍保留无 key 时 `missing_base_url_or_key` 的断言。
+- 验证通过：`backend` 目录 `.venv\Scripts\python.exe -m unittest discover -s tests -v` 通过，64 个测试全部通过。
+- 验证通过：`frontend` 目录默认 `cmd /c npm run build` 通过，Next.js 16.1.0 静态构建 9 个路由全部生成；仍只有既有 `output: export` 与 rewrites 提示。
+- 验证通过：`frontend` 目录 `cmd /c npm run test` 通过，2 个测试文件 7 个测试全部通过。
+- 验证通过：`rg -n 'style=\{\{|style="' frontend/app` 仍仅剩 `frontend/app/components/DirectoryTree.tsx:31` 的动态 CSS 变量。
+- 验证通过：`git diff --check` 通过，仅有既有 LF/CRLF 提示；`git ls-files release-validation | rg '(\.db$|/backups/|/root/|/fixture-root/|/paths\.txt$)'` 无命中。
+- GitHub 复核：远端当前最新提交 `8393f3f51accf2493f405cd415babfe874a43d48` 没有 status/check context；本轮新增 workflow 后，下一次 push/PR 才会产生 `ci` 检查结果。
+- 范围控制：未改后端业务逻辑、API 契约、数据库 schema、Tauri 或依赖；只补 CI 工作流、修正过期测试断言并记录验证证据。
+- 剩余风险：远端 CI 运行结果和分支保护 required checks 需要 push 后才能确认；clean Windows Sandbox 仍未在本轮重跑。
+
+## 2026-07-07 V1.4 Clean Windows Sandbox 复验收尾记录
+
+- 状态：completed。已用当前 release installer 在 Windows Sandbox 中重新运行 clean Windows 验证，补齐 V1.4 packaged installer 的 clean 环境证据。
+- 修正：`scripts/verify_clean_windows_release.ps1` 的 packaged frontend 探测从旧 `Project Vault V1 / Dashboard` 改为当前稳定 shell 文案 `Project Vault`；避免 V1.4 UI 文案变更造成误判。
+- 修正：clean 验证报告输出改为 UTF-8 no BOM + LF，且空错误行不写尾随空格；同时保持 Windows PowerShell 5.1 解析通过。
+- 验证通过：`release-validation/clean-windows-validation.json`，`passed=true`，14 个步骤全部 pass。
+- 关键步骤：`python_unavailable`、`node_unavailable`、`installer_silent_run`、`fixed_webview2_runtime_bundled`、`app_main_webview_window`、`webview2_runtime_error_dialog_absent`、`backend_health`、`frontend_render`、`database_path`、`backend_exit_cleanup` 均为 pass。
+- 运行证据：后端 health `http://127.0.0.1:49788/api/v1/health`，前端 render `http://127.0.0.1:49789/`，数据库位于 Sandbox 用户 `%LOCALAPPDATA%\ProjectVault\database\project_vault.db`。
+- 报告：`release-validation/clean-windows-validation.json`，大小 `7,760` bytes，SHA256 `065A3D264F973771AF0556DBC8B3DC388601C9B48E1EF01E592F55FD14E96023`。
+- 文档同步：已更新 `docs/release/CLEAN_WINDOWS_VALIDATION.md` 和 `docs/release/V1_RELEASE_MANIFEST.md` 的 clean Windows 复验证据。
+- 范围控制：未改产品后端业务逻辑、API 契约、数据库 schema、Tauri 或依赖；只修正验证脚本和发布证据记录。
+- 剩余风险：clean Windows 风险已关闭；远端 CI/check 状态仍需 push/PR 后由 GitHub 运行确认。

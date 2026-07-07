@@ -3,6 +3,7 @@ import unittest
 import tempfile
 import os
 from pathlib import Path
+from unittest.mock import patch
 
 from app.db.database import initialize_database
 from app.core_api import (
@@ -82,8 +83,11 @@ class TestAIProvidersAPI(unittest.TestCase):
         provider_full = create_ai_provider(
             "Full", "https://x", key_reference="env:KEY", db_path=self.db_path
         )
-        result2 = test_ai_provider(provider_full["id"], db_path=self.db_path)
+        with patch("urllib.request.urlopen") as urlopen:
+            result2 = test_ai_provider(provider_full["id"], db_path=self.db_path)
         self.assertTrue(result2["ready"])
+        self.assertEqual(result2["message"], "provider_connected")
+        urlopen.assert_called_once()
 
     def test_key_reference_not_leaked_in_list(self):
         create_ai_provider(

@@ -114,7 +114,7 @@ function Wait-ForFrontendRender {
             try {
                 $response = Invoke-WebRequest -Uri $uri -TimeoutSec 2 -UseBasicParsing
                 $html = [string]$response.Content
-                $hasShell = $html.Contains("Project Vault V1") -or $html.Contains("Dashboard")
+                $hasShell = $html.Contains("Project Vault") -or $html.Contains("工作台")
                 $hasBackendPort = $html.Contains("__BACKEND_PORT__") -and $html.Contains([string]$BackendPort)
                 if ($response.StatusCode -eq 200 -and $hasShell -and $hasBackendPort) {
                     return [ordered]@{
@@ -550,18 +550,20 @@ finally {
     $Report.finishedAt = (Get-Date).ToString("o")
     $Report.steps = $Steps
     $jsonPath = Join-Path $ReportDir "local-installed-usage-validation.json"
-    $Report | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $jsonPath -Encoding UTF8
+    $json = ($Report | ConvertTo-Json -Depth 20) -replace "`r`n", "`n"
+    Write-Utf8NoBom -Path $jsonPath -Value ($json + "`n")
 
     $textPath = Join-Path $ReportDir "local-installed-usage-validation.txt"
-    @(
+    $summaryLines = @(
         "Project Vault Local Installed Usage Validation"
         "Passed: $($Report.passed)"
         "Installer: $InstallerPath"
         "InstallDir: $InstallDir"
         "FixtureRoot: $FixtureRoot"
         "Report: $jsonPath"
-        "Error: $($Report.error)"
-    ) | Set-Content -LiteralPath $textPath -Encoding UTF8
+        $(if ($Report.error) { "Error: $($Report.error)" } else { "Error:" })
+    )
+    Write-Utf8NoBom -Path $textPath -Value (($summaryLines -join "`n") + "`n")
 
     if ($Report.passed -and ($null -eq $backendExited -or $backendExited)) {
         Write-Host "Project Vault local installed usage validation passed."

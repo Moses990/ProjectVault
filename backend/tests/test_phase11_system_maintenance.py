@@ -78,7 +78,7 @@ class Phase11SystemMaintenanceTests(unittest.TestCase):
                 ).fetchone()["id"]
 
             with patch("app.api.system.get_database_path", return_value=db_path), patch(
-                "app.core_api.launch_system_path", return_value=True
+                "app.services.files._launch_system_path", return_value=True
             ) as launcher:
                 opened = post_explorer_open(ExplorerOpenRequest(file_id=file_id, mode="open_file"))
                 revealed = post_explorer_open(ExplorerOpenRequest(file_id=file_id, mode="reveal_folder"))

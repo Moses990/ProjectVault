@@ -2,7 +2,7 @@
 
 Status: V1 Final release gate passed.
 
-Last updated: 2026-06-26.
+Last updated: 2026-07-07.
 
 ## Release Artifact
 
@@ -10,19 +10,19 @@ Last updated: 2026-06-26.
 - Version: 0.1.0
 - Build target: Windows x64 NSIS installer
 - Installer: `D:\Workflows\ProjectVault\desktop\src-tauri\target\release\bundle\nsis\Project Vault_0.1.0_x64-setup.exe`
-- Size: `240,129,228` bytes
-- Last write UTC: `2026-06-26T01:21:32.8380995Z`
-- SHA256: `0478EFE6C0E81D8F9B39F102E66642B129E30E06FE244D6757482AF0851772D8`
+- Size: `247,308,252` bytes
+- Last write UTC: `2026-07-07T01:22:07.3889829Z`
+- SHA256: `A4451C69D06821AAFAB6E1FFE4D43E04DFC26D423C343D13FA8839551F3E1B11`
 
 ## Validation Evidence
 
 - Clean Windows report: `D:\Workflows\ProjectVault\release-validation\clean-windows-validation.json`
-- Report size: `7,911` bytes
-- Report last write UTC: `2026-06-26T01:41:55.2897461Z`
-- Report SHA256: `1A128EA00BFF4C25648B09AF2D3F95904FCDAF2B129E5EF4EBA02F32D86D5E2D`
+- Report size: `7,760` bytes
+- Report last write UTC: `2026-07-07T02:02:22`
+- Report SHA256: `065A3D264F973771AF0556DBC8B3DC388601C9B48E1EF01E592F55FD14E96023`
 - Result: `passed=true`
 - Local installed usage report: `D:\Workflows\ProjectVault\release-validation\local-installed-usage-validation.json`
-- Local usage report SHA256: `1B31EC6AC8B87563094072DE496D64DB465783580A0030D06DB48C3DAE6157AE`
+- Local usage report SHA256: `DE61122DC565B9D59AA08B2A2993B3CEF70EAF74D1B807E046D484494D1382DF`
 - Local usage result: `passed=true`
 - Phase 13 release quality report: `D:\Workflows\ProjectVault\release-validation\phase13-release-quality-validation.json`
 - Phase 13 release quality report SHA256: `BB183E9F90481CE3D65395E8EF2D3E8DFF2ED01BD68EF25569909B93DC3CB3A9`

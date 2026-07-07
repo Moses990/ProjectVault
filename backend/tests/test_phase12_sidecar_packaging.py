@@ -100,7 +100,7 @@ class Phase12SidecarPackagingTests(unittest.TestCase):
         content = script.read_text(encoding="utf-8")
 
         self.assertIn("Wait-ForFrontendRender", content)
-        self.assertIn("Project Vault V1", content)
+        self.assertIn("Project Vault", content)
         self.assertIn("__BACKEND_PORT__", content)
         self.assertIn("frontend_render", content)
         self.assertIn("app_main_webview_window", content)

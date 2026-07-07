@@ -2,7 +2,7 @@
 
 Status: passed. V1 Final clean Windows release gate is complete.
 
-Last checked: 2026-06-26 09:41.
+Last checked: 2026-07-07 10:02.
 
 ## Goal
 
@@ -38,8 +38,8 @@ Validated runtime details:
 - Installer: `Project Vault_0.1.0_x64-setup.exe`
 - Installed app: `C:\Users\WDAGUtilityAccount\AppData\Local\Programs\ProjectVaultCleanTest\project-vault.exe`
 - Fixed WebView2 runtime: `C:\Users\WDAGUtilityAccount\AppData\Local\Programs\ProjectVaultCleanTest\binaries\webview2-fixed-runtime\Microsoft.WebView2.FixedVersionRuntime.149.0.4022.96.x64\msedgewebview2.exe`
-- Backend health: `http://127.0.0.1:49823/api/v1/health`
-- Frontend render: `http://127.0.0.1:49824/`
+- Backend health: `http://127.0.0.1:49788/api/v1/health`
+- Frontend render: `http://127.0.0.1:49789/`
 - SQLite path: `C:\Users\WDAGUtilityAccount\AppData\Local\ProjectVault\database\project_vault.db`
 - Manual UI validation: launching `Project Vault` from the Sandbox desktop shortcut opens the main app page.
 
@@ -64,7 +64,7 @@ Follow-up Sandbox testing still showed a black WebView even though backend healt
 - The Tauri WebView navigates to `http://127.0.0.1:<frontend_port>/`.
 - The static server serves packaged assets from Tauri's asset resolver and injects `window.__BACKEND_PORT__` into HTML before load.
 - Nested route asset requests such as `/projects/_next/static/...` are normalized back to `/_next/static/...`.
-- `scripts\verify_clean_windows_release.ps1` now adds `frontend_render`, which fetches the packaged frontend HTML and requires both `Project Vault V1` and `__BACKEND_PORT__`.
+- `scripts\verify_clean_windows_release.ps1` now adds `frontend_render`, which fetches the packaged frontend HTML and requires `Project Vault` plus `__BACKEND_PORT__`.
 
 Local packaged smoke passed after this fix:
 

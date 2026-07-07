@@ -1,3 +1,0 @@
-fixture=D:\Workflows\ProjectVault\release-validation\v1_4_dashboard-readiness-20260706-150930
-root=D:\Workflows\ProjectVault\release-validation\v1_4_dashboard-readiness-20260706-150930\root
-db=D:\Workflows\ProjectVault\release-validation\v1_4_dashboard-readiness-20260706-150930\project_vault.db

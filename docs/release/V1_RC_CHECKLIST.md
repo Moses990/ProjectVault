@@ -1,7 +1,7 @@
 # Project Vault V1 RC Checklist
 
 Date: 2026-06-25
-Status: Development RC validation passed; local production sidecar packaging implemented; clean Windows validation pending
+Status: Development RC validation passed; final clean Windows validation passed on 2026-07-07
 
 ## Scope
 
@@ -13,18 +13,18 @@ The target release shape is a Tauri desktop app with a bundled FastAPI sidecar e
 
 ## Current Limitation
 
-The development RC path is validated, and the local production sidecar packaging chain now exists:
+The development RC path is validated, and the production sidecar packaging chain exists:
 
 - `scripts/build_backend_sidecar.ps1` builds the FastAPI backend with PyInstaller.
 - `desktop/src-tauri/tauri.conf.json` declares `bundle.externalBin: ["binaries/project-vault-backend"]`.
 - `desktop/src-tauri/src/main.rs` starts the Tauri sidecar and no longer launches `backend/.venv/Scripts/python.exe`.
 - The generated sidecar responds to `/api/v1/health` and stores the default SQLite cache under `%LOCALAPPDATA%\ProjectVault\database\project_vault.db`.
 
-The remaining release limitation is environment validation: the installer still needs to be installed and started on a clean Windows 10/11 machine without Python or Node.
+The former release limitation is closed: the installer was installed and started in Windows Sandbox without Python or Node, and `release-validation/clean-windows-validation.json` reports `passed=true`.
 
 ## Recommended Upgrade Path
 
-Before V1 final release:
+Before rebuilding a future V1 final installer:
 
 1. Run `scripts\build_backend_sidecar.ps1 -Clean` on the release machine.
 2. Run `cd desktop && cmd /c npm run check` or the release build command.
@@ -51,8 +51,8 @@ If production packaging remains unavailable, the project can only be treated as 
 | Backup/restore | Pass | 91,594,752 byte SQLite backup restored successfully. |
 | Watcher engine | Pass with scope note | Event queue/debounce tests pass; automatic DB-consuming worker is not part of current implementation. |
 | Explorer integration | Pass by tests | `file_id`-based open/reveal is covered by Phase 11 tests. |
-| Production sidecar installer | Pending external validation | Sidecar executable and `externalBin` are implemented locally; clean Windows no-Python/no-Node validation is still pending. |
-| Clean Windows validation automation | Prepared | `scripts/verify_clean_windows_release.ps1`, `scripts/ProjectVaultCleanWindows.wsb`, and `docs/release/CLEAN_WINDOWS_VALIDATION.md` are available. Current host lacks Windows Sandbox and VM management elevation. |
+| Production sidecar installer | Pass | Current release installer passed clean Windows no-Python/no-Node validation. |
+| Clean Windows validation automation | Pass | `scripts/verify_clean_windows_release.ps1`, `scripts/ProjectVaultCleanWindows.wsb`, and `docs/release/CLEAN_WINDOWS_VALIDATION.md` are available; latest report SHA256 is `065A3D264F973771AF0556DBC8B3DC388601C9B48E1EF01E592F55FD14E96023`. |
 
 ## RC Command Evidence
 
@@ -113,7 +113,7 @@ D:\Workflows\ProjectVault\desktop\src-tauri\binaries\project-vault-backend-x86_6
 
 ## Release Gate
 
-Development RC validation passes, and local production sidecar packaging is implemented. V1 final release remains pending until the installer is verified on a clean Windows machine without Python or Node.
+Development RC validation passes, production sidecar packaging is implemented, and V1 final clean Windows validation has passed.
 
 ## Clean Windows Validation
 
@@ -125,4 +125,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\verify_clean_windows_relea
   -ReportDir ".\validation-report"
 ```
 
-Current host cannot run this gate directly because Windows Sandbox is not installed and Hyper-V VM management requires elevated permissions.
+Latest Windows Sandbox run completed successfully and wrote `release-validation/clean-windows-validation.json` with `passed=true`.

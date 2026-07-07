@@ -627,7 +627,7 @@ V1 Final 判定：可以标记 complete。
 
 ## Phase 13：V1 发布收口与实机使用验证
 
-状态：in_progress。
+状态：complete。
 
 目标：在 V1 Final clean Windows 门禁通过后，把当前版本固化为可交付、可复现、可维护的 V1.0 检查点，并完成本机真实使用路径验收。
 
@@ -642,7 +642,7 @@ V1 Final 判定：可以标记 complete。
 验收标准：
 
 - `docs/release/V1_RELEASE_MANIFEST.md` 存在，并记录 installer SHA256 与 clean Windows report SHA256。
-- README、`task_plan.md`、`progress.md` 的当前状态一致指向 V1 Final complete / Phase 13 in progress。
+- README、`task_plan.md`、`progress.md` 的当前状态一致指向 V1 Final complete / Phase 13 complete。
 - 本机正式安装包完成一次人工主流程：打开应用、设置项目根目录、扫描测试项目、浏览 Dashboard/Projects/Project Detail/CAD Center/Search/Settings、验证备份/恢复入口。
 - 不引入 V2 范围功能：AI Chat、Agent、RAG、云同步、多用户协作、权限系统、在线 CAD 查看/编辑均保持排除。
 - 完成最终检查点前，至少重新运行后端测试、前端 build、Tauri check 或 release build 中的必要组合。

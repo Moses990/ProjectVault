@@ -1,377 +1,381 @@
-﻿{
-    "startedAt":  "2026-06-26T10:09:21.7040576+08:00",
-    "projectRoot":  "D:\\Workflows\\ProjectVault",
-    "installerPath":  "D:\\Workflows\\ProjectVault\\desktop\\src-tauri\\target\\release\\bundle\\nsis\\Project Vault_0.1.0_x64-setup.exe",
-    "installDir":  "C:\\Users\\admin\\AppData\\Local\\Programs\\ProjectVaultLocalUsageTest",
-    "fixtureRoot":  "D:\\Workflows\\ProjectVault\\release-validation\\local-usage-fixture",
-    "passed":  true,
-    "steps":  [
-                  {
-                      "name":  "installer_exists",
-                      "status":  "pass",
-                      "details":  {
-                                      "path":  "D:\\Workflows\\ProjectVault\\desktop\\src-tauri\\target\\release\\bundle\\nsis\\Project Vault_0.1.0_x64-setup.exe",
-                                      "sha256":  "0478EFE6C0E81D8F9B39F102E66642B129E30E06FE244D6757482AF0851772D8",
-                                      "size":  240129228
-                                  }
-                  },
-                  {
-                      "name":  "existing_local_database_backed_up",
-                      "status":  "pass",
-                      "details":  {
-                                      "databasePath":  "C:\\Users\\admin\\AppData\\Local\\ProjectVault\\database\\project_vault.db",
-                                      "existed":  true,
-                                      "backupPath":  "C:\\Users\\admin\\AppData\\Local\\ProjectVault\\database\\phase13-local-usage-backup\\project_vault_before_phase13_2_20260626_100922.db"
-                                  }
-                  },
-                  {
-                      "name":  "installer_silent_run",
-                      "status":  "pass",
-                      "details":  {
-                                      "args":  "/S /D=C:\\Users\\admin\\AppData\\Local\\Programs\\ProjectVaultLocalUsageTest",
-                                      "exitCode":  0
-                                  }
-                  },
-                  {
-                      "name":  "app_executable_found",
-                      "status":  "pass",
-                      "details":  {
-                                      "path":  "C:\\Users\\admin\\AppData\\Local\\Programs\\ProjectVaultLocalUsageTest\\project-vault.exe",
-                                      "size":  7661056
-                                  }
-                  },
-                  {
-                      "name":  "dedicated_fixture_created",
-                      "status":  "pass",
-                      "details":  {
-                                      "root":  "D:\\Workflows\\ProjectVault\\release-validation\\local-usage-fixture",
-                                      "projectDir":  "D:\\Workflows\\ProjectVault\\release-validation\\local-usage-fixture\\PV-V1-Local-Acceptance",
-                                      "projectId":  "7c3631fc-cd3b-4b57-9651-931d79f71715"
-                                  }
-                  },
-                  {
-                      "name":  "app_started",
-                      "status":  "pass",
-                      "details":  {
-                                      "processName":  "project-vault",
-                                      "processId":  21972
-                                  }
-                  },
-                  {
-                      "name":  "app_main_webview_window",
-                      "status":  "pass",
-                      "details":  {
-                                      "processId":  21972,
-                                      "processName":  "project-vault",
-                                      "mainWindowTitle":  "Project Vault",
-                                      "mainWindowHandle":  4852622
-                                  }
-                  },
-                  {
-                      "name":  "backend_health",
-                      "status":  "pass",
-                      "details":  {
-                                      "processId":  12516,
-                                      "processName":  "project-vault-backend",
-                                      "port":  55824,
-                                      "uri":  "http://127.0.0.1:55824/api/v1/health",
-                                      "health":  {
-                                                     "status":  "ok",
-                                                     "service":  "project-vault-backend",
-                                                     "database":  {
-                                                                      "path":  "C:\\Users\\admin\\AppData\\Local\\ProjectVault\\database\\project_vault.db",
-                                                                      "exists":  true
-                                                                  }
-                                                 }
-                                  }
-                  },
-                  {
-                      "name":  "frontend_render",
-                      "status":  "pass",
-                      "details":  {
-                                      "processId":  21972,
-                                      "port":  55825,
-                                      "uri":  "http://127.0.0.1:55825/",
-                                      "statusCode":  200,
-                                      "containsProjectVaultShell":  true,
-                                      "containsBackendPortInjection":  true
-                                  }
-                  },
-                  {
-                      "name":  "settings_root_path_saved",
-                      "status":  "pass",
-                      "details":  {
-                                      "before":  {
-                                                     "root_path":  "",
-                                                     "scan_interval":  60,
-                                                     "theme":  "system"
-                                                 },
-                                      "after":  {
-                                                    "root_path":  "D:\\Workflows\\ProjectVault\\release-validation\\local-usage-fixture",
-                                                    "scan_interval":  60,
-                                                    "theme":  "system"
-                                                }
-                                  }
-                  },
-                  {
-                      "name":  "project_candidate_discovered",
-                      "status":  "pass",
-                      "details":  {
-                                      "candidates":  [
-                                                         {
-                                                             "folder_name":  "PV-V1-Local-Acceptance",
-                                                             "absolute_path":  "D:\\Workflows\\ProjectVault\\release-validation\\local-usage-fixture\\PV-V1-Local-Acceptance",
-                                                             "created_at":  null,
-                                                             "estimated_files":  0
-                                                         }
-                                                     ],
-                                      "candidateCount":  1,
-                                      "fixtureProjectDir":  "D:\\Workflows\\ProjectVault\\release-validation\\local-usage-fixture\\PV-V1-Local-Acceptance"
-                                  }
-                  },
-                  {
-                      "name":  "project_initialized",
-                      "status":  "pass",
-                      "details":  {
-                                      "initialized_count":  1,
-                                      "project_ids":  [
-                                                          "7c3631fc-cd3b-4b57-9651-931d79f71715"
-                                                      ],
-                                      "skipped":  [
-
-                                                  ]
-                                  }
-                  },
-                  {
-                      "name":  "projects_list_contains_fixture",
-                      "status":  "pass",
-                      "details":  {
-                                      "total":  1,
-                                      "fixtureProjectId":  "7c3631fc-cd3b-4b57-9651-931d79f71715"
-                                  }
-                  },
-                  {
-                      "name":  "scanner_scan_fixture",
-                      "status":  "pass",
-                      "details":  {
-                                      "project_id":  "7c3631fc-cd3b-4b57-9651-931d79f71715",
-                                      "created_count":  6,
-                                      "updated_count":  0,
-                                      "deleted_count":  0,
-                                      "moved_count":  0,
-                                      "relocated":  false,
-                                      "duration_ms":  15
-                                  }
-                  },
-                  {
-                      "name":  "dashboard_metrics",
-                      "status":  "pass",
-                      "details":  {
-                                      "project_total":  1,
-                                      "cad_total":  2,
-                                      "material_total":  2
-                                  }
-                  },
-                  {
-                      "name":  "project_detail_overview",
-                      "status":  "pass",
-                      "details":  {
-                                      "id":  "7c3631fc-cd3b-4b57-9651-931d79f71715",
-                                      "name":  "PV-V1-Local-Acceptance",
-                                      "path":  "D:\\Workflows\\ProjectVault\\release-validation\\local-usage-fixture\\PV-V1-Local-Acceptance",
-                                      "type":  "",
-                                      "phase":  "",
-                                      "status":  "healthy",
-                                      "manager":  "",
-                                      "file_count":  6,
-                                      "cad_count":  2,
-                                      "material_count":  2,
-                                      "last_updated_at":  "2026-06-26T02:09:44.069089+00:00",
-                                      "summary":  null,
-                                      "tags":  [
-                                                   "local-usage",
-                                                   "phase13",
-                                                   "v1-final"
-                                               ]
-                                  }
-                  },
-                  {
-                      "name":  "project_detail_files",
-                      "status":  "pass",
-                      "details":  {
-                                      "total":  6
-                                  }
-                  },
-                  {
-                      "name":  "project_detail_drawings",
-                      "status":  "pass",
-                      "details":  {
-                                      "count":  2,
-                                      "sample":  [
-                                                     {
-                                                         "id":  "892bedae-b6dd-599f-a287-98c6ffe2d65f",
-                                                         "project_id":  "7c3631fc-cd3b-4b57-9651-931d79f71715",
-                                                         "file_name":  "Level-01_Plan_V2.dwg",
-                                                         "relative_path":  "01_Drawings/Level-01_Plan_V2.dwg",
-                                                         "dwg_category":  "PLAN",
-                                                         "version_group":  "level_01_plan",
-                                                         "version_number":  2,
-                                                         "is_current":  1,
-                                                         "last_modified":  "2026-06-26T02:09:41.561456+00:00"
-                                                     },
-                                                     {
-                                                         "id":  "7b6de1c6-6858-5c37-bfca-6725126c6bae",
-                                                         "project_id":  "7c3631fc-cd3b-4b57-9651-931d79f71715",
-                                                         "file_name":  "Level-01_Plan_V1.dwg",
-                                                         "relative_path":  "01_Drawings/Level-01_Plan_V1.dwg",
-                                                         "dwg_category":  "PLAN",
-                                                         "version_group":  "level_01_plan",
-                                                         "version_number":  1,
-                                                         "is_current":  1,
-                                                         "last_modified":  "2026-06-26T02:09:41.560456+00:00"
-                                                     }
-                                                 ]
-                                  }
-                  },
-                  {
-                      "name":  "project_detail_materials",
-                      "status":  "pass",
-                      "details":  {
-                                      "count":  2,
-                                      "sample":  [
-                                                     {
-                                                         "id":  "d032dc3e-24b0-5ca4-845a-0a26d29065a4",
-                                                         "project_id":  "7c3631fc-cd3b-4b57-9651-931d79f71715",
-                                                         "material_type":  "pdf",
-                                                         "file_name":  "Lighting-Spec.pdf",
-                                                         "relative_path":  "02_Materials/Lighting-Spec.pdf",
-                                                         "extension":  ".pdf",
-                                                         "size_bytes":  15,
-                                                         "last_modified":  "2026-06-26T02:09:41.562456+00:00"
-                                                     },
-                                                     {
-                                                         "id":  "5746daf5-3821-5c9b-ba4c-c5e460e8f80e",
-                                                         "project_id":  "7c3631fc-cd3b-4b57-9651-931d79f71715",
-                                                         "material_type":  "excel",
-                                                         "file_name":  "Finish-Schedule.xlsx",
-                                                         "relative_path":  "02_Materials/Finish-Schedule.xlsx",
-                                                         "extension":  ".xlsx",
-                                                         "size_bytes":  25,
-                                                         "last_modified":  "2026-06-26T02:09:41.561456+00:00"
-                                                     }
-                                                 ]
-                                  }
-                  },
-                  {
-                      "name":  "cad_center",
-                      "status":  "pass",
-                      "details":  {
-                                      "total":  2,
-                                      "sample":  [
-                                                     {
-                                                         "drawing_id":  "892bedae-b6dd-599f-a287-98c6ffe2d65f",
-                                                         "project_id":  "7c3631fc-cd3b-4b57-9651-931d79f71715",
-                                                         "project_name":  "PV-V1-Local-Acceptance",
-                                                         "file_name":  "Level-01_Plan_V2.dwg",
-                                                         "relative_path":  "01_Drawings/Level-01_Plan_V2.dwg",
-                                                         "dwg_category":  "PLAN",
-                                                         "version_group":  "level_01_plan",
-                                                         "version_number":  2,
-                                                         "last_modified":  "2026-06-26T02:09:41.561456+00:00"
-                                                     },
-                                                     {
-                                                         "drawing_id":  "7b6de1c6-6858-5c37-bfca-6725126c6bae",
-                                                         "project_id":  "7c3631fc-cd3b-4b57-9651-931d79f71715",
-                                                         "project_name":  "PV-V1-Local-Acceptance",
-                                                         "file_name":  "Level-01_Plan_V1.dwg",
-                                                         "relative_path":  "01_Drawings/Level-01_Plan_V1.dwg",
-                                                         "dwg_category":  "PLAN",
-                                                         "version_group":  "level_01_plan",
-                                                         "version_number":  1,
-                                                         "last_modified":  "2026-06-26T02:09:41.560456+00:00"
-                                                     }
-                                                 ]
-                                  }
-                  },
-                  {
-                      "name":  "search_ctrl_k_backend_path",
-                      "status":  "pass",
-                      "details":  {
-                                      "total":  1,
-                                      "sample":  [
-                                                     {
-                                                         "entity_id":  "7c3631fc-cd3b-4b57-9651-931d79f71715",
-                                                         "entity_type":  "project",
-                                                         "title":  "PV-V1-Local-Acceptance",
-                                                         "project_id":  "7c3631fc-cd3b-4b57-9651-931d79f71715",
-                                                         "highlighted_content":  "7c3631fc-cd3b-4b57-9651-931d79f71715 \u003cmark\u003ePV-V1-Local-Acceptance\u003c/mark\u003e healthy 18b1a0bef2a00e3327ad474c76d8d7b007efa09ed2de4503957e98ee8811ffc2 local...",
-                                                         "score":  -3.9113771840307807
-                                                     }
-                                                 ]
-                                  }
-                  },
-                  {
-                      "name":  "history_records",
-                      "status":  "pass",
-                      "details":  {
-                                      "total":  1,
-                                      "sample":  [
-                                                     {
-                                                         "id":  "3ef2d46c-0203-4cfd-b85f-5bf8ed6724d1",
-                                                         "project_id":  "7c3631fc-cd3b-4b57-9651-931d79f71715",
-                                                         "event_type":  "incremental_scan",
-                                                         "status":  "success",
-                                                         "message":  "created=6; updated=0; deleted=0; moved=0; relocated=False",
-                                                         "created_at":  "2026-06-26T02:09:44.069089+00:00",
-                                                         "duration_ms":  4,
-                                                         "scanner_version":  "phase4-full-scanner-v1",
-                                                         "affected_files":  6
-                                                     }
-                                                 ]
-                                  }
-                  },
-                  {
-                      "name":  "backup_entry_point",
-                      "status":  "pass",
-                      "details":  {
-                                      "name":  "project_vault_20260626_100944.db",
-                                      "size_bytes":  237568,
-                                      "retention_count":  10
-                                  }
-                  },
-                  {
-                      "name":  "restore_entry_point",
-                      "status":  "pass",
-                      "details":  {
-                                      "restored":  true,
-                                      "name":  "project_vault_20260626_100944.db"
-                                  }
-                  },
-                  {
-                      "name":  "database_path",
-                      "status":  "pass",
-                      "details":  {
-                                      "actual":  "C:\\Users\\admin\\AppData\\Local\\ProjectVault\\database\\project_vault.db",
-                                      "expectedRoot":  "C:\\Users\\admin\\AppData\\Local\\ProjectVault\\database",
-                                      "exists":  true
-                                  }
-                  },
-                  {
-                      "name":  "backend_exit_cleanup",
-                      "status":  "pass",
-                      "details":  {
-                                      "checkedBackendProcessId":  12516
-                                  }
-                  },
-                  {
-                      "name":  "previous_local_database_restored",
-                      "status":  "pass",
-                      "details":  {
-                                      "restored":  true,
-                                      "databasePath":  "C:\\Users\\admin\\AppData\\Local\\ProjectVault\\database\\project_vault.db",
-                                      "backupPath":  "C:\\Users\\admin\\AppData\\Local\\ProjectVault\\database\\phase13-local-usage-backup\\project_vault_before_phase13_2_20260626_100922.db"
-                                  }
-                  }
-              ],
-    "finishedAt":  "2026-06-26T10:09:49.1983352+08:00"
+{
+  "startedAt": "2026-07-07T09:28:55.5942931+08:00",
+  "projectRoot": "D:\\Workflows\\ProjectVault",
+  "installerPath": "D:\\Workflows\\ProjectVault\\desktop\\src-tauri\\target\\release\\bundle\\nsis\\Project Vault_0.1.0_x64-setup.exe",
+  "installDir": "C:\\Users\\admin\\AppData\\Local\\Programs\\ProjectVaultLocalUsageTest",
+  "fixtureRoot": "D:\\Workflows\\ProjectVault\\release-validation\\local-usage-fixture",
+  "passed": true,
+  "steps": [
+    {
+      "name": "installer_exists",
+      "status": "pass",
+      "details": {
+        "path": "D:\\Workflows\\ProjectVault\\desktop\\src-tauri\\target\\release\\bundle\\nsis\\Project Vault_0.1.0_x64-setup.exe",
+        "sha256": "A4451C69D06821AAFAB6E1FFE4D43E04DFC26D423C343D13FA8839551F3E1B11",
+        "size": 247308252
+      }
+    },
+    {
+      "name": "existing_local_database_backed_up",
+      "status": "pass",
+      "details": {
+        "databasePath": "C:\\Users\\admin\\AppData\\Local\\ProjectVault\\database\\project_vault.db",
+        "existed": true,
+        "backupPath": "C:\\Users\\admin\\AppData\\Local\\ProjectVault\\database\\phase13-local-usage-backup\\project_vault_before_phase13_2_20260707_092856.db"
+      }
+    },
+    {
+      "name": "installer_silent_run",
+      "status": "pass",
+      "details": {
+        "exitCode": 0,
+        "args": "/S /D=C:\\Users\\admin\\AppData\\Local\\Programs\\ProjectVaultLocalUsageTest"
+      }
+    },
+    {
+      "name": "app_executable_found",
+      "status": "pass",
+      "details": {
+        "path": "C:\\Users\\admin\\AppData\\Local\\Programs\\ProjectVaultLocalUsageTest\\project-vault.exe",
+        "size": 8499200
+      }
+    },
+    {
+      "name": "dedicated_fixture_created",
+      "status": "pass",
+      "details": {
+        "root": "D:\\Workflows\\ProjectVault\\release-validation\\local-usage-fixture",
+        "projectDir": "D:\\Workflows\\ProjectVault\\release-validation\\local-usage-fixture\\PV-V1-Local-Acceptance",
+        "projectId": "7706f17a-13d4-425e-9544-b7967e523259"
+      }
+    },
+    {
+      "name": "app_started",
+      "status": "pass",
+      "details": {
+        "processName": "project-vault",
+        "processId": 23072
+      }
+    },
+    {
+      "name": "app_main_webview_window",
+      "status": "pass",
+      "details": {
+        "processId": 23072,
+        "processName": "project-vault",
+        "mainWindowTitle": "Project Vault",
+        "mainWindowHandle": {
+          "value": 27332916
+        }
+      }
+    },
+    {
+      "name": "backend_health",
+      "status": "pass",
+      "details": {
+        "processId": 24660,
+        "processName": "project-vault-backend",
+        "port": 58483,
+        "uri": "http://127.0.0.1:58483/api/v1/health",
+        "health": {
+          "status": "ok",
+          "service": "project-vault-backend",
+          "database": {
+            "path": "C:\\Users\\admin\\AppData\\Local\\ProjectVault\\database\\project_vault.db",
+            "exists": true
+          }
+        }
+      }
+    },
+    {
+      "name": "frontend_render",
+      "status": "pass",
+      "details": {
+        "processId": 23072,
+        "port": 58484,
+        "uri": "http://127.0.0.1:58484/",
+        "statusCode": 200,
+        "containsProjectVaultShell": true,
+        "containsBackendPortInjection": true
+      }
+    },
+    {
+      "name": "settings_root_path_saved",
+      "status": "pass",
+      "details": {
+        "before": {
+          "root_path": "",
+          "scan_interval": 60,
+          "auto_scan": true,
+          "backup_retention": 10,
+          "theme": "system"
+        },
+        "after": {
+          "root_path": "D:\\Workflows\\ProjectVault\\release-validation\\local-usage-fixture",
+          "scan_interval": 60,
+          "auto_scan": true,
+          "backup_retention": 10,
+          "theme": "system"
+        }
+      }
+    },
+    {
+      "name": "project_candidate_discovered",
+      "status": "pass",
+      "details": {
+        "candidateCount": 1,
+        "fixtureProjectDir": "D:\\Workflows\\ProjectVault\\release-validation\\local-usage-fixture\\PV-V1-Local-Acceptance",
+        "candidates": [
+          {
+            "folder_name": "PV-V1-Local-Acceptance",
+            "absolute_path": "D:\\Workflows\\ProjectVault\\release-validation\\local-usage-fixture\\PV-V1-Local-Acceptance",
+            "created_at": null,
+            "estimated_files": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "project_initialized",
+      "status": "pass",
+      "details": {
+        "initialized_count": 1,
+        "project_ids": [
+          "7706f17a-13d4-425e-9544-b7967e523259"
+        ],
+        "skipped": []
+      }
+    },
+    {
+      "name": "projects_list_contains_fixture",
+      "status": "pass",
+      "details": {
+        "total": 1,
+        "fixtureProjectId": "7706f17a-13d4-425e-9544-b7967e523259"
+      }
+    },
+    {
+      "name": "scanner_scan_fixture",
+      "status": "pass",
+      "details": {
+        "project_id": "7706f17a-13d4-425e-9544-b7967e523259",
+        "created_count": 6,
+        "updated_count": 0,
+        "deleted_count": 0,
+        "moved_count": 0,
+        "relocated": false,
+        "duration_ms": 17
+      }
+    },
+    {
+      "name": "dashboard_metrics",
+      "status": "pass",
+      "details": {
+        "project_total": 1,
+        "cad_total": 2,
+        "material_total": 2
+      }
+    },
+    {
+      "name": "project_detail_overview",
+      "status": "pass",
+      "details": {
+        "id": "7706f17a-13d4-425e-9544-b7967e523259",
+        "name": "PV-V1-Local-Acceptance",
+        "path": "D:\\Workflows\\ProjectVault\\release-validation\\local-usage-fixture\\PV-V1-Local-Acceptance",
+        "type": "",
+        "phase": "",
+        "status": "healthy",
+        "manager": "",
+        "file_count": 6,
+        "cad_count": 2,
+        "material_count": 2,
+        "last_updated_at": "2026-07-07T09:29:23.124246+08:00",
+        "summary": null,
+        "tags": [
+          "local-usage",
+          "phase13",
+          "v1-final"
+        ]
+      }
+    },
+    {
+      "name": "project_detail_files",
+      "status": "pass",
+      "details": {
+        "total": 6
+      }
+    },
+    {
+      "name": "project_detail_drawings",
+      "status": "pass",
+      "details": {
+        "count": 2,
+        "sample": [
+          {
+            "id": "3c14ba2a-19b9-57b2-8d29-c19b79b45c78",
+            "project_id": "7706f17a-13d4-425e-9544-b7967e523259",
+            "file_name": "Level-01_Plan_V2.dwg",
+            "relative_path": "01_Drawings/Level-01_Plan_V2.dwg",
+            "dwg_category": "PLAN",
+            "version_group": "level_01_plan",
+            "version_number": 2,
+            "is_current": 1,
+            "last_modified": "2026-07-07T09:29:19.043527+08:00"
+          },
+          {
+            "id": "1ef70ef2-039d-53e1-80ee-bf38643e57a6",
+            "project_id": "7706f17a-13d4-425e-9544-b7967e523259",
+            "file_name": "Level-01_Plan_V1.dwg",
+            "relative_path": "01_Drawings/Level-01_Plan_V1.dwg",
+            "dwg_category": "PLAN",
+            "version_group": "level_01_plan",
+            "version_number": 1,
+            "is_current": 1,
+            "last_modified": "2026-07-07T09:29:19.042527+08:00"
+          }
+        ]
+      }
+    },
+    {
+      "name": "project_detail_materials",
+      "status": "pass",
+      "details": {
+        "count": 2,
+        "sample": [
+          {
+            "id": "166a0679-9dbd-5d4d-b871-301670f616ef",
+            "project_id": "7706f17a-13d4-425e-9544-b7967e523259",
+            "material_type": "pdf",
+            "file_name": "Lighting-Spec.pdf",
+            "relative_path": "02_Materials/Lighting-Spec.pdf",
+            "extension": ".pdf",
+            "size_bytes": 15,
+            "last_modified": "2026-07-07T09:29:19.045527+08:00"
+          },
+          {
+            "id": "cdc01bbf-e00c-5e2e-867b-175c0cd1674f",
+            "project_id": "7706f17a-13d4-425e-9544-b7967e523259",
+            "material_type": "excel",
+            "file_name": "Finish-Schedule.xlsx",
+            "relative_path": "02_Materials/Finish-Schedule.xlsx",
+            "extension": ".xlsx",
+            "size_bytes": 25,
+            "last_modified": "2026-07-07T09:29:19.044527+08:00"
+          }
+        ]
+      }
+    },
+    {
+      "name": "cad_center",
+      "status": "pass",
+      "details": {
+        "total": 2,
+        "sample": [
+          {
+            "drawing_id": "3c14ba2a-19b9-57b2-8d29-c19b79b45c78",
+            "project_id": "7706f17a-13d4-425e-9544-b7967e523259",
+            "project_name": "PV-V1-Local-Acceptance",
+            "file_name": "Level-01_Plan_V2.dwg",
+            "relative_path": "01_Drawings/Level-01_Plan_V2.dwg",
+            "dwg_category": "PLAN",
+            "version_group": "level_01_plan",
+            "version_number": 2,
+            "last_modified": "2026-07-07T09:29:19.043527+08:00"
+          },
+          {
+            "drawing_id": "1ef70ef2-039d-53e1-80ee-bf38643e57a6",
+            "project_id": "7706f17a-13d4-425e-9544-b7967e523259",
+            "project_name": "PV-V1-Local-Acceptance",
+            "file_name": "Level-01_Plan_V1.dwg",
+            "relative_path": "01_Drawings/Level-01_Plan_V1.dwg",
+            "dwg_category": "PLAN",
+            "version_group": "level_01_plan",
+            "version_number": 1,
+            "last_modified": "2026-07-07T09:29:19.042527+08:00"
+          }
+        ]
+      }
+    },
+    {
+      "name": "search_ctrl_k_backend_path",
+      "status": "pass",
+      "details": {
+        "total": 1,
+        "sample": [
+          {
+            "entity_id": "7706f17a-13d4-425e-9544-b7967e523259",
+            "entity_type": "project",
+            "title": "PV-V1-Local-Acceptance",
+            "project_id": "7706f17a-13d4-425e-9544-b7967e523259",
+            "highlighted_content": "7706f17a-13d4-425e-9544-b7967e523259 <mark>PV-V1-Local-Acceptance</mark> healthy 82c661486b2e8d65cc5fffc7d63daf314cd23c6a2b5dbb5cc65a7b1e6db17599 local...",
+            "score": -3.9113771840307807
+          }
+        ]
+      }
+    },
+    {
+      "name": "history_records",
+      "status": "pass",
+      "details": {
+        "total": 1,
+        "sample": [
+          {
+            "id": "16ebdde4-1302-429e-9198-3226db3d55c2",
+            "project_id": "7706f17a-13d4-425e-9544-b7967e523259",
+            "event_type": "incremental_scan",
+            "status": "success",
+            "message": "created=6; updated=0; deleted=0; moved=0; relocated=False",
+            "created_at": "2026-07-07T09:29:23.124246+08:00",
+            "duration_ms": 4,
+            "scanner_version": "phase4-full-scanner-v1",
+            "affected_files": 6
+          }
+        ]
+      }
+    },
+    {
+      "name": "backup_entry_point",
+      "status": "pass",
+      "details": {
+        "name": "project_vault_20260707_092923.db",
+        "size_bytes": 237568,
+        "retention_count": 10
+      }
+    },
+    {
+      "name": "restore_entry_point",
+      "status": "pass",
+      "details": {
+        "restored": true,
+        "name": "project_vault_20260707_092923.db"
+      }
+    },
+    {
+      "name": "database_path",
+      "status": "pass",
+      "details": {
+        "expectedRoot": "C:\\Users\\admin\\AppData\\Local\\ProjectVault\\database",
+        "actual": "C:\\Users\\admin\\AppData\\Local\\ProjectVault\\database\\project_vault.db",
+        "exists": true
+      }
+    },
+    {
+      "name": "backend_exit_cleanup",
+      "status": "pass",
+      "details": {
+        "checkedBackendProcessId": 24660
+      }
+    },
+    {
+      "name": "previous_local_database_restored",
+      "status": "pass",
+      "details": {
+        "restored": true,
+        "databasePath": "C:\\Users\\admin\\AppData\\Local\\ProjectVault\\database\\project_vault.db",
+        "backupPath": "C:\\Users\\admin\\AppData\\Local\\ProjectVault\\database\\phase13-local-usage-backup\\project_vault_before_phase13_2_20260707_092856.db"
+      }
+    }
+  ],
+  "finishedAt": "2026-07-07T09:29:28.2585615+08:00"
 }

@@ -40,3 +40,8 @@ desktop/src-tauri/binaries/webview2-fixed-runtime/
 # Planning and validation runtime artifacts
 *.bak.*
 release-validation/*fixture*/
+release-validation/**/*.db
+release-validation/**/backups/
+release-validation/**/root/
+release-validation/**/fixture-root/
+release-validation/**/paths.txt

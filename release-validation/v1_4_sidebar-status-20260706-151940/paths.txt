@@ -1,3 +1,0 @@
-fixture=D:\Workflows\ProjectVault\release-validation\v1_4_sidebar-status-20260706-151940
-root=D:\Workflows\ProjectVault\release-validation\v1_4_sidebar-status-20260706-151940\root
-db=D:\Workflows\ProjectVault\release-validation\v1_4_sidebar-status-20260706-151940\project_vault.db

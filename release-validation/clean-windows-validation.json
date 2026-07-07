@@ -1,5 +1,5 @@
-﻿{
-    "startedAt":  "2026-06-26T09:41:27.3556800+08:00",
+{
+    "startedAt":  "2026-07-07T10:01:47.3100415+08:00",
     "installerPath":  "C:\\Users\\WDAGUtilityAccount\\Desktop\\nsis\\Project Vault_0.1.0_x64-setup.exe",
     "installDir":  "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Programs\\ProjectVaultCleanTest",
     "reportDir":  "C:\\Users\\WDAGUtilityAccount\\Desktop\\release-validation",
@@ -10,7 +10,7 @@
                       "status":  "pass",
                       "details":  {
                                       "path":  "C:\\Users\\WDAGUtilityAccount\\Desktop\\nsis\\Project Vault_0.1.0_x64-setup.exe",
-                                      "size":  240129228
+                                      "size":  247308252
                                   }
                   },
                   {
@@ -67,7 +67,7 @@
                       "status":  "pass",
                       "details":  {
                                       "path":  "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Programs\\ProjectVaultCleanTest\\project-vault.exe",
-                                      "size":  7661056
+                                      "size":  8499200
                                   }
                   },
                   {
@@ -75,24 +75,24 @@
                       "status":  "pass",
                       "details":  {
                                       "processName":  "project-vault",
-                                      "processId":  4880
+                                      "processId":  4156
                                   }
                   },
                   {
                       "name":  "app_main_webview_window",
                       "status":  "pass",
                       "details":  {
-                                      "processId":  4880,
+                                      "processId":  4156,
                                       "processName":  "project-vault",
                                       "mainWindowTitle":  "Project Vault",
-                                      "mainWindowHandle":  131690
+                                      "mainWindowHandle":  525052
                                   }
                   },
                   {
                       "name":  "webview2_runtime_error_dialog_absent",
                       "status":  "pass",
                       "details":  {
-                                      "checkedProcessId":  4880,
+                                      "checkedProcessId":  4156,
                                       "matchingDialogs":  0
                                   }
                   },
@@ -100,10 +100,10 @@
                       "name":  "backend_health",
                       "status":  "pass",
                       "details":  {
-                                      "processId":  3792,
+                                      "processId":  4196,
                                       "processName":  "project-vault-backend",
-                                      "port":  49823,
-                                      "uri":  "http://127.0.0.1:49823/api/v1/health",
+                                      "port":  49788,
+                                      "uri":  "http://127.0.0.1:49788/api/v1/health",
                                       "health":  {
                                                      "status":  "ok",
                                                      "service":  "project-vault-backend",
@@ -118,9 +118,9 @@
                       "name":  "frontend_render",
                       "status":  "pass",
                       "details":  {
-                                      "processId":  4880,
-                                      "port":  49824,
-                                      "uri":  "http://127.0.0.1:49824/",
+                                      "processId":  4156,
+                                      "port":  49789,
+                                      "uri":  "http://127.0.0.1:49789/",
                                       "statusCode":  200,
                                       "containsProjectVaultShell":  true,
                                       "containsBackendPortInjection":  true
@@ -140,9 +140,9 @@
                       "status":  "pass",
                       "details":  {
                                       "closeMainWindow":  true,
-                                      "checkedBackendProcessId":  3792
+                                      "checkedBackendProcessId":  4196
                                   }
                   }
               ],
-    "finishedAt":  "2026-06-26T09:41:55.2306963+08:00"
+    "finishedAt":  "2026-07-07T10:02:22.7787962+08:00"
 }

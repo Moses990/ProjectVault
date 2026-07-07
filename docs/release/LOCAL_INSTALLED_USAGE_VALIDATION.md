@@ -2,7 +2,7 @@
 
 Status: passed.
 
-Last checked: 2026-06-26 10:09.
+Last checked: 2026-07-07 09:29.
 
 ## Goal
 
@@ -21,8 +21,8 @@ D:\Workflows\ProjectVault\release-validation\local-installed-usage-validation.js
 Summary:
 
 - `passed`: `true`
-- Report SHA256: `1B31EC6AC8B87563094072DE496D64DB465783580A0030D06DB48C3DAE6157AE`
-- Installer SHA256: `0478EFE6C0E81D8F9B39F102E66642B129E30E06FE244D6757482AF0851772D8`
+- Report SHA256: `DE61122DC565B9D59AA08B2A2993B3CEF70EAF74D1B807E046D484494D1382DF`
+- Installer SHA256: `A4451C69D06821AAFAB6E1FFE4D43E04DFC26D423C343D13FA8839551F3E1B11`
 - Installed app: `C:\Users\admin\AppData\Local\Programs\ProjectVaultLocalUsageTest\project-vault.exe`
 - Fixture root: `D:\Workflows\ProjectVault\release-validation\local-usage-fixture`
 - SQLite path: `C:\Users\admin\AppData\Local\ProjectVault\database\project_vault.db`

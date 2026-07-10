@@ -21,6 +21,9 @@ EXPECTED_TABLES = {
     "favorites",
     "schema_migrations",
     "fts_global",
+    "knowledge_sources",
+    "knowledge_drafts",
+    "knowledge_history",
 }
 
 
@@ -49,7 +52,7 @@ class DatabaseMigrationTests(unittest.TestCase):
             with closing(sqlite3.connect(db_path)) as conn:
                 existing_tables = table_names(conn)
                 self.assertTrue(EXPECTED_TABLES.issubset(existing_tables))
-                self.assertEqual(conn.execute("PRAGMA user_version").fetchone()[0], 1)
+                self.assertEqual(conn.execute("PRAGMA user_version").fetchone()[0], 2)
                 self.assertEqual(
                     conn.execute("PRAGMA journal_mode").fetchone()[0].lower(),
                     "wal",
@@ -67,7 +70,7 @@ class DatabaseMigrationTests(unittest.TestCase):
                 rows = conn.execute(
                     "SELECT version FROM schema_migrations ORDER BY version"
                 ).fetchall()
-                self.assertEqual([row[0] for row in rows], ["1"])
+                self.assertEqual([row[0] for row in rows], ["1", "2"])
 
     def test_files_use_project_relative_path_as_unique_identity(self) -> None:
         with TemporaryDirectory() as temp_dir:

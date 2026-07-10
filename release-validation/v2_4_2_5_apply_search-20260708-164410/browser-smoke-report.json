@@ -1,0 +1,23 @@
+{
+  "browser": "Chrome",
+  "url": "http://127.0.0.1:3007/project-detail/?id=v2-apply-search-e2e&tab=ai&v=v245final",
+  "hasAppliedMessage": true,
+  "metrics": {
+    "project_total": 1,
+    "cad_total": 1,
+    "material_total": 2
+  },
+  "searchTypes": [
+    "knowledge"
+  ],
+  "approvedSummary": "handover checklist summary core_needs: customer route control special_reqs: night work risks: long lead item lessons: freeze samples early tags: handover fixture name,value fixture,warm",
+  "summaryContainsProjectJson": false,
+  "draftStatus": null,
+  "logs": [
+    {
+      "level": "dialog",
+      "text": "确认应用草稿并写入 project.json？系统会先创建备份。"
+    }
+  ],
+  "screenshotPath": "D:\\Workflows\\ProjectVault\\release-validation\\v2_4_2_5_apply_search-20260708-164410\\v2_4_2_5_smoke.png"
+}

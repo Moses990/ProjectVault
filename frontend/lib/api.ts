@@ -96,6 +96,64 @@ export type AIMetadata = {
   lessons: string[];
 };
 
+export type KnowledgePayload = AIMetadata & {
+  tags: string[];
+  evidence: Array<Record<string, unknown>>;
+};
+
+export type KnowledgeSource = {
+  id: string;
+  file_id: string;
+  relative_path: string;
+  extractor: string;
+  text_excerpt: string;
+  text_length: number;
+  status: "ready" | "failed" | string;
+  error_message: string | null;
+  extracted_at: string;
+};
+
+export type KnowledgeDraft = {
+  id: string;
+  draft: KnowledgePayload;
+  provider_name: string | null;
+  model_name: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ProjectKnowledge = {
+  project_id: string;
+  knowledge: KnowledgePayload;
+  status: string;
+  draft: KnowledgeDraft | null;
+  updated_at: string | null;
+};
+
+export type KnowledgeExtractionResult = {
+  project_id: string;
+  processed: number;
+  ready: number;
+  failed: number;
+  sources: KnowledgeSource[];
+};
+
+export type KnowledgeDraftResult = {
+  draft_id: string;
+  status: string;
+  draft: KnowledgePayload;
+  provider_name?: string | null;
+  model_name?: string | null;
+};
+
+export type KnowledgeApplyResult = {
+  applied: boolean;
+  draft_id: string;
+  project_json_backup: string;
+  updated_fields: string[];
+};
+
 export type ProjectFile = {
   id: string;
   file_name: string;
@@ -280,7 +338,22 @@ export const api = {
   },
   projectOverview: (id: string) => request<ProjectOverview>(`/projects/${id}/overview`),
   projectAIMetadata: (id: string) => request<AIMetadata>(`/projects/${id}/ai-metadata`),
-  analyzeProject: (id: string) => request<AIMetadata & { provider: string; model: string }>(`/projects/${id}/ai-analyze`, { method: "POST" }),
+  projectKnowledge: (id: string) => request<ProjectKnowledge>(`/projects/${id}/knowledge`),
+  extractKnowledgeText: (id: string, fileIds: string[], limit = 20) =>
+    request<KnowledgeExtractionResult>(`/projects/${id}/knowledge/extract-text`, {
+      method: "POST",
+      body: JSON.stringify({ file_ids: fileIds, limit }),
+    }),
+  createKnowledgeDraft: (id: string, sourceIds: string[], mode: "manual" | "ai" = "manual") =>
+    request<KnowledgeDraftResult>(`/projects/${id}/knowledge/draft`, {
+      method: "POST",
+      body: JSON.stringify({ source_ids: sourceIds, mode }),
+    }),
+  applyKnowledgeDraft: (id: string, draftId: string, fields: string[]) =>
+    request<KnowledgeApplyResult>(`/projects/${id}/knowledge/apply`, {
+      method: "POST",
+      body: JSON.stringify({ draft_id: draftId, fields, confirm: true }),
+    }),
   toggleFavorite: (id: string, isFavorite: boolean) =>
     request<{ id: string; is_favorite: boolean }>(`/projects/${id}/favorite`, {
       method: "POST",

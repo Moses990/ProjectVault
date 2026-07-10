@@ -272,6 +272,42 @@ class IncrementalScannerTests(unittest.TestCase):
                 any(item.title == "fast-path-spec.pdf" for item in search("fast-path-spec", db_path=db_path))
             )
 
+    def test_incremental_scan_syncs_project_json_knowledge_and_search(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            db_path = root / "project_vault.db"
+            initialize_database(db_path)
+            project_dir = self.create_project(root)
+            scan_project(project_dir, db_path=db_path)
+
+            project_json = project_dir / "project.json"
+            data = json.loads(project_json.read_text(encoding="utf-8"))
+            data["ai"]["summary"] = "new approved circulation summary"
+            data["tags"] = ["wayfinding"]
+            project_json.write_text(
+                json.dumps(data, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+
+            scan_project_incremental(
+                project_dir,
+                db_path=db_path,
+                changed_paths=[project_json],
+            )
+
+            with closing(sqlite3.connect(db_path)) as conn:
+                summary = conn.execute(
+                    "SELECT summary FROM ai_metadata WHERE project_id = 'project-alpha'",
+                ).fetchone()[0]
+                tags = conn.execute(
+                    "SELECT tag_name FROM project_tags WHERE project_id = 'project-alpha'",
+                ).fetchall()
+            self.assertEqual(summary, "new approved circulation summary")
+            self.assertEqual(tags, [("wayfinding",)])
+            self.assertTrue(
+                any(item.entity_type == "knowledge" for item in search("circulation", category="knowledge", db_path=db_path))
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

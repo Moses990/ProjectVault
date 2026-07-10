@@ -13,6 +13,8 @@ CATEGORY_ALIASES = {
     "drawings": "cad",
     "material": "material",
     "materials": "material",
+    "knowledge": "knowledge",
+    "knowledges": "knowledge",
 }
 
 

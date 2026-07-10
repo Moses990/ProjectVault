@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Iterator
 
 from app.core.config import get_settings
-from app.db.schema import CURRENT_SCHEMA_VERSION, SCHEMA_V1_STATEMENTS
+from app.db.schema import CURRENT_SCHEMA_VERSION, SCHEMA_V1_STATEMENTS, SCHEMA_V2_STATEMENTS
 
 
 def get_database_path() -> Path:
@@ -68,6 +68,25 @@ def apply_v1_schema(conn: sqlite3.Connection) -> None:
         INSERT OR REPLACE INTO app_metadata (key, value)
         VALUES ('schema_version', ?)
         """,
+        ("1",),
+    )
+    set_user_version(conn, 1)
+
+
+def apply_v2_schema(conn: sqlite3.Connection) -> None:
+    for statement in SCHEMA_V2_STATEMENTS:
+        conn.execute(statement)
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO schema_migrations (version)
+        VALUES ('2')
+        """
+    )
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO app_metadata (key, value)
+        VALUES ('schema_version', ?)
+        """,
         (str(CURRENT_SCHEMA_VERSION),),
     )
     set_user_version(conn, CURRENT_SCHEMA_VERSION)
@@ -77,9 +96,15 @@ def migrate(conn: sqlite3.Connection) -> None:
     version = get_user_version(conn)
     if version == 0:
         apply_v1_schema(conn)
+        apply_v2_schema(conn)
+        return
+    if version == 1:
+        apply_v1_schema(conn)
+        apply_v2_schema(conn)
         return
     if version == CURRENT_SCHEMA_VERSION:
         apply_v1_schema(conn)
+        apply_v2_schema(conn)
         return
     if version > CURRENT_SCHEMA_VERSION:
         raise RuntimeError(

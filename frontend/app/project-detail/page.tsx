@@ -78,7 +78,7 @@ function ProjectDetailContent() {
     { key: "files", label: "文件", count: overview?.file_count },
     { key: "drawings", label: "图纸", count: overview?.cad_count },
     { key: "materials", label: "材料", count: overview?.material_count },
-    { key: "ai", label: "AI 元数据" },
+    { key: "ai", label: "项目知识" },
     { key: "history", label: "历史" },
   ];
 

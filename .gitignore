@@ -45,3 +45,9 @@ release-validation/**/backups/
 release-validation/**/root/
 release-validation/**/fixture-root/
 release-validation/**/paths.txt
+release-validation/**/*.pid
+release-validation/**/*.log
+release-validation/**/chrome-profile-*/
+release-validation/**/edge-profile-*/
+release-validation/**/chrome-profile/
+release-validation/**/edge-profile/

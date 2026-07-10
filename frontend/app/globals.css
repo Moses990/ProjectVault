@@ -1582,6 +1582,84 @@ input, select, textarea { font: inherit; }
   color: var(--warn);
 }
 
+.knowledge-workspace {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-subtle);
+  display: grid;
+  gap: 12px;
+}
+
+.knowledge-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.knowledge-help,
+.knowledge-source-excerpt {
+  color: var(--text-dim);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.knowledge-button-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.knowledge-status {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  padding: 9px 11px;
+  font-size: 12px;
+}
+
+.knowledge-source-list {
+  display: grid;
+  gap: 8px;
+}
+
+.knowledge-source,
+.knowledge-draft {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-elev-1);
+  padding: 10px 12px;
+}
+
+.knowledge-source.failed {
+  border-color: rgba(255, 191, 102, 0.26);
+  background: var(--warn-bg);
+}
+
+.knowledge-source-path {
+  color: var(--text);
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 12px;
+  margin-bottom: 4px;
+  overflow-wrap: anywhere;
+}
+
+.knowledge-draft {
+  display: grid;
+  gap: 10px;
+}
+
+.knowledge-field-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 8px 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
 .inline-error {
   margin-top: 12px;
   border: 1px solid rgba(255, 107, 107, 0.28);

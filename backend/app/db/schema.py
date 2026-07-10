@@ -1,4 +1,4 @@
-CURRENT_SCHEMA_VERSION = 1
+CURRENT_SCHEMA_VERSION = 2
 
 SCHEMA_V1_STATEMENTS = [
     """
@@ -177,4 +177,56 @@ SCHEMA_V1_STATEMENTS = [
         project_id
     );
     """,
+]
+
+SCHEMA_V2_STATEMENTS = [
+    """
+    CREATE TABLE IF NOT EXISTS knowledge_sources (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        file_id TEXT NOT NULL,
+        relative_path TEXT NOT NULL,
+        extractor TEXT NOT NULL,
+        text_hash TEXT NOT NULL,
+        text_excerpt TEXT,
+        text_length INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'ready',
+        error_message TEXT,
+        extracted_at TEXT NOT NULL,
+        FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
+        FOREIGN KEY(file_id) REFERENCES files(id) ON DELETE CASCADE,
+        UNIQUE(project_id, file_id)
+    );
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_knowledge_sources_project ON knowledge_sources(project_id);",
+    "CREATE INDEX IF NOT EXISTS idx_knowledge_sources_file ON knowledge_sources(file_id);",
+    """
+    CREATE TABLE IF NOT EXISTS knowledge_drafts (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        draft_json TEXT NOT NULL,
+        provider_name TEXT,
+        model_name TEXT,
+        status TEXT NOT NULL DEFAULT 'draft',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+    );
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_knowledge_drafts_project ON knowledge_drafts(project_id);",
+    "CREATE INDEX IF NOT EXISTS idx_knowledge_drafts_status ON knowledge_drafts(status);",
+    """
+    CREATE TABLE IF NOT EXISTS knowledge_history (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        status TEXT NOT NULL,
+        message TEXT,
+        metadata_json TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+    );
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_knowledge_history_project ON knowledge_history(project_id);",
+    "CREATE INDEX IF NOT EXISTS idx_knowledge_history_created ON knowledge_history(created_at);",
 ]

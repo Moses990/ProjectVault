@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -11,6 +12,21 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 class Phase12SidecarPackagingTests(unittest.TestCase):
+    def test_v2_beta_version_is_consistent_across_runtime_surfaces(self):
+        expected = "2.0.0-beta.1"
+        frontend_package = json.loads((PROJECT_ROOT / "frontend" / "package.json").read_text(encoding="utf-8"))
+        desktop_package = json.loads((PROJECT_ROOT / "desktop" / "package.json").read_text(encoding="utf-8"))
+        tauri_config = json.loads((PROJECT_ROOT / "desktop" / "src-tauri" / "tauri.conf.json").read_text(encoding="utf-8"))
+        cargo = tomllib.loads((PROJECT_ROOT / "desktop" / "src-tauri" / "Cargo.toml").read_text(encoding="utf-8"))
+        backend_main = (PROJECT_ROOT / "backend" / "app" / "main.py").read_text(encoding="utf-8")
+
+        self.assertEqual(frontend_package["version"], expected)
+        self.assertEqual(desktop_package["version"], expected)
+        self.assertEqual(tauri_config["version"], expected)
+        self.assertEqual(cargo["package"]["version"], expected)
+        self.assertIn(f'version="{expected}"', backend_main)
+        self.assertIn(f"Project Vault_{expected}_x64-setup.exe", (PROJECT_ROOT / "scripts" / "ProjectVaultCleanWindows.wsb").read_text(encoding="utf-8"))
+
     def test_release_build_script_declares_pyinstaller_sidecar_output(self):
         script = PROJECT_ROOT / "scripts" / "build_backend_sidecar.ps1"
 
@@ -22,6 +38,16 @@ class Phase12SidecarPackagingTests(unittest.TestCase):
         self.assertIn("desktop", content)
         self.assertIn("src-tauri", content)
         self.assertIn("binaries", content)
+        self.assertIn("--hidden-import app.api.knowledge", content)
+
+    def test_desktop_build_rebuilds_frontend_and_sidecar(self):
+        package_json = PROJECT_ROOT / "desktop" / "package.json"
+        scripts = json.loads(package_json.read_text(encoding="utf-8"))["scripts"]
+
+        self.assertIn("npm run build:frontend", scripts["prebuild"])
+        self.assertIn("npm run build:sidecar", scripts["prebuild"])
+        self.assertIn("../frontend", scripts["build:frontend"])
+        self.assertIn("build_backend_sidecar.ps1", scripts["build:sidecar"])
 
     def test_tauri_bundle_declares_backend_external_bin(self):
         config_path = PROJECT_ROOT / "desktop" / "src-tauri" / "tauri.conf.json"
@@ -105,6 +131,9 @@ class Phase12SidecarPackagingTests(unittest.TestCase):
         self.assertIn("frontend_render", content)
         self.assertIn("app_main_webview_window", content)
         self.assertIn("MainWindowTitle -eq \"Project Vault\"", content)
+        self.assertIn("Test-PackagedKnowledgeRoute", content)
+        self.assertIn("packaged_knowledge_route", content)
+        self.assertIn('"/api/v1/projects/{project_id}/knowledge"', content)
 
     def test_clean_windows_validation_checks_webview2_runtime_after_install(self):
         script = PROJECT_ROOT / "scripts" / "verify_clean_windows_release.ps1"
@@ -119,12 +148,30 @@ class Phase12SidecarPackagingTests(unittest.TestCase):
         self.assertIn("Wait-ForBackendExit -ProcessId $healthResult.processId", content)
         self.assertIn("checkedBackendProcessId", content)
 
+    def test_local_installed_validation_retries_locked_install_directory_cleanup(self):
+        script = PROJECT_ROOT / "scripts" / "verify_local_installed_usage.ps1"
+        mock_provider = PROJECT_ROOT / "scripts" / "mock_openai_provider.ps1"
+        content = script.read_text(encoding="utf-8")
+
+        self.assertTrue(mock_provider.exists())
+        self.assertIn("function Remove-PathWithRetry", content)
+        self.assertIn("function Stop-ProjectVaultRuntimeProcesses", content)
+        self.assertIn("Refusing to recursively remove drive root", content)
+        self.assertIn("Remove-PathWithRetry -Path $InstallDir", content)
+        self.assertIn('mode = "ai"', content)
+        self.assertIn("v2_knowledge_create_ai_draft", content)
+        self.assertIn("-WindowStyle Hidden", content)
+        self.assertIn('release-validation\\v2.0.0-beta.1', content)
+        self.assertIn("StartsWith($installPrefix", content)
+        self.assertNotIn('Where-Object { $_.ProcessName -like "project-vault*" }', content)
+
     def test_windows_sandbox_maps_release_installer_not_debug_installer(self):
         sandbox_config = PROJECT_ROOT / "scripts" / "ProjectVaultCleanWindows.wsb"
         content = sandbox_config.read_text(encoding="utf-8")
 
         self.assertIn(r"target\release\bundle\nsis", content)
         self.assertNotIn(r"target\debug\bundle\nsis", content)
+        self.assertIn(r"release-validation\v2.0.0-beta.1", content)
 
     def test_frozen_sidecar_uses_persistent_user_database_path(self):
         from app.core.config import default_database_path

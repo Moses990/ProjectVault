@@ -407,6 +407,7 @@ npm run build
 - Phase 12.1 Production Sidecar Packaging 与 Clean Windows backend/sidecar validation 已完成。
 - Phase 12.2 Packaged UI Render Validation / V1 Final Clean Windows 验收已完成。
 - Phase 13：V1 发布收口与实机使用验证已完成；Phase 13.1、13.2、13.3、13.4 均已完成。
+- Phase 14：V2 Knowledge Platform 已确认；V2.1-V2.5 已完成自动测试、浏览器/Chrome smoke、人工验收，并固化为首个 V2 beta 可验收节点；V2.6 Local Semantic Search Spike 已完成，结论为暂不引入向量依赖。
 
 ## V1.2.1 Installer Hotfix（2026-06-29）
 
@@ -759,3 +760,36 @@ V1.0 checkpoint/tag 判定：仓库卫生检查已通过，可以进入提交/ta
 - 后端测试：64 tests OK（既有套件）。
 
 发布说明：`docs/release/V1.2.0_RELEASE_NOTES.md`。
+
+## Phase 14：V2 Knowledge Platform Planning（2026-07-08）
+
+状态：ready_for_acceptance。
+
+目标：在 V1.4 发布闭环后，规划 V2 知识平台。V2 首轮重点是结构化项目知识、文本提取、AI 草稿、人工确认、`project.json` 回写和 FTS5 检索；不直接进入 Agent、完整 RAG、云同步、权限系统或多人协同。
+
+已启动：
+
+- 新增 `docs/planning/V2_KNOWLEDGE_PLATFORM_PLAN.md`。
+- 新增 `docs/planning/V2_SCHEMA_API_RFC.md`。
+- 新增 `docs/planning/V2_EXECUTION_PLAN.md`。
+- 新增 `docs/planning/V2_CONFIRMATION_CHECKLIST.md`。
+- 明确 V2 的首轮边界：先结构化知识，再文本提取，再 AI 草稿，再人工确认写回。
+- 明确语义搜索只作为后置 spike，必须等结构化知识和 FTS5 检索稳定后再判断是否进入产品。
+
+当前执行：
+
+- V2.0 Planning Freeze 已由用户确认。
+- V2.1 Knowledge Read Model 已通过自动测试/审查和人工验收：复用现有 `ai_metadata` 和 `/projects/{project_id}/ai-metadata`，完成 Project Detail Knowledge 读视图。
+- V2.2 Text Extraction Foundation 与 V2.3 Knowledge Draft Store 已通过自动测试、浏览器 smoke 和用户人工验收，状态为 `complete`。
+- V2.4 Apply Approved Knowledge 与 V2.5 Knowledge Search 已通过自动测试、Chrome smoke 和用户人工验收，状态为 `complete`。
+- V2.1-V2.5 已固化为首个 V2 beta acceptance checkpoint，记录见 `docs/release/V2_BETA_ACCEPTANCE_CHECKPOINT.md`。
+- 本轮已执行首次 SQLite schema migration 到 `user_version=2`，新增 `knowledge_sources / knowledge_drafts / knowledge_history`。
+- 本轮新增 Knowledge API：`GET /projects/{project_id}/knowledge`、`POST /extract-text`、`POST /draft`。
+- 范围控制：V2.4 首次 `project.json` 写入只允许用户确认后的单项目草稿应用；写前备份，写后同步 SQLite/FTS；未引入依赖，未改 Tauri/installer；AI draft 生成仍等待首次 AI 生成确认。
+- V2.6 Local Semantic Search Spike 已完成：FTS5 命中 3/6，近义查询命中 1/4；零依赖 alias proxy 命中 6/6，近义查询命中 4/4。
+- V2.6 决策：`defer_vector_dependency`。保持 FTS5；只有出现真实 miss-query 样本后才考虑小型 query expansion；向量依赖继续需要用户单独确认。
+- 最新 installer 的本机安装包级验证已通过：32 个步骤全部 pass，V2 packaged knowledge file/index/extract/draft/apply/search 均通过；installer SHA256 `9099FA65EA69A0A030DADB0955339637CE7411C5E682E16B66FCCEC96FE4EB41`。
+- 剩余发布风险：latest installer 还没有重新跑 clean Windows Sandbox，不作为 release-grade installer 声明。
+- V2.7 Real AI Draft Generation 已获用户确认并启动：复用现有 Provider 和文本来源，只生成草稿，不自动写 `project.json`，不新增依赖/schema。
+- 本轮同步推进 beta 仓库检查点、自动 review/test、远端 CI、installer 本机/clean Windows 验证，最后进入人工验收。
+- 向量依赖、批量 apply、PDF/DOCX 新依赖继续延后。

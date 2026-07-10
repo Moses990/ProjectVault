@@ -273,6 +273,24 @@ function Wait-ForFrontendRender {
     throw "Packaged frontend did not serve renderable Project Vault HTML within $TimeoutSeconds seconds."
 }
 
+function Test-PackagedKnowledgeRoute {
+    param([int]$BackendPort)
+
+    $openApiUri = "http://127.0.0.1:$BackendPort/openapi.json"
+    $openApi = Invoke-RestMethod -Uri $openApiUri -TimeoutSec 5
+    $route = "/api/v1/projects/{project_id}/knowledge"
+    $routes = @($openApi.paths.PSObject.Properties.Name)
+    if ($route -notin $routes) {
+        throw "Packaged backend is missing Knowledge route: $route"
+    }
+
+    return [ordered]@{
+        uri = $openApiUri
+        route = $route
+        present = $true
+    }
+}
+
 function Test-FixedWebView2RuntimeBundled {
     param([string]$InstallDir)
 
@@ -331,6 +349,8 @@ $Report = [ordered]@{
 }
 
 New-Item -ItemType Directory -Force -Path $ReportDir | Out-Null
+$appProcess = $null
+$healthResult = $null
 
 try {
     if (-not (Test-Path -LiteralPath $InstallerPath)) {
@@ -395,6 +415,9 @@ try {
     $healthResult = Wait-ForBackendHealth -TimeoutSeconds $StartupTimeoutSeconds
     Add-Step "backend_health" "pass" $healthResult
 
+    $knowledgeRoute = Test-PackagedKnowledgeRoute -BackendPort $healthResult.port
+    Add-Step "packaged_knowledge_route" "pass" $knowledgeRoute
+
     $frontendResult = Wait-ForFrontendRender -ProcessId $appProcess.Id -BackendPort $healthResult.port -TimeoutSeconds $StartupTimeoutSeconds
     Add-Step "frontend_render" "pass" $frontendResult
 
@@ -441,9 +464,12 @@ catch {
     $Report.passed = $false
 }
 finally {
-    Get-Process -ErrorAction SilentlyContinue |
-        Where-Object { $_.ProcessName -like "project-vault*" } |
-        Stop-Process -Force -ErrorAction SilentlyContinue
+    if ($appProcess) {
+        Stop-Process -Id $appProcess.Id -Force -ErrorAction SilentlyContinue
+    }
+    if ($healthResult) {
+        Stop-Process -Id $healthResult.processId -Force -ErrorAction SilentlyContinue
+    }
 
     $Report.finishedAt = (Get-Date).ToString("o")
     $Report.steps = $Steps

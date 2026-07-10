@@ -1,9 +1,12 @@
 {
   "name": "project-vault-desktop",
-  "version": "0.1.0",
+  "version": "2.0.0-beta.1",
   "private": true,
   "scripts": {
     "dev": "tauri dev",
+    "build:frontend": "cd ../frontend && npm run build",
+    "build:sidecar": "pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File ../scripts/build_backend_sidecar.ps1 -SkipInstall",
+    "prebuild": "npm run build:frontend && npm run build:sidecar",
     "build": "tauri build",
     "check": "tauri build --debug"
   },

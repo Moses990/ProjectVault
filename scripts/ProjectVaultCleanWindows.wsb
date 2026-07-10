@@ -14,6 +14,6 @@
     </MappedFolder>
   </MappedFolders>
   <LogonCommand>
-    <Command>powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Users\WDAGUtilityAccount\Desktop\scripts\verify_clean_windows_release.ps1" -InstallerPath "C:\Users\WDAGUtilityAccount\Desktop\nsis\Project Vault_0.1.0_x64-setup.exe" -ReportDir "C:\Users\WDAGUtilityAccount\Desktop\release-validation"</Command>
+    <Command>powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Users\WDAGUtilityAccount\Desktop\scripts\verify_clean_windows_release.ps1" -InstallerPath "C:\Users\WDAGUtilityAccount\Desktop\nsis\Project Vault_2.0.0-beta.1_x64-setup.exe" -ReportDir "C:\Users\WDAGUtilityAccount\Desktop\release-validation\v2.0.0-beta.1"</Command>
   </LogonCommand>
 </Configuration>

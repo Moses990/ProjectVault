@@ -1,5 +1,6 @@
 ﻿import time
 import uuid
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -349,6 +350,44 @@ def update_project_summary(
     )
 
 
+def sync_project_metadata(conn: Any, project_data: dict[str, Any]) -> None:
+    project_id = str(project_data["project_id"])
+    conn.execute("DELETE FROM project_tags WHERE project_id = ?", (project_id,))
+    for tag_name in project_data.get("tags", []):
+        conn.execute(
+            "INSERT OR IGNORE INTO project_tags (project_id, tag_name) VALUES (?, ?)",
+            (project_id, str(tag_name)),
+        )
+
+    ai_data = project_data.get("ai", {})
+    if not isinstance(ai_data, dict):
+        ai_data = {}
+    conn.execute(
+        """
+        INSERT INTO ai_metadata (
+            project_id, summary, core_needs, special_reqs, risks, lessons, metadata_version
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(project_id) DO UPDATE SET
+            summary = excluded.summary,
+            core_needs = excluded.core_needs,
+            special_reqs = excluded.special_reqs,
+            risks = excluded.risks,
+            lessons = excluded.lessons,
+            metadata_version = excluded.metadata_version
+        """,
+        (
+            project_id,
+            str(ai_data.get("summary", "")),
+            json.dumps(ai_data.get("core_needs", []), ensure_ascii=False),
+            json.dumps(ai_data.get("special_reqs", []), ensure_ascii=False),
+            json.dumps(ai_data.get("risks", []), ensure_ascii=False),
+            json.dumps(ai_data.get("lessons", []), ensure_ascii=False),
+            str(project_data.get("schema_version", 1)),
+        ),
+    )
+
+
 def scan_project_incremental(
     project_path: str | Path,
     db_path: Path | None = None,
@@ -414,6 +453,7 @@ def scan_project_incremental(
                         created_count += 1
                     elif existing["file_hash"] != current["file_hash"]:
                         fast_path_entity_ids.update(file_dependent_entity_ids(conn, existing["id"]))
+                        conn.execute("DELETE FROM knowledge_sources WHERE file_id = ?", (existing["id"],))
                         file_id = upsert_file(conn, current, file_id=existing["id"])
                         refresh_file_dependents(conn, project_id, file_id, current)
                         updated_count += 1
@@ -425,8 +465,10 @@ def scan_project_incremental(
                     fast_path_entity_ids.add(stable_id(project_id, "material", current["relative_path"]))
                     if current["relative_path"] == "project.json":
                         fast_path_entity_ids.add(project_id)
+                        fast_path_entity_ids.add(f"knowledge:{project_id}")
 
                 update_project_summary_from_database(conn, project_dir, project_data)
+                sync_project_metadata(conn, project_data)
 
                 duration_ms = int((time.perf_counter() - started) * 1000)
                 affected_files = created_count + updated_count + deleted_count + moved_count
@@ -483,6 +525,7 @@ def scan_project_incremental(
                     existing_unmatched.discard(relative_path)
                     current_unmatched.discard(relative_path)
                     if existing["file_hash"] != current["file_hash"]:
+                        conn.execute("DELETE FROM knowledge_sources WHERE file_id = ?", (existing["id"],))
                         file_id = upsert_file(conn, current, file_id=existing["id"])
                         refresh_file_dependents(conn, project_id, file_id, current)
                         updated_count += 1
@@ -527,6 +570,10 @@ def scan_project_incremental(
                             existing["id"],
                         ),
                     )
+                    conn.execute(
+                        "UPDATE knowledge_sources SET relative_path = ? WHERE file_id = ?",
+                        (current["relative_path"], existing["id"]),
+                    )
                     refresh_file_dependents(conn, project_id, existing["id"], current)
                     existing_unmatched.discard(old_relative_path)
                     current_unmatched.discard(relative_path)
@@ -545,6 +592,7 @@ def scan_project_incremental(
                     deleted_count += 1
 
                 update_project_summary(conn, project_dir, project_data, current_records)
+                sync_project_metadata(conn, project_data)
 
                 duration_ms = int((time.perf_counter() - started) * 1000)
                 affected_files = created_count + updated_count + deleted_count + moved_count

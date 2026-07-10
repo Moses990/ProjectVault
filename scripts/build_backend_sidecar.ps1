@@ -55,6 +55,7 @@ try {
         --hidden-import app.api.projects `
         --hidden-import app.api.search `
         --hidden-import app.api.providers `
+        --hidden-import app.api.knowledge `
         --hidden-import app.api.system `
         --hidden-import uvicorn.logging `
         --hidden-import uvicorn.loops.auto `

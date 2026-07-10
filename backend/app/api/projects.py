@@ -5,7 +5,6 @@ from pydantic import BaseModel, Field
 
 from app.api.response import page_meta, success_response
 from app.core_api import (
-    analyze_project_with_ai,
     list_projects,
     project_ai_metadata,
     project_overview,
@@ -130,12 +129,4 @@ def get_project_ai_metadata(project_id: str) -> dict[str, object]:
 
 @router.post("/{project_id}/ai-analyze")
 def post_project_ai_analyze(project_id: str) -> dict[str, object]:
-    try:
-        data = analyze_project_with_ai(project_id, db_path=get_database_path())
-    except ValueError as exc:
-        detail = str(exc)
-        status_code = 404 if detail == "project_not_found" else 400
-        raise HTTPException(status_code=status_code, detail=detail) from exc
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"analysis_failed: {exc}") from exc
-    return success_response(data, "project_analyzed")
+    raise HTTPException(status_code=409, detail="use_knowledge_draft_flow")

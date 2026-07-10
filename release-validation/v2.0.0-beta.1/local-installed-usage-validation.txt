@@ -1,0 +1,7 @@
+Project Vault Local Installed Usage Validation
+Passed: True
+Installer: D:\Workflows\ProjectVault\desktop\src-tauri\target\release\bundle\nsis\Project Vault_2.0.0-beta.1_x64-setup.exe
+InstallDir: C:\Users\admin\AppData\Local\Programs\ProjectVaultLocalUsageTest
+FixtureRoot: D:\Workflows\ProjectVault\release-validation\v2.0.0-beta.1\local-usage-fixture
+Report: D:\Workflows\ProjectVault\release-validation\v2.0.0-beta.1\local-installed-usage-validation.json
+Error:

@@ -1,0 +1,113 @@
+{
+  "created_at": "2026-07-08T18:14:37.088689",
+  "db_path": "release-validation\\v2_6_semantic_search_spike-20260708-181223\\project_vault.db",
+  "fixture_root": "release-validation\\v2_6_semantic_search_spike-20260708-181223\\fixture-root",
+  "summary": {
+    "total_cases": 6,
+    "fts_hits": 3,
+    "proxy_hits": 6,
+    "fts_near_hits": 1,
+    "proxy_near_hits": 4,
+    "exact_cases": 2,
+    "near_cases": 4
+  },
+  "decision": "defer_vector_dependency",
+  "recommendation": "Do not add vector dependency in V2.6. Keep FTS5; consider small alias/query-expansion layer first. Reopen vector proof only with real miss-query samples.",
+  "results": [
+    {
+      "query": "wayfinding",
+      "kind": "exact",
+      "expected": "v26-wayfinding",
+      "fts_hit": true,
+      "fts_top": "v26-wayfinding",
+      "proxy_hit": true,
+      "proxy_top": "v26-wayfinding",
+      "proxy_matched": [
+        "wayfinding"
+      ]
+    },
+    {
+      "query": "customer route",
+      "kind": "near",
+      "expected": "v26-wayfinding",
+      "fts_hit": true,
+      "fts_top": "v26-wayfinding",
+      "proxy_hit": true,
+      "proxy_top": "v26-wayfinding",
+      "proxy_matched": [
+        "circulation",
+        "customer",
+        "entry",
+        "path",
+        "queue",
+        "retail",
+        "route",
+        "wayfinding"
+      ]
+    },
+    {
+      "query": "sound absorption",
+      "kind": "near",
+      "expected": "v26-acoustic",
+      "fts_hit": false,
+      "fts_top": null,
+      "proxy_hit": true,
+      "proxy_top": "v26-acoustic",
+      "proxy_matched": [
+        "acoustic",
+        "noise",
+        "panel",
+        "panels",
+        "quiet",
+        "soft"
+      ]
+    },
+    {
+      "query": "quiet meeting room",
+      "kind": "near",
+      "expected": "v26-acoustic",
+      "fts_hit": false,
+      "fts_top": null,
+      "proxy_hit": true,
+      "proxy_top": "v26-acoustic",
+      "proxy_matched": [
+        "acoustic",
+        "focus",
+        "meeting",
+        "noise",
+        "quiet",
+        "rooms"
+      ]
+    },
+    {
+      "query": "warm lighting",
+      "kind": "exact",
+      "expected": "v26-lighting",
+      "fts_hit": true,
+      "fts_top": "v26-lighting",
+      "proxy_hit": true,
+      "proxy_top": "v26-lighting",
+      "proxy_matched": [
+        "lighting",
+        "warm"
+      ]
+    },
+    {
+      "query": "cozy illumination",
+      "kind": "near",
+      "expected": "v26-lighting",
+      "fts_hit": false,
+      "fts_top": null,
+      "proxy_hit": true,
+      "proxy_top": "v26-lighting",
+      "proxy_matched": [
+        "ambient",
+        "comfortable",
+        "glare",
+        "illumination",
+        "lighting",
+        "warm"
+      ]
+    }
+  ]
+}

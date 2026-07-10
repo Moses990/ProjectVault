@@ -4,19 +4,23 @@ param(
     [string]$ReportDir = "",
     [string]$InstallDir = "$env:LOCALAPPDATA\Programs\ProjectVaultLocalUsageTest",
     [string]$FixtureRoot = "",
+    [string]$MockAiProviderScript = "",
     [int]$StartupTimeoutSeconds = 45
 )
 
 $ErrorActionPreference = "Stop"
 
 if (-not $InstallerPath) {
-    $InstallerPath = Join-Path $ProjectRoot "desktop\src-tauri\target\release\bundle\nsis\Project Vault_0.1.0_x64-setup.exe"
+    $InstallerPath = Join-Path $ProjectRoot "desktop\src-tauri\target\release\bundle\nsis\Project Vault_2.0.0-beta.1_x64-setup.exe"
 }
 if (-not $ReportDir) {
-    $ReportDir = Join-Path $ProjectRoot "release-validation"
+    $ReportDir = Join-Path $ProjectRoot "release-validation\v2.0.0-beta.1"
 }
 if (-not $FixtureRoot) {
     $FixtureRoot = Join-Path $ReportDir "local-usage-fixture"
+}
+if (-not $MockAiProviderScript) {
+    $MockAiProviderScript = Join-Path $ProjectRoot "scripts\mock_openai_provider.ps1"
 }
 
 function Add-Step {
@@ -32,13 +36,32 @@ function Add-Step {
     }
 }
 
-function Wait-ForBackendHealth {
-    param([int]$TimeoutSeconds)
+function Get-SafeInstallPrefix {
+    param([string]$InstallRoot)
 
+    $fullRoot = [System.IO.Path]::GetFullPath($InstallRoot).TrimEnd('\')
+    $driveRoot = [System.IO.Path]::GetPathRoot($fullRoot).TrimEnd('\')
+    if (-not $fullRoot -or $fullRoot -eq $driveRoot) {
+        throw "Refusing to use drive root as validation install directory: $InstallRoot"
+    }
+    return $fullRoot + [System.IO.Path]::DirectorySeparatorChar
+}
+
+function Wait-ForBackendHealth {
+    param(
+        [int]$TimeoutSeconds,
+        [string]$InstallRoot
+    )
+
+    $installPrefix = Get-SafeInstallPrefix -InstallRoot $InstallRoot
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     while ((Get-Date) -lt $deadline) {
         $backendProcesses = Get-Process -ErrorAction SilentlyContinue |
-            Where-Object { $_.ProcessName -like "project-vault-backend*" }
+            Where-Object {
+                $_.ProcessName -like "project-vault-backend*" -and
+                $_.Path -and
+                [System.IO.Path]::GetFullPath($_.Path).StartsWith($installPrefix, [System.StringComparison]::OrdinalIgnoreCase)
+            }
 
         foreach ($backendProcess in $backendProcesses) {
             $listeners = Get-NetTCPConnection -State Listen -OwningProcess $backendProcess.Id -ErrorAction SilentlyContinue |
@@ -184,11 +207,96 @@ function Write-Utf8NoBom {
     [System.IO.File]::WriteAllText($Path, $Value, $encoding)
 }
 
+function Get-FreeTcpPort {
+    $listener = New-Object System.Net.Sockets.TcpListener([System.Net.IPAddress]::Loopback, 0)
+    $listener.Start()
+    try {
+        return ([System.Net.IPEndPoint]$listener.LocalEndpoint).Port
+    }
+    finally {
+        $listener.Stop()
+    }
+}
+
+function Wait-ForTcpPort {
+    param(
+        [int]$Port,
+        [int]$TimeoutSeconds = 10
+    )
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    while ((Get-Date) -lt $deadline) {
+        $client = New-Object System.Net.Sockets.TcpClient
+        try {
+            $client.Connect("127.0.0.1", $Port)
+            return
+        }
+        catch {
+            Start-Sleep -Milliseconds 200
+        }
+        finally {
+            $client.Close()
+        }
+    }
+    throw "Mock AI Provider did not listen on port $Port."
+}
+
+function Stop-ProjectVaultRuntimeProcesses {
+    param([string]$InstallRoot = "")
+
+    if (-not $InstallRoot) {
+        return
+    }
+
+    $installPrefix = Get-SafeInstallPrefix -InstallRoot $InstallRoot
+    Get-Process -ErrorAction SilentlyContinue |
+        Where-Object {
+            try {
+                $_.Path -and [System.IO.Path]::GetFullPath($_.Path).StartsWith($installPrefix, [System.StringComparison]::OrdinalIgnoreCase)
+            }
+            catch {
+                $false
+            }
+        } |
+        Stop-Process -Force -ErrorAction SilentlyContinue
+}
+
+function Remove-PathWithRetry {
+    param(
+        [string]$Path,
+        [int]$Attempts = 8,
+        [int]$DelayMilliseconds = 750
+    )
+
+    $fullPath = [System.IO.Path]::GetFullPath($Path)
+    $rootPath = [System.IO.Path]::GetPathRoot($fullPath).TrimEnd('\')
+    if ($fullPath.TrimEnd('\') -eq $rootPath) {
+        throw "Refusing to recursively remove drive root: $fullPath"
+    }
+
+    for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+        if (-not (Test-Path -LiteralPath $fullPath)) {
+            return
+        }
+        try {
+            Remove-Item -LiteralPath $fullPath -Recurse -Force
+            return
+        }
+        catch {
+            if ($attempt -eq $Attempts) {
+                throw
+            }
+            Stop-ProjectVaultRuntimeProcesses -InstallRoot $fullPath
+            Start-Sleep -Milliseconds $DelayMilliseconds
+        }
+    }
+}
+
 function New-UsageFixture {
     param([string]$Root)
 
     if (Test-Path -LiteralPath $Root) {
-        Remove-Item -LiteralPath $Root -Recurse -Force
+        Remove-PathWithRetry -Path $Root
     }
 
     $projectDir = Join-Path $Root "PV-V1-Local-Acceptance"
@@ -201,6 +309,7 @@ function New-UsageFixture {
     Write-Utf8NoBom -Path (Join-Path $projectDir "02_Materials\Finish-Schedule.xlsx") -Value "material,spec`npaint,white"
     Write-Utf8NoBom -Path (Join-Path $projectDir "02_Materials\Lighting-Spec.pdf") -Value "PDF placeholder"
     Write-Utf8NoBom -Path (Join-Path $projectDir "03_Notes\site-note.txt") -Value "Phase 13 local usage searchable note."
+    Write-Utf8NoBom -Path (Join-Path $projectDir "03_Notes\knowledge-brief.md") -Value "核心需求：安装包级验证顾客动线 packagebeta route control。`n风险：样板确认紧。"
 
     return [ordered]@{
         root = $Root
@@ -278,12 +387,16 @@ $Report = [ordered]@{
 $appProcess = $null
 $healthResult = $null
 $databaseBackup = $null
+$mockAiProcess = $null
 
 New-Item -ItemType Directory -Force -Path $ReportDir | Out-Null
 
 try {
     if (-not (Test-Path -LiteralPath $InstallerPath)) {
         throw "Installer not found: $InstallerPath"
+    }
+    if (-not (Test-Path -LiteralPath $MockAiProviderScript)) {
+        throw "Mock AI Provider script not found: $MockAiProviderScript"
     }
     $installerFile = Get-Item -LiteralPath $InstallerPath
     Add-Step "installer_exists" "pass" @{
@@ -292,16 +405,14 @@ try {
         sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $installerFile.FullName).Hash
     }
 
-    Get-Process -ErrorAction SilentlyContinue |
-        Where-Object { $_.ProcessName -like "project-vault*" } |
-        Stop-Process -Force -ErrorAction SilentlyContinue
+    Stop-ProjectVaultRuntimeProcesses -InstallRoot $InstallDir
 
     $databasePath = Join-Path $env:LOCALAPPDATA "ProjectVault\database\project_vault.db"
     $databaseBackup = Copy-ExistingDatabaseAside -DatabasePath $databasePath
     Add-Step "existing_local_database_backed_up" "pass" $databaseBackup
 
     if (Test-Path -LiteralPath $InstallDir) {
-        Remove-Item -LiteralPath $InstallDir -Recurse -Force
+        Remove-PathWithRetry -Path $InstallDir
     }
     New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 
@@ -336,7 +447,7 @@ try {
     $window = Wait-ForMainWindow -ProcessId $appProcess.Id -TimeoutSeconds $StartupTimeoutSeconds
     Add-Step "app_main_webview_window" "pass" $window
 
-    $healthResult = Wait-ForBackendHealth -TimeoutSeconds $StartupTimeoutSeconds
+    $healthResult = Wait-ForBackendHealth -TimeoutSeconds $StartupTimeoutSeconds -InstallRoot $InstallDir
     Add-Step "backend_health" "pass" $healthResult
 
     $frontend = Wait-ForFrontendRender -ProcessId $appProcess.Id -BackendPort $healthResult.port -TimeoutSeconds $StartupTimeoutSeconds
@@ -482,6 +593,85 @@ try {
         throw "History did not include scan records for the fixture project."
     }
 
+    $knowledgeFile = @($files.data | Where-Object { $_.relative_path -eq "03_Notes/knowledge-brief.md" } | Select-Object -First 1)
+    $knowledgeFileOk = $knowledgeFile.Count -eq 1 -and [string]$knowledgeFile[0].id
+    Add-Step "v2_knowledge_file_indexed" ($(if ($knowledgeFileOk) { "pass" } else { "fail" })) @{
+        file = $knowledgeFile[0]
+    }
+    if (-not $knowledgeFileOk) {
+        throw "V2 knowledge fixture file was not indexed."
+    }
+
+    $mockAiPort = Get-FreeTcpPort
+    $mockAiArgs = @("-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$MockAiProviderScript`"", "-Port", $mockAiPort)
+    $mockAiProcess = Start-Process -FilePath (Get-Process -Id $PID).Path -ArgumentList $mockAiArgs -WindowStyle Hidden -PassThru
+    Wait-ForTcpPort -Port $mockAiPort
+    $provider = Invoke-ProjectVaultApi -Port $healthResult.port -Method "POST" -Path "/providers" -Body @{
+        name = "Fixture AI"
+        base_url = "http://127.0.0.1:$mockAiPort/v1"
+        default_model = "fixture-model"
+        key_reference = "fixture-key"
+    }
+    $providerOk = $provider.data.name -eq "Fixture AI" -and $provider.data.has_key -eq $true
+    Add-Step "v2_ai_provider_fixture" ($(if ($providerOk) { "pass" } else { "fail" })) $provider.data
+    if (-not $providerOk) {
+        throw "V2 fixture AI Provider was not created."
+    }
+
+    $extract = Invoke-ProjectVaultApi -Port $healthResult.port -Method "POST" -Path "/projects/$($fixture.projectId)/knowledge/extract-text" -Body @{
+        file_ids = @($knowledgeFile[0].id)
+    }
+    $source = @($extract.data.sources | Where-Object { $_.status -eq "ready" } | Select-Object -First 1)
+    $extractOk = [int]$extract.data.ready -ge 1 -and $source.Count -eq 1 -and [string]$source[0].id
+    Add-Step "v2_knowledge_extract_text" ($(if ($extractOk) { "pass" } else { "fail" })) $extract.data
+    if (-not $extractOk) {
+        throw "V2 knowledge text extraction did not produce a ready source."
+    }
+
+    $draft = Invoke-ProjectVaultApi -Port $healthResult.port -Method "POST" -Path "/projects/$($fixture.projectId)/knowledge/draft" -Body @{
+        source_ids = @($source[0].id)
+        mode = "ai"
+    }
+    $draftOk = $draft.data.status -eq "draft" -and
+        [string]$draft.data.draft_id -and
+        $draft.data.provider_name -eq "Fixture AI" -and
+        $draft.data.model_name -eq "fixture-model" -and
+        ([string]$draft.data.draft.summary).Contains("packagebeta")
+    Add-Step "v2_knowledge_create_ai_draft" ($(if ($draftOk) { "pass" } else { "fail" })) $draft.data
+    if (-not $draftOk) {
+        throw "V2 AI knowledge draft was not created from the extracted source."
+    }
+
+    $apply = Invoke-ProjectVaultApi -Port $healthResult.port -Method "POST" -Path "/projects/$($fixture.projectId)/knowledge/apply" -Body @{
+        draft_id = $draft.data.draft_id
+        fields = @("summary", "core_needs", "special_reqs", "risks", "lessons", "tags", "evidence")
+        confirm = $true
+    }
+    $projectJsonPath = Join-Path $fixture.projectDir "project.json"
+    $projectJson = Get-Content -Raw -LiteralPath $projectJsonPath | ConvertFrom-Json
+    $backupPath = Join-Path $fixture.projectDir $apply.data.project_json_backup
+    $applyOk = $apply.data.applied -eq $true -and
+        (Test-Path -LiteralPath $backupPath) -and
+        ([string]$projectJson.ai.summary).Contains("packagebeta")
+    Add-Step "v2_knowledge_apply_draft" ($(if ($applyOk) { "pass" } else { "fail" })) @{
+        apply = $apply.data
+        projectJsonBackupExists = Test-Path -LiteralPath $backupPath
+        savedSummary = $projectJson.ai.summary
+    }
+    if (-not $applyOk) {
+        throw "V2 knowledge apply did not update project.json and create backup."
+    }
+
+    $knowledgeSearch = Invoke-ProjectVaultApi -Port $healthResult.port -Method "GET" -Path "/search?q=packagebeta&category=knowledge&limit=20"
+    $knowledgeSearchOk = @($knowledgeSearch.data | Where-Object { $_.project_id -eq $fixture.projectId -and $_.entity_type -eq "knowledge" }).Count -gt 0
+    Add-Step "v2_knowledge_search" ($(if ($knowledgeSearchOk) { "pass" } else { "fail" })) @{
+        total = $knowledgeSearch.meta.total
+        sample = @($knowledgeSearch.data | Select-Object -First 5)
+    }
+    if (-not $knowledgeSearchOk) {
+        throw "V2 knowledge search did not return approved knowledge."
+    }
+
     $backup = Invoke-ProjectVaultApi -Port $healthResult.port -Method "POST" -Path "/system/backup/create"
     $backupOk = [string]$backup.data.name -like "project_vault_*.db" -and [int64]$backup.data.size_bytes -gt 0
     Add-Step "backup_entry_point" ($(if ($backupOk) { "pass" } else { "fail" })) $backup.data
@@ -518,6 +708,10 @@ catch {
     $Report.passed = $false
 }
 finally {
+    if ($mockAiProcess -and -not $mockAiProcess.HasExited) {
+        Stop-Process -Id $mockAiProcess.Id -Force -ErrorAction SilentlyContinue
+    }
+
     if ($appProcess) {
         try {
             $null = $appProcess.CloseMainWindow()
@@ -538,9 +732,7 @@ finally {
         }
     }
 
-    Get-Process -ErrorAction SilentlyContinue |
-        Where-Object { $_.ProcessName -like "project-vault*" } |
-        Stop-Process -Force -ErrorAction SilentlyContinue
+    Stop-ProjectVaultRuntimeProcesses -InstallRoot $InstallDir
 
     if ($databaseBackup) {
         $restorePrevious = Restore-ExistingDatabase -Backup $databaseBackup

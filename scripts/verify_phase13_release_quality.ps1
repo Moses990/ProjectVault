@@ -10,10 +10,10 @@ param(
 $ErrorActionPreference = "Stop"
 
 if (-not $InstallerPath) {
-    $InstallerPath = Join-Path $ProjectRoot "desktop\src-tauri\target\release\bundle\nsis\Project Vault_0.1.0_x64-setup.exe"
+    $InstallerPath = Join-Path $ProjectRoot "desktop\src-tauri\target\release\bundle\nsis\Project Vault_2.0.0-beta.1_x64-setup.exe"
 }
 if (-not $ReportDir) {
-    $ReportDir = Join-Path $ProjectRoot "release-validation"
+    $ReportDir = Join-Path $ProjectRoot "release-validation\v2.0.0-beta.1"
 }
 if (-not $FixtureRoot) {
     $FixtureRoot = Join-Path $ReportDir "phase13-quality-fixture"
@@ -30,6 +30,17 @@ function Add-Step {
         status = $Status
         details = $Details
     }
+}
+
+function Get-SafeInstallPrefix {
+    param([string]$InstallRoot)
+
+    $fullRoot = [System.IO.Path]::GetFullPath($InstallRoot).TrimEnd('\')
+    $driveRoot = [System.IO.Path]::GetPathRoot($fullRoot).TrimEnd('\')
+    if (-not $fullRoot -or $fullRoot -eq $driveRoot) {
+        throw "Refusing to use drive root as validation install directory: $InstallRoot"
+    }
+    return $fullRoot + [System.IO.Path]::DirectorySeparatorChar
 }
 
 function Invoke-ProjectVaultApi {
@@ -80,12 +91,20 @@ function Invoke-ProjectVaultApi {
 }
 
 function Wait-ForBackendHealth {
-    param([int]$TimeoutSeconds)
+    param(
+        [int]$TimeoutSeconds,
+        [string]$InstallRoot
+    )
 
+    $installPrefix = Get-SafeInstallPrefix -InstallRoot $InstallRoot
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     while ((Get-Date) -lt $deadline) {
         $backendProcesses = Get-Process -ErrorAction SilentlyContinue |
-            Where-Object { $_.ProcessName -like "project-vault-backend*" }
+            Where-Object {
+                $_.ProcessName -like "project-vault-backend*" -and
+                $_.Path -and
+                [System.IO.Path]::GetFullPath($_.Path).StartsWith($installPrefix, [System.StringComparison]::OrdinalIgnoreCase)
+            }
 
         foreach ($backendProcess in $backendProcesses) {
             $listeners = Get-NetTCPConnection -State Listen -OwningProcess $backendProcess.Id -ErrorAction SilentlyContinue |
@@ -345,18 +364,27 @@ function Install-ProjectVault {
 }
 
 function Stop-ProjectVaultProcesses {
+    param([string]$InstallRoot)
+
+    $installPrefix = Get-SafeInstallPrefix -InstallRoot $InstallRoot
     Get-Process -ErrorAction SilentlyContinue |
-        Where-Object { $_.ProcessName -like "project-vault*" } |
+        Where-Object {
+            $_.Path -and
+            [System.IO.Path]::GetFullPath($_.Path).StartsWith($installPrefix, [System.StringComparison]::OrdinalIgnoreCase)
+        } |
         Stop-Process -Force -ErrorAction SilentlyContinue
 }
 
 function Start-And-SmokeApp {
-    param([string]$AppPath)
+    param(
+        [string]$AppPath,
+        [string]$InstallRoot
+    )
 
     $appProcess = Start-Process -FilePath $AppPath -PassThru
     try {
         $window = Wait-ForMainWindow -ProcessId $appProcess.Id -TimeoutSeconds $StartupTimeoutSeconds
-        $health = Wait-ForBackendHealth -TimeoutSeconds $StartupTimeoutSeconds
+        $health = Wait-ForBackendHealth -TimeoutSeconds $StartupTimeoutSeconds -InstallRoot $InstallRoot
         $frontend = Wait-ForFrontendRender -ProcessId $appProcess.Id -BackendPort $health.port -TimeoutSeconds $StartupTimeoutSeconds
         return [ordered]@{
             appProcess = $appProcess
@@ -429,7 +457,7 @@ try {
         sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $installerFile.FullName).Hash
     }
 
-    Stop-ProjectVaultProcesses
+    Stop-ProjectVaultProcesses -InstallRoot $InstallDir
 
     $databasePath = Join-Path $env:LOCALAPPDATA "ProjectVault\database\project_vault.db"
     $databaseBackup = Copy-ExistingDatabaseAside -DatabasePath $databasePath
@@ -452,7 +480,7 @@ try {
         throw "Uninstaller executable was not found under $InstallDir."
     }
 
-    $smoke = Start-And-SmokeApp -AppPath $appExe.FullName
+    $smoke = Start-And-SmokeApp -AppPath $appExe.FullName -InstallRoot $InstallDir
     Add-Step "initial_launch" "pass" @{
         window = $smoke.window
         backend = $smoke.health
@@ -592,7 +620,7 @@ try {
     if (-not $reinstalledAppExe) {
         throw "Reinstalled Project Vault executable was not found under $InstallDir."
     }
-    $smoke = Start-And-SmokeApp -AppPath $reinstalledAppExe.FullName
+    $smoke = Start-And-SmokeApp -AppPath $reinstalledAppExe.FullName -InstallRoot $InstallDir
     Add-Step "reinstall_launch" "pass" @{
         window = $smoke.window
         backend = $smoke.health
@@ -650,7 +678,7 @@ finally {
         }
     }
 
-    Stop-ProjectVaultProcesses
+    Stop-ProjectVaultProcesses -InstallRoot $InstallDir
 
     if ($databaseBackup) {
         $restorePrevious = Restore-ExistingDatabase -Backup $databaseBackup

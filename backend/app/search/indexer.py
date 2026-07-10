@@ -92,6 +92,51 @@ def _index_projects(conn: Any, project_id: str | None) -> int:
     return len(rows)
 
 
+def _index_knowledge(conn: Any, project_id: str | None) -> int:
+    params: tuple[str, ...] = (project_id,) if project_id else ()
+    where = "WHERE p.id = ?" if project_id else ""
+    rows = conn.execute(
+        f"""
+        SELECT p.id,
+               p.name,
+               m.summary,
+               m.core_needs,
+               m.special_reqs,
+               m.risks,
+               m.lessons,
+               GROUP_CONCAT(t.tag_name, ' ') AS tags
+        FROM projects p
+        LEFT JOIN ai_metadata m ON m.project_id = p.id
+        LEFT JOIN project_tags t ON t.project_id = p.id
+        {where}
+        GROUP BY p.id
+        """,
+        params,
+    ).fetchall()
+    count = 0
+    for row in rows:
+        content = _text(
+            row["summary"],
+            row["core_needs"],
+            row["special_reqs"],
+            row["risks"],
+            row["lessons"],
+            row["tags"],
+        )
+        if not content:
+            continue
+        _insert_fts(
+            conn,
+            entity_id=f"knowledge:{row['id']}",
+            entity_type="knowledge",
+            title=f"{row['name']} Knowledge",
+            content=content,
+            project_id=row["id"],
+        )
+        count += 1
+    return count
+
+
 def _index_files(conn: Any, project_id: str | None) -> int:
     params: tuple[str, ...] = (project_id,) if project_id else ()
     where = "WHERE project_id = ?" if project_id else ""
@@ -202,6 +247,7 @@ def rebuild_search_index(
 
         indexed_count = 0
         indexed_count += _index_projects(conn, project_id)
+        indexed_count += _index_knowledge(conn, project_id)
         indexed_count += _index_files(conn, project_id)
         indexed_count += _index_drawings(conn, project_id)
         indexed_count += _index_materials(conn, project_id)
@@ -281,6 +327,9 @@ def refresh_search_index_entities(
                 project_id=row["id"],
             )
             indexed_count += 1
+
+        if f"knowledge:{project_id}" in entity_ids:
+            indexed_count += _index_knowledge(conn, project_id)
 
         file_rows = conn.execute(
             f"""

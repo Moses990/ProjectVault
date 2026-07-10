@@ -13,6 +13,7 @@ from app.api.drawings import router as drawings_router
 from app.api.files import router as files_router
 from app.api.health import router as health_router
 from app.api.history import router as history_router
+from app.api.knowledge import router as knowledge_router
 from app.api.materials import router as materials_router
 from app.api.projects import router as projects_router
 from app.api.scanner import router as scanner_router
@@ -76,7 +77,7 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title=settings.app_name, version="2.0.0-beta.1", lifespan=lifespan)
     app.add_middleware(
         CORSMiddleware,
         allow_origin_regex=r"^https?://(127\.0\.0\.1|localhost)(:\d+)?$",
@@ -108,6 +109,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router, prefix=settings.api_prefix)
     app.include_router(dashboard_router, prefix=settings.api_prefix)
     app.include_router(projects_router, prefix=settings.api_prefix)
+    app.include_router(knowledge_router, prefix=settings.api_prefix)
     app.include_router(files_router, prefix=settings.api_prefix)
     app.include_router(drawings_router, prefix=settings.api_prefix)
     app.include_router(materials_router, prefix=settings.api_prefix)

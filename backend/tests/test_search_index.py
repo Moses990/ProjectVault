@@ -58,7 +58,7 @@ class SearchIndexTests(unittest.TestCase):
 
             result = rebuild_search_index(db_path=db_path)
 
-            self.assertEqual(result.indexed_count, 7)
+            self.assertEqual(result.indexed_count, 8)
             with closing(sqlite3.connect(db_path)) as conn:
                 rows = conn.execute(
                     """
@@ -75,6 +75,7 @@ class SearchIndexTests(unittest.TestCase):
                     ("file", "brief.txt"),
                     ("file", "ceiling_lighting_plan.dwg"),
                     ("file", "project.json"),
+                    ("knowledge", "Beacon Retail Lab Knowledge"),
                     ("material", "acoustic_panel_spec.pdf"),
                     ("project", "Beacon Retail Lab"),
                 ],
@@ -112,6 +113,9 @@ class SearchIndexTests(unittest.TestCase):
             )
             self.assertTrue(
                 any(item.entity_type == "project" for item in search("strategy", db_path=db_path))
+            )
+            self.assertTrue(
+                any(item.entity_type == "knowledge" for item in search("strategy", category="knowledge", db_path=db_path))
             )
 
     def test_search_10000_files_returns_under_100ms(self) -> None:

@@ -162,6 +162,7 @@ def scan_project(project_path: str | Path, db_path: Path | None = None) -> ScanR
         affected_files = len(file_records)
         cad_count = sum(1 for record in file_records if is_drawing(record["absolute_path"]))
         material_count = sum(1 for record in file_records if material_type(record["absolute_path"]))
+        file_hashes = {record["id"]: record["file_hash"] for record in file_records}
         now = utc_now()
 
         with connect(db_path) as conn:
@@ -253,6 +254,15 @@ def scan_project(project_path: str | Path, db_path: Path | None = None) -> ScanR
                     ),
                 )
 
+            preserved_sources = conn.execute(
+                """
+                SELECT ks.*, f.file_hash AS source_file_hash
+                FROM knowledge_sources ks
+                JOIN files f ON f.id = ks.file_id
+                WHERE ks.project_id = ?
+                """,
+                (project_id,),
+            ).fetchall()
             conn.execute("DELETE FROM files WHERE project_id = ?", (project_id,))
             for record in file_records:
                 conn.execute(
@@ -327,6 +337,25 @@ def scan_project(project_path: str | Path, db_path: Path | None = None) -> ScanR
                             classified_material,
                         ),
                     )
+
+            for source in preserved_sources:
+                if file_hashes.get(source["file_id"]) != source["source_file_hash"]:
+                    continue
+                conn.execute(
+                    """
+                    INSERT INTO knowledge_sources (
+                        id, project_id, file_id, relative_path, extractor, text_hash,
+                        text_excerpt, text_length, status, error_message, extracted_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        source["id"], source["project_id"], source["file_id"],
+                        source["relative_path"], source["extractor"], source["text_hash"],
+                        source["text_excerpt"], source["text_length"], source["status"],
+                        source["error_message"], source["extracted_at"],
+                    ),
+                )
 
             duration_ms = int((time.perf_counter() - started) * 1000)
             conn.execute(

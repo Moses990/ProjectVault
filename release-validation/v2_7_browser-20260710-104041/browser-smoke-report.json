@@ -1,0 +1,69 @@
+{
+  "started_at": "2026-07-10T10:40:41+08:00",
+  "finished_at": "2026-07-10T10:44:44.3953887+08:00",
+  "passed": true,
+  "frontend_url": "http://127.0.0.1:3007",
+  "backend_url": "http://127.0.0.1:8004",
+  "project_id": "e5d16759-4e08-4c6c-8264-7ce28943099f",
+  "checks": [
+    {
+      "name": "project_detail_loaded",
+      "status": "pass"
+    },
+    {
+      "name": "text_extracted",
+      "status": "pass",
+      "ready": 1,
+      "failed": 1
+    },
+    {
+      "name": "ai_draft_generated",
+      "status": "pass",
+      "provider": "Fixture AI",
+      "model": "fixture-model"
+    },
+    {
+      "name": "all_fields_visible_before_apply",
+      "status": "pass",
+      "fields": [
+        "summary",
+        "core_needs",
+        "special_reqs",
+        "risks",
+        "lessons",
+        "tags",
+        "evidence"
+      ]
+    },
+    {
+      "name": "field_selection_respected",
+      "status": "pass",
+      "excluded": "tags",
+      "saved_tags": [
+        "v2.7"
+      ]
+    },
+    {
+      "name": "apply_backup_created",
+      "status": "pass",
+      "backup": "project.json.bak.20260710-104411-229902"
+    },
+    {
+      "name": "knowledge_search_updated",
+      "status": "pass",
+      "results": 1
+    },
+    {
+      "name": "evidence_retained",
+      "status": "pass",
+      "count": 1
+    },
+    {
+      "name": "browser_console",
+      "status": "pass",
+      "errors": 0,
+      "warnings": 0
+    }
+  ],
+  "screenshot": "v2_7_browser_smoke.png"
+}

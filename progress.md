@@ -906,3 +906,206 @@ Phase 12.2：Packaged UI Render Validation，状态：in_progress。
 - 文档同步：已更新 `docs/release/CLEAN_WINDOWS_VALIDATION.md` 和 `docs/release/V1_RELEASE_MANIFEST.md` 的 clean Windows 复验证据。
 - 范围控制：未改产品后端业务逻辑、API 契约、数据库 schema、Tauri 或依赖；只修正验证脚本和发布证据记录。
 - 剩余风险：clean Windows 风险已关闭；远端 CI/check 状态仍需 push/PR 后由 GitHub 运行确认。
+
+## 2026-07-08 V2 Knowledge Platform 规划启动记录
+
+- 状态：waiting_for_user_confirmation。V1.4 发布、CI、分支保护、GitHub Release 和 V1.5 维护清单已完成后，正式启动 V2 项目规划。
+- 新增文档：`docs/planning/V2_KNOWLEDGE_PLATFORM_PLAN.md`。
+- 新增文档：`docs/planning/V2_SCHEMA_API_RFC.md`。
+- 新增文档：`docs/planning/V2_EXECUTION_PLAN.md`。
+- 新增文档：`docs/planning/V2_CONFIRMATION_CHECKLIST.md`。
+- 规划结论：V2 首轮定位为 Knowledge Platform，不直接做 Agent OS，也不直接做完整 RAG。首轮顺序为结构化知识字段、文本提取、AI 草稿、人工确认、`project.json` 写回、SQLite/FTS5 同步。
+- 默认建议：文本提取首轮采用 `.txt/.md/.csv/.json` + 可用时 `.docx`；证据采用短摘录 + 文件引用；每个项目只保留一个 active draft；现有 AI tab 升级为 Knowledge 视图。
+- 范围控制：本轮只写规划；未改前端、后端、数据库 schema、Tauri、依赖或发布脚本。
+- 同步：`task_plan.md` 已将 Phase 14 状态改为等待用户确认。
+- 下一步：用户确认 V2 计划包后，进入 V2.1 Knowledge Read Model；确认前不动代码、不做 schema 迁移。
+
+## 2026-07-08 V2.1 Knowledge Read Model 自动验收记录
+
+- 状态：ready_for_human_acceptance。用户已确认 V2 计划包，本轮完成 V2.0 Planning Freeze，并实现 V2.1 Knowledge Read Model 的最小读视图。
+- 修正：Project Detail 原 `AI 元数据` tab 改为 `项目知识`，继续复用现有 `ai_metadata` 和 `/projects/{project_id}/ai-metadata` 读接口。
+- 修正：`AiTab` 空态改为“尚未整理项目知识”，并移除旧的“开始分析/重新分析”直接 AI 写入入口，避免在 V2 草稿确认机制完成前继续从主界面触发绕过草稿的写入路径。
+- 测试：新增 `frontend/__tests__/AiTab.test.tsx`，覆盖空知识状态、已确认知识字段渲染，以及旧“开始分析”入口不再出现。
+- 浏览器 smoke：使用 fixture DB `release-validation/v2-knowledge-readmodel-20260708-102550/project_vault.db`，临时后端 `127.0.0.1:8004`，归一化静态预览 `127.0.0.1:3007`，Edge headless 打开 `/project-detail/?id=v2-knowledge-fixture&tab=ai`；项目标题、`项目知识` tab、摘要、核心需求和风险均可见，旧 `开始分析` 入口数量为 0，console error/warn 为 0。
+- 验证通过：`frontend` 目录 `cmd /c npm run test` 通过，3 个测试文件 9 个测试全部通过。
+- 验证通过：`frontend` 目录默认 `cmd /c npm run build` 通过；中途也用 `NEXT_PUBLIC_BACKEND_PORT=8004` 做过一次静态导出 smoke build，最终已恢复默认 build。
+- 验证通过：`backend` 目录 `.venv\Scripts\python.exe -m unittest discover -s tests -v` 通过，64 个测试全部通过。
+- 验证通过：`git diff --check` 通过，仅提示既有 LF/CRLF 归一化警告；`git ls-files release-validation | rg '(\.db$|/backups/|/root/|/fixture-root/|/paths\.txt$)'` 无命中。
+- 范围控制：未新增后端 API，未改数据库 schema，未写 `project.json`，未改 Tauri，未引入依赖，未触碰真实项目资料或默认数据库。
+- 清理：临时后端 `8004`、临时静态预览 `3007`、失败尝试中的 `3006` 均已停止并确认无监听。
+- 剩余风险：后端既有 `/projects/{project_id}/ai-analyze` 仍保留为 V1 兼容接口；本轮已从 V2.1 主界面移除直接入口，后续 V2.3 Draft Store 阶段需要把 AI 生成统一接入草稿与人工确认流程。
+- 下一步：等待用户人工验收 V2.1；通过后进入 V2.2 Text Extraction Foundation。
+
+## 2026-07-08 V2.1 人工验收通过记录
+
+- 状态：complete。用户已通过网页方式人工验收 V2.1 Knowledge Read Model。
+- 验收方式：临时后端 `127.0.0.1:8004` + 临时网页预览 `127.0.0.1:3007`，打开 `http://127.0.0.1:3007/project-detail/?id=v2-knowledge-fixture&tab=ai`。
+- 用户确认：页面可访问，`V2 Knowledge Fixture`、`项目知识` tab 和知识摘要可见，旧 `开始分析` 入口不存在。
+- 清理：人工验收后已停止临时网页预览和临时后端；`8004`、`3007` 均无监听。
+- 恢复：人工验收前为连接 fixture 后端曾以 `NEXT_PUBLIC_BACKEND_PORT=8004` 构建前端；验收后已重新执行默认 `frontend` 构建，避免测试端口残留。
+- 约定：后续需要人工验收时，必须明确写出验证方式（网页/桌面 App/安装包/沙盒）、打开地址或程序、点击路径、应看到内容、不应看到内容、以及通过回复格式。
+- 下一步：进入 V2.2 Text Extraction Foundation；开始前先列出执行清单和面向用户的验收步骤。
+
+## 2026-07-08 V2.2 / V2.3 自动验收记录
+
+- 状态：ready_for_human_acceptance。用户已同意开始 V2.2 和 V2.3，本轮完成 Text Extraction Foundation 与 Knowledge Draft Store 的最小闭环。
+- Schema：SQLite `CURRENT_SCHEMA_VERSION` 升级到 2，新增 `knowledge_sources / knowledge_drafts / knowledge_history`，迁移记录包含 `1 / 2`，旧 V1 库可幂等补齐。
+- 后端：新增 `backend/app/api/knowledge.py` 与 `backend/app/knowledge/service.py`，提供 `GET /projects/{project_id}/knowledge`、`POST /projects/{project_id}/knowledge/extract-text`、`POST /projects/{project_id}/knowledge/draft`。
+- 提取范围：首轮只支持 `.txt / .md / .csv / .json`，文本读取有大小和摘录长度上限；`.pdf` 等不支持格式返回 `unsupported_format`，不新增依赖、不做 OCR、不解析 CAD。
+- 草稿范围：支持从 ready source 创建 manual draft；每个项目只保留一个 active draft；旧 draft 会标记为 `discarded`；approved `ai_metadata` 不被改动。
+- AI 边界：`mode=ai` 在没有启用 Provider 和 key 时返回 `ai_provider_required`；即使有 Provider，真实 AI 生成仍未实现，等待首次 AI generation confirmation gate。
+- 前端：`frontend/lib/api.ts` 新增 Knowledge 类型和 API 方法；`AiTab` 新增“提取文本 / 创建草稿”入口、来源摘录列表和知识草稿展示；未加入“应用草稿”或“写回 project.json”按钮。
+- 测试：新增/扩展 `backend/tests/test_knowledge_api.py`、`frontend/__tests__/AiTab.test.tsx`；TDD 红灯先出现，随后转绿。
+- 验证通过：`backend` 目录 `.venv\Scripts\python.exe -m unittest tests.test_database_migrations tests.test_knowledge_api -v`，10 tests OK。
+- 验证通过：`backend` 目录 `.venv\Scripts\python.exe -m unittest discover -s tests -v`，68 tests OK。
+- 验证通过：`frontend` 目录 `cmd /c npm run test`，3 个测试文件 10 tests passed。
+- 验证通过：`frontend` 目录 `cmd /c npm run build` 通过；为 smoke 曾以 `NEXT_PUBLIC_BACKEND_PORT=8004` 构建，验收后已重新执行默认 build。
+- 浏览器 smoke：fixture `release-validation/v2-knowledge-20260708-111015/`，临时后端 `127.0.0.1:8004`，临时静态预览 `127.0.0.1:3007`；Edge headless 打开 `/project-detail/?id=v2-knowledge-e2e&tab=ai`，提取文本和创建草稿均成功。
+- 浏览器结果：页面显示 `既有已确认知识摘要`、提取状态、`02_需求资料/brief.md`、`知识草稿` 和草稿摘要；`应用草稿` 数量 0，`写回 project.json` 数量 0；console error/warn 为 0，404 资源为 0。
+- API/磁盘复核：`GET /knowledge` 返回 `status=approved` 且 `draft.status=draft`；项目文件数 7；fixture `project.json` 仍只包含原 `既有已确认知识摘要`，不包含新草稿里的 `控制顾客动线`。
+- 静态样式复核：`rg -n 'style=\{\{|style="' frontend/app` 仍仅剩 `frontend/app/components/DirectoryTree.tsx:31` 的动态 CSS 变量。
+- 仓库卫生复核：`.gitignore` 补充 `release-validation/**/*.pid`，防止临时后端 pid 文件误提交；`git ls-files release-validation | rg '(\.db$|/backups/|/root/|/fixture-root/|/paths\.txt$)'` 无命中；`git diff --check` 通过，仅有既有 LF/CRLF 提示。
+- 清理：自动 smoke 后曾停止临时后端和静态预览并确认 `8004 / 3007` 无监听；为人工验收，已重新开启 `127.0.0.1:8004 / 127.0.0.1:3007`，待用户确认后再清理。
+- 范围控制：未写 `project.json`，未实现 apply，未新增依赖，未改 Tauri/installer，未触碰真实项目资料或默认数据库。
+- 剩余风险：V2.4 apply 尚未开始；首次 `project.json` 写入、backup、SQLite/FTS sync 需要下一阶段单独确认并用 fixture 验证。真实 AI draft 生成也未开始，需要用户另行确认。
+- 人工验收方式：本阶段请验收“网页预览”，不是桌面 App 或安装包。打开临时网页 `http://127.0.0.1:3007/project-detail/?id=v2-knowledge-e2e&tab=ai`，点击 `提取文本`，再点击 `创建草稿`；应看到提取数量、`02_需求资料/brief.md` 和 `知识草稿`，不应看到 `应用草稿` 或 `写回 project.json`。通过后回复“V2.2/V2.3 通过”。
+
+## 2026-07-08 V2.2 / V2.3 人工验收通过记录
+
+- 状态：complete。用户已通过网页方式人工验收 V2.2 Text Extraction Foundation 与 V2.3 Knowledge Draft Store。
+- 验收方式：临时后端 `127.0.0.1:8004` + 临时网页预览 `127.0.0.1:3007`，打开 `http://127.0.0.1:3007/project-detail/?id=v2-knowledge-e2e&tab=ai&v=v223`。
+- 验收修复：人工验收时首页曾显示 `404: not found`，根因是人工验收前为恢复默认 build，静态导出未再带 `NEXT_PUBLIC_BACKEND_PORT=8004`，前端请求落到 `3007/api`；已用 `NEXT_PUBLIC_BACKEND_PORT=8004` 重新构建，并重启 3007 静态预览加 `Cache-Control: no-store`。
+- 用户确认：页面可访问，V2.2/V2.3 验收通过。
+- 清理：人工验收后已停止临时网页预览和临时后端；`8004`、`3007` 均无监听。
+- 恢复：人工验收通过后已重新执行默认 `frontend` 构建，避免 `NEXT_PUBLIC_BACKEND_PORT=8004` 静态导出残留。
+- 下一步：进入 V2.4 Apply Approved Knowledge；开始前必须确认首次 `project.json` 写入方案、备份策略、SQLite/FTS 同步方式和人工验收步骤。
+
+## 2026-07-08 V2.4 / V2.5 自动验收记录
+
+- 状态：ready_for_human_acceptance。用户同意同时推进 V2.4 Apply Approved Knowledge 与 V2.5 Knowledge Search，本轮已完成自动测试、Chrome smoke 和文档同步，等待人工验收。
+- 后端：新增 `POST /projects/{project_id}/knowledge/apply`，请求必须包含 `draft_id`、`fields` 和 `confirm=true`；未确认时返回 `confirm_required`。
+- 写入保护：应用草稿前会在项目目录生成 `project.json.bak.<timestamp>`；随后写入选中知识字段，再复用 Full Scanner 同步 SQLite 缓存并刷新 FTS5。
+- 历史记录：应用成功后写入 `knowledge_history` 的 `apply_draft / success` 事件，并把 draft 标记为 `applied`。
+- 搜索：FTS5 新增 `knowledge` 实体类型，`/search?q=handover&category=knowledge` 可返回已确认知识结果；未引入向量搜索或新依赖。
+- 风险修复：自动 smoke 发现 `project.json` 会作为 `.json` 文本源进入草稿摘要，已修复为后端忽略根目录 `project.json`，前端也不再把 `project.json` 发送给提取接口；新增后端和前端回归测试覆盖。
+- 前端：Project Detail 的项目知识区新增 `应用草稿` 操作；点击后浏览器确认框提示“确认应用草稿并写入 project.json？系统会先创建备份。”，确认后显示备份文件名。
+- Fixture：`release-validation/v2_4_2_5_apply_search-20260708-164410/`，使用独立 `project_vault.db` 和 `fixture-root/V2 Apply Search Fixture`，未触碰真实项目资料或默认数据库。
+- Chrome smoke：临时后端 `127.0.0.1:8004` + 静态预览 `127.0.0.1:3007`，打开 `/project-detail/?id=v2-apply-search-e2e&tab=ai&v=v245final`，完成提取文本、创建草稿、确认应用草稿；页面显示 `已应用草稿，备份：`。
+- Chrome smoke 复核：Dashboard metrics 为项目 1、CAD 1、材料 2；Knowledge 搜索返回 `knowledge`；应用后 approved summary 不包含 `project_id`，证明 `project.json` 未再污染摘要；报告为 `release-validation/v2_4_2_5_apply_search-20260708-164410/browser-smoke-report.json`。
+- 磁盘复核：fixture 项目目录已生成 `project.json.bak.20260708-*`，`project.json` 的 `schema_version` 更新为 `2.0`。
+- 验证通过：`backend` 目录 `.venv\Scripts\python.exe -m unittest discover -s tests -v`，71 tests OK。
+- 验证通过：`frontend` 目录 `cmd /c npm run test`，3 个测试文件 10 tests passed。
+- 验证通过：`frontend` 目录 `NEXT_PUBLIC_BACKEND_PORT=8004 cmd /c npm run build`，9 个静态路由生成成功；仍仅有 Next 静态导出 rewrites 既有提示。
+- 验证通过：`rg -n 'style=\{\{|style="' frontend/app` 仍仅剩 `frontend/app/components/DirectoryTree.tsx:31` 的动态 CSS 变量。
+- 验证通过：`git diff --check` 通过，仅有既有 LF/CRLF 提示；`git ls-files release-validation | rg '(\.db$|/backups/|/root/|/fixture-root/|/paths\.txt$)'` 无命中。
+- 范围控制：本轮未新增依赖，未改 Tauri/installer，未实现真实 AI 生成、Agent、RAG、向量搜索、批量 apply 或 Dashboard coverage metric。
+- 当前临时验收环境：后端 `127.0.0.1:8004` 和网页预览 `127.0.0.1:3007` 已保持运行，供人工验收；通过后需要停止临时服务并重新执行默认 `frontend` 构建，避免 `NEXT_PUBLIC_BACKEND_PORT=8004` 静态导出残留。
+- 人工验收方式：本阶段验收网页预览，不是桌面 App 或安装包。打开 `http://127.0.0.1:3007/project-detail/?id=v2-apply-search-e2e&tab=ai&v=v245final`，应看到 `V2 Apply Search Fixture`、`项目知识`、`已应用草稿，备份：`，并且旧摘要已被新摘要替换；通过后回复“V2.4/V2.5 通过”。
+
+## 2026-07-08 V2.4 / V2.5 人工验收通过记录
+
+- 状态：complete。用户已通过网页方式人工验收 V2.4 Apply Approved Knowledge 与 V2.5 Knowledge Search。
+- 验收方式：内置浏览器打开临时网页 `http://127.0.0.1:3007/project-detail/?id=v2-apply-search-e2e&tab=ai&v=v245final`。
+- 用户确认：V2.4/V2.5 通过。
+- 清理：人工验收后已停止临时后端 `127.0.0.1:8004` 和临时网页预览 `127.0.0.1:3007`，复查均无监听。
+- 恢复：人工验收前为连接 fixture 后端曾以 `NEXT_PUBLIC_BACKEND_PORT=8004` 构建前端；验收后已重新执行默认 `frontend` 构建，避免测试端口残留。
+- 最终验证：默认 `frontend` 构建通过；`git diff --check` 仍只提示既有 LF/CRLF 归一化警告。
+- 下一步：进入 V2.6 Local Semantic Search Spike 或 V2 beta 收口决策；真实 AI draft 生成、向量依赖和安装包发布仍需用户单独确认。
+
+## 2026-07-08 V2 beta 收口决策记录
+
+- 状态：ready_for_acceptance。已把 V2.1-V2.5 固化为首个 V2 beta 可验收节点。
+- 新增收口文档：`docs/release/V2_BETA_ACCEPTANCE_CHECKPOINT.md`，记录 accepted behavior、明确排除项、安全门禁、验证命令、fixture 证据和下一步决策。
+- 同步文档：`docs/planning/V2_KNOWLEDGE_PLATFORM_PLAN.md`、`docs/planning/V2_SCHEMA_API_RFC.md`、`docs/planning/V2_EXECUTION_PLAN.md`、`docs/planning/V2_CONFIRMATION_CHECKLIST.md`、`task_plan.md`。
+- beta 范围：V2.1 Knowledge Read Model、V2.2 Text Extraction Foundation、V2.3 Knowledge Draft Store、V2.4 Apply Approved Knowledge、V2.5 Knowledge Search。
+- 不包含：packaged installer release、真实 AI 生成、Agent/RAG/语义搜索、向量依赖、跨项目批量 apply、Dashboard knowledge coverage metric。
+- 决策结果：V2.1-V2.5 可作为 `v2.0.0-beta.1` 的开发验收范围；这不是安装包发布声明。
+- 继续门禁：真实 AI 生成、语义/向量依赖、安装包发布、跨项目批量 apply 仍需用户单独确认。
+- 验证通过：`backend` 目录 `.venv\Scripts\python.exe -m unittest discover -s tests -v`，71 tests OK。
+- 验证通过：`frontend` 目录 `cmd /c npm run test`，3 个测试文件 10 tests passed。
+- 验证通过：`frontend` 目录 `cmd /c npm run build`，9 个静态路由生成成功；仍仅有 Next 静态导出 rewrites 既有提示。
+- 验证通过：`rg -n 'style=\{\{|style="' frontend/app` 仍仅剩 `frontend/app/components/DirectoryTree.tsx:31` 的动态 CSS 变量。
+- 验证通过：`git ls-files release-validation | rg '(\.db$|/backups/|/root/|/fixture-root/|/paths\.txt$)'` 无命中。
+- 验证通过：`git diff --check` 退出正常，仅输出既有 LF/CRLF 归一化提示。
+- 本轮未启动临时后端或网页预览；复查 `8004 / 3007` 无监听；未使用 Edge。
+
+## 2026-07-08 V2 beta packaged installer 验证记录
+
+- 状态：deferred_by_user。已按用户要求停止继续做沙盒/安装环境复验，转入 V2.6。
+- 首次失败：本机安装包回归在 `v2_knowledge_extract_text` 前返回 404，根因是 `tauri build` 只打包已有 backend sidecar，未重建包含 V2 Knowledge API 的 PyInstaller sidecar。
+- 修复：`desktop/package.json` 新增 `prebuild`，在 `npm run build` 前执行 `scripts/build_backend_sidecar.ps1 -SkipInstall`，避免后续 installer 打进旧 sidecar。
+- 修复：`scripts/build_backend_sidecar.ps1` 增加 `--hidden-import app.api.knowledge`，并用 `backend/tests/test_phase12_sidecar_packaging.py` 锁定。
+- 验证通过：PowerShell 语法检查通过，覆盖 `scripts/build_backend_sidecar.ps1` 与 `scripts/verify_local_installed_usage.ps1`。
+- 验证通过：`backend` 目录 `.venv\Scripts\python.exe -m unittest tests.test_phase12_sidecar_packaging -v`，12 tests OK。
+- 验证通过：`desktop` 目录 `cmd /c npm run build` 通过，先重建 frontend，再重建 backend sidecar，再生成 release NSIS installer。
+- 最新 Installer：`desktop/src-tauri/target/release/bundle/nsis/Project Vault_0.1.0_x64-setup.exe`，大小 `247,439,069` bytes，SHA256 `9099FA65EA69A0A030DADB0955339637CE7411C5E682E16B66FCCEC96FE4EB41`。
+- 本机安装回归曾在前一版 installer 上通过，报告 `release-validation/local-installed-usage-validation.json`，`passed=true`，32 个步骤全部 pass，installer SHA256 `6C6BD555BD4DAD2B036AC6B6438F6AF728CA316A18BB69856600FD8F1CE4F1FF`。
+- 最新 installer 复验未完成：验证脚本清理安装目录时遇到 WebView2 runtime 文件锁 `zh-CN.pak is denied`；未进入产品流程验证。
+- V2 packaged 关键步骤通过：`v2_knowledge_file_indexed`、`v2_knowledge_extract_text`、`v2_knowledge_create_draft`、`v2_knowledge_apply_draft`、`v2_knowledge_search`。
+- 已知待处理：后续恢复 packaged validation 时，先给 `scripts/verify_local_installed_usage.ps1` 的安装目录删除加短重试，或确保 WebView2 进程完全退出后再清理。
+- 验证通过：`git ls-files release-validation | rg '(\.db$|/backups/|/root/|/fixture-root/|/paths\.txt$)'` 无命中。
+- 验证通过：`git diff --check` 退出正常，仅输出既有 LF/CRLF 归一化提示。
+- 清理结果：当前未发现 `project-vault*` 进程；`8004 / 3007` 无监听。
+- 剩余风险：最新 installer 的本机安装回归与 clean Windows Sandbox 验证均延后；不作为 V2.6 spike 前置门禁。
+
+## 2026-07-08 V2.6 Local Semantic Search Spike 启动记录
+
+- 状态：in_progress。用户要求先不测沙盒，开始 V2.6。
+- 范围：只做本地语义搜索 spike，不加生产向量依赖，不接产品搜索入口，不改 schema/API。
+- 执行清单：用 fixture 构造 FTS5 命中/漏召回样例；用零依赖 Python baseline 估算“语义/同义词/意图扩展”可带来的召回提升；输出 keep/drop 决策文档。
+- 验收清单：有可复现脚本或命令；有 fixture 报告；有 keep/drop 建议；记录是否值得进入真正向量依赖评估。
+
+## 2026-07-08 V2.6 Local Semantic Search Spike 完成记录
+
+- 状态：complete。已完成本地语义搜索 spike；未新增依赖，未改 schema/API，未接前端或产品搜索入口。
+- 新增脚本：`scripts/v2_6_semantic_search_spike.py`。
+- 新增决策文档：`docs/planning/V2_6_SEMANTIC_SEARCH_SPIKE.md`。
+- Fixture 报告：`release-validation/v2_6_semantic_search_spike-20260708-181223/semantic-search-spike-report.json`。
+- 验证命令：`backend\.venv\Scripts\python.exe scripts\v2_6_semantic_search_spike.py`。
+- 结果：FTS5 Knowledge search 命中 3/6，总近义查询命中 1/4；零依赖 alias proxy 命中 6/6，总近义查询命中 4/4。
+- 决策：`defer_vector_dependency`。当前 V2 不引入向量依赖；保留 FTS5，只有出现真实 miss-query 样本后才考虑小型 query expansion；向量搜索需要用户单独确认。
+- 剩余风险：fixture 很小，只证明近义召回问题存在，不证明生产 ranking 质量；latest installer 本机安装回归和 clean Windows Sandbox 验证仍按用户要求延后，不作为 V2.6 前置门禁。
+
+## 2026-07-08 V2 beta packaged installer 本机复验记录
+
+- 状态：local_packaged_validation_passed。按用户确认的下一步，恢复 beta packaged validation，不跑沙盒。
+- 修复：`scripts/verify_local_installed_usage.ps1` 新增 `Remove-PathWithRetry` 和 `Stop-ProjectVaultRuntimeProcesses`，安装目录清理遇到 WebView2 runtime 文件锁时会短重试，并只停止验证安装目录下的 Project Vault/WebView2 进程。
+- 测试：`backend/tests/test_phase12_sidecar_packaging.py` 新增脚本门禁，锁定本机安装验证脚本具备安装目录清理重试和 WebView2 进程处理。
+- 验证通过：PowerShell 语法检查 `verify_local_installed_usage.ps1 syntax ok`。
+- 验证通过：`backend` 目录 `.venv\Scripts\python.exe -m unittest tests.test_phase12_sidecar_packaging -v`，14 tests OK。
+- 验证通过：`scripts\verify_local_installed_usage.ps1` 本机安装包级回归通过，报告 `release-validation/local-installed-usage-validation.json`。
+- 报告结果：`passed=true`，32 个步骤全部 pass，失败步骤 0。
+- Installer：`desktop/src-tauri/target/release/bundle/nsis/Project Vault_0.1.0_x64-setup.exe`，大小 `247,439,069` bytes，SHA256 `9099FA65EA69A0A030DADB0955339637CE7411C5E682E16B66FCCEC96FE4EB41`。
+- 报告 SHA256：JSON `66F3FE90727FAEFF3C97E6D6D54F7E196FF24620D87EFC37AFDC684B54325AAF`；TXT `E26F9DD5DC4E3489225EE96731AA6B365BAF66DD345E999BD91B6BB73354F65A`。
+- V2 packaged 步骤通过：`v2_knowledge_file_indexed`、`v2_knowledge_extract_text`、`v2_knowledge_create_draft`、`v2_knowledge_apply_draft`、`v2_knowledge_search`。
+- 最终验证通过：`backend` 目录 `.venv\Scripts\python.exe -m unittest discover -s tests -v`，73 tests OK。
+- 最终验证通过：`frontend` 目录 `cmd /c npm run test`，3 个测试文件 10 tests passed。
+- 最终验证通过：`frontend` 目录 `cmd /c npm run build`，9 个静态路由生成成功；仅有 Next 静态导出 rewrites 既有提示。
+- 最终验证通过：`rg -n 'style=\{\{|style="' frontend/app` 仍仅剩 `frontend/app/components/DirectoryTree.tsx:31` 的动态 CSS 变量。
+- 最终验证通过：`git diff --check` 退出正常，仅输出既有 LF/CRLF 归一化提示；`git ls-files release-validation | rg '(\.db$|/backups/|/root/|/fixture-root/|/paths\.txt$)'` 无命中。
+- 清理结果：未发现残留 `project-vault*` 进程。
+- 范围控制：本轮是本机 installed packaged validation，不是 clean Windows Sandbox 验证；未新增产品依赖，未新增 API/schema，未做真实 AI generation。
+- 剩余风险：latest installer 仍需 clean Windows Sandbox 或独立 clean Windows 机器复验后，才能作为 release-grade installer 声明。
+
+## 2026-07-10 V2.7 Real AI Draft Generation 启动记录
+
+- 状态：in_progress。用户确认同步推进 beta 仓库收口、提交/CI、发布级安装包验证和真实 AI generation，自动 review/test 后再人工验收。
+- 分支：`feat/v2-beta-ai-generation`，从 `main` / `v1.4.0` 创建并保留当前全部 V2 工作树改动。
+- 实现边界：复用现有 OpenAI-compatible Provider `/chat/completions`；输入仅使用 fixture 提取的短摘录；输出只进入 `knowledge_drafts`。
+- 写入门禁：AI 草稿不得直接写 `ai_metadata` 或 `project.json`；仍需现有“应用草稿”确认、备份、SQLite/FTS 同步流程。
+- 范围控制：不新增依赖、不改数据库 schema、不做向量搜索、批量 apply、PDF/DOCX 或 Agent/RAG。
+- 验收清单：Provider 缺失/失败路径受控；成功草稿记录 provider/model；已确认知识不被生成动作覆盖；前端 AI 草稿入口可用；全量测试、CI、installer 本机/clean Windows 验证通过；最后人工验收。
+
+## 2026-07-10 V2.7 Real AI Draft Generation 完成记录
+
+- 状态：complete。用户已完成最终人工验收。
+- 功能：复用 OpenAI-compatible Provider 和已提取短摘录；AI 输出只保存到 `knowledge_drafts`，记录 provider/model；旧 direct analyze 接口固定返回 `409 use_knowledge_draft_flow`。
+- 安全：Provider 缺失、网络失败、无效响应和超大响应均不会创建草稿或改写已确认知识；`project.json` 仍只在现有确认 apply 流程中写入并先备份。
+- 自动验证：backend unittest 83 tests OK；frontend test 12 passed；frontend production build 和 desktop `cargo check` 通过；静态样式扫描只保留 `DirectoryTree.tsx` 的动态 CSS 变量。
+- 远端验证：PR #2 的 GitHub Actions CI run 3 通过，backend、frontend build、frontend test 均为 success。
+- 新 installer：`Project Vault_2.0.0-beta.1_x64-setup.exe`，SHA256 `FCA20A8EBFDF08C6F2C6C5216F00355E6C55546ECD259E85D9A501E819AA668F`。
+- 本机安装包验证：`release-validation/v2.0.0-beta.1/local-installed-usage-validation.json`，`passed=true`，33 steps pass；报告 SHA256 `84E1FBD6FBC7001DCFFC87ADD5871ECFCCBA0E092DBEACE780C008CC18238BDB`。
+- clean Windows 验证：`release-validation/v2.0.0-beta.1/clean-windows-validation.json`，`passed=true`，15 steps pass；无 Python/Node、fixed WebView2、主窗口、knowledge route、frontend render、退出清理均通过；报告 SHA256 `C460E8C723B1B15B39CFC931E919F12980E2654677D728CEE501A30E487FE1F0`。
+- 人工验收：用户已确认 Sandbox 主窗口与网页 fixture 的提取文本、AI 生成草稿、确认应用流程通过。
+- 清理：临时 mock Provider、fixture backend、网页预览已停止；`8004 / 3007 / 18181` 无监听。前端将恢复默认构建。
+- 后续风险：真实第三方 Provider 凭据和实际项目语料尚未作为发布门禁验证；向量依赖、批量 apply、PDF/DOCX、新的生产语义搜索、Agent/RAG 仍不在 V2 beta 范围。

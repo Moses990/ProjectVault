@@ -15,7 +15,6 @@ from app.services import (
     row_to_dict,
 )
 from app.services.ai_providers import (
-    analyze_project_with_ai,
     create_ai_provider,
     delete_ai_provider,
     list_ai_providers,

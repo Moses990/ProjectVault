@@ -1095,3 +1095,17 @@ Phase 12.2：Packaged UI Render Validation，状态：in_progress。
 - 写入门禁：AI 草稿不得直接写 `ai_metadata` 或 `project.json`；仍需现有“应用草稿”确认、备份、SQLite/FTS 同步流程。
 - 范围控制：不新增依赖、不改数据库 schema、不做向量搜索、批量 apply、PDF/DOCX 或 Agent/RAG。
 - 验收清单：Provider 缺失/失败路径受控；成功草稿记录 provider/model；已确认知识不被生成动作覆盖；前端 AI 草稿入口可用；全量测试、CI、installer 本机/clean Windows 验证通过；最后人工验收。
+
+## 2026-07-10 V2.7 Real AI Draft Generation 完成记录
+
+- 状态：complete。用户已完成最终人工验收。
+- 功能：复用 OpenAI-compatible Provider 和已提取短摘录；AI 输出只保存到 `knowledge_drafts`，记录 provider/model；旧 direct analyze 接口固定返回 `409 use_knowledge_draft_flow`。
+- 安全：Provider 缺失、网络失败、无效响应和超大响应均不会创建草稿或改写已确认知识；`project.json` 仍只在现有确认 apply 流程中写入并先备份。
+- 自动验证：backend unittest 83 tests OK；frontend test 12 passed；frontend production build 和 desktop `cargo check` 通过；静态样式扫描只保留 `DirectoryTree.tsx` 的动态 CSS 变量。
+- 远端验证：PR #2 的 GitHub Actions CI run 3 通过，backend、frontend build、frontend test 均为 success。
+- 新 installer：`Project Vault_2.0.0-beta.1_x64-setup.exe`，SHA256 `FCA20A8EBFDF08C6F2C6C5216F00355E6C55546ECD259E85D9A501E819AA668F`。
+- 本机安装包验证：`release-validation/v2.0.0-beta.1/local-installed-usage-validation.json`，`passed=true`，33 steps pass；报告 SHA256 `84E1FBD6FBC7001DCFFC87ADD5871ECFCCBA0E092DBEACE780C008CC18238BDB`。
+- clean Windows 验证：`release-validation/v2.0.0-beta.1/clean-windows-validation.json`，`passed=true`，15 steps pass；无 Python/Node、fixed WebView2、主窗口、knowledge route、frontend render、退出清理均通过；报告 SHA256 `C460E8C723B1B15B39CFC931E919F12980E2654677D728CEE501A30E487FE1F0`。
+- 人工验收：用户已确认 Sandbox 主窗口与网页 fixture 的提取文本、AI 生成草稿、确认应用流程通过。
+- 清理：临时 mock Provider、fixture backend、网页预览已停止；`8004 / 3007 / 18181` 无监听。前端将恢复默认构建。
+- 后续风险：真实第三方 Provider 凭据和实际项目语料尚未作为发布门禁验证；向量依赖、批量 apply、PDF/DOCX、新的生产语义搜索、Agent/RAG 仍不在 V2 beta 范围。

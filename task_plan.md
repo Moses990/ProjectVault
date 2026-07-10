@@ -763,7 +763,7 @@ V1.0 checkpoint/tag 判定：仓库卫生检查已通过，可以进入提交/ta
 
 ## Phase 14：V2 Knowledge Platform Planning（2026-07-08）
 
-状态：ready_for_acceptance。
+状态：complete。
 
 目标：在 V1.4 发布闭环后，规划 V2 知识平台。V2 首轮重点是结构化项目知识、文本提取、AI 草稿、人工确认、`project.json` 回写和 FTS5 检索；不直接进入 Agent、完整 RAG、云同步、权限系统或多人协同。
 
@@ -793,3 +793,5 @@ V1.0 checkpoint/tag 判定：仓库卫生检查已通过，可以进入提交/ta
 - V2.7 Real AI Draft Generation 已获用户确认并启动：复用现有 Provider 和文本来源，只生成草稿，不自动写 `project.json`，不新增依赖/schema。
 - 本轮同步推进 beta 仓库检查点、自动 review/test、远端 CI、installer 本机/clean Windows 验证，最后进入人工验收。
 - 向量依赖、批量 apply、PDF/DOCX 新依赖继续延后。
+- V2.7 已完成并通过人工验收：AI 草稿记录 provider/model，失败不会写入已确认知识，旧 direct analyze 路径不能绕过草稿/确认门禁。
+- V2 beta release evidence：GitHub CI、33 步本机安装包回归、15 步 clean Windows 验证均通过；installer SHA256 `FCA20A8EBFDF08C6F2C6C5216F00355E6C55546ECD259E85D9A501E819AA668F`。

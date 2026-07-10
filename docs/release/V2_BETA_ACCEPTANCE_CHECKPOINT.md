@@ -1,11 +1,11 @@
 # Project Vault V2 Beta Acceptance Checkpoint
 
-Status: local_packaged_validation_passed
-Date: 2026-07-08
+Status: accepted
+Date: 2026-07-10
 
 ## Scope
 
-This checkpoint freezes V2.1 through V2.5 as the first beta acceptance node.
+This checkpoint freezes V2.1 through V2.7 as the first beta acceptance node.
 
 Included:
 
@@ -14,12 +14,11 @@ Included:
 - V2.3 Knowledge Draft Store
 - V2.4 Apply Approved Knowledge
 - V2.5 Knowledge Search
+- V2.6 Semantic Search Spike (`defer_vector_dependency`)
+- V2.7 Real AI Draft Generation
 
 Not included:
 
-- packaged installer release claim
-- clean Windows validation for the latest installer
-- real AI generation
 - Agent / RAG / semantic search
 - vector dependency
 - batch apply across projects
@@ -36,6 +35,8 @@ Not included:
 - Applying a draft syncs `project.json` back into SQLite and FTS5.
 - Approved knowledge is searchable through `category=knowledge`.
 - Root `project.json` is excluded from extraction to avoid metadata feedback.
+- AI generation calls the configured OpenAI-compatible Provider and stores only a draft.
+- AI generation records provider and model metadata; it cannot bypass explicit apply confirmation.
 
 ## Safety Gates
 
@@ -74,15 +75,15 @@ Packaged local installed validation snapshot:
 release-validation/local-installed-usage-validation.json
 ```
 
-Observed latest packaged result:
+Latest V2.7 packaged result:
 
 - `passed=true`
-- 32 validation steps passed
-- installer SHA256: `9099FA65EA69A0A030DADB0955339637CE7411C5E682E16B66FCCEC96FE4EB41`
-- report SHA256: `66F3FE90727FAEFF3C97E6D6D54F7E196FF24620D87EFC37AFDC684B54325AAF`
-- V2 packaged steps passed: knowledge file indexed, text extracted, draft created, draft applied, knowledge search returned approved knowledge
-- Next checkpoint installer path: `desktop/src-tauri/target/release/bundle/nsis/Project Vault_2.0.0-beta.1_x64-setup.exe`.
-- The validation script now retries locked install-directory cleanup and stops only Project Vault/WebView2 processes under the validation install root.
+- 33 validation steps passed
+- installer SHA256: `FCA20A8EBFDF08C6F2C6C5216F00355E6C55546ECD259E85D9A501E819AA668F`
+- local report SHA256: `84E1FBD6FBC7001DCFFC87ADD5871ECFCCBA0E092DBEACE780C008CC18238BDB`
+- V2 AI packaged steps passed: file indexed, text extracted, AI draft created, explicit apply backed up `project.json`, knowledge search returned approved knowledge.
+- clean Windows validation: `passed=true`, 15 steps passed, report SHA256 `C460E8C723B1B15B39CFC931E919F12980E2654677D728CEE501A30E487FE1F0`.
+- GitHub Actions CI run 3 passed for PR #2.
 
 ## Validation Commands
 
@@ -102,10 +103,10 @@ git ls-files release-validation | rg '(\.db$|/backups/|/root/|/fixture-root/|/pa
 
 ## Beta Decision
 
-V2.1-V2.5 can be treated as the first V2 beta acceptance node, with latest local installed packaged validation passed. This is still not a clean Windows release claim.
+V2.1-V2.7 are an accepted beta node. Local packaged validation, clean Windows validation, CI, and final fixture-based human acceptance passed. This does not authorize Agent/RAG, vector dependency, batch apply, or a production semantic-search feature.
 
 Next decision:
 
 ```text
-Either run clean Windows validation for release-grade proof, or plan the first real AI generation path.
+Choose a separately confirmed V2 follow-up: real Provider credential rollout, batch apply, PDF/DOCX extraction, or production query expansion.
 ```

@@ -313,8 +313,12 @@ Scope:
 
 Status:
 
-- in_progress.
-- user confirmed implementation together with beta checkpoint, automated review/test, and installer validation.
+- complete.
+- mocked OpenAI-compatible Provider creates a draft with provider/model traceability.
+- failed Provider calls leave approved knowledge unchanged and do not create a draft.
+- legacy direct analysis endpoint returns `409 use_knowledge_draft_flow`.
+- backend 83 tests, frontend 12 tests, frontend production build, desktop `cargo check`, GitHub CI, local packaged validation, and clean Windows validation passed.
+- user accepted the final fixture flow on 2026-07-10.
 
 Exit criteria:
 

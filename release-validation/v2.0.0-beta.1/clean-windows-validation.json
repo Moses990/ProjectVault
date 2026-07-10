@@ -1,0 +1,157 @@
+{
+    "startedAt":  "2026-07-10T14:57:00.3668051+08:00",
+    "installerPath":  "C:\\Users\\WDAGUtilityAccount\\Desktop\\nsis\\Project Vault_2.0.0-beta.1_x64-setup.exe",
+    "installDir":  "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Programs\\ProjectVaultCleanTest",
+    "reportDir":  "C:\\Users\\WDAGUtilityAccount\\Desktop\\release-validation\\v2.0.0-beta.1",
+    "passed":  true,
+    "steps":  [
+                  {
+                      "name":  "installer_exists",
+                      "status":  "pass",
+                      "details":  {
+                                      "path":  "C:\\Users\\WDAGUtilityAccount\\Desktop\\nsis\\Project Vault_2.0.0-beta.1_x64-setup.exe",
+                                      "size":  247257239
+                                  }
+                  },
+                  {
+                      "name":  "python_unavailable",
+                      "status":  "pass",
+                      "details":  {
+                                      "command":  "python",
+                                      "found":  false,
+                                      "versionExitCode":  1,
+                                      "versionOutput":  "\u0027python\u0027 is not recognized as an internal or external command,\noperable program or batch file.",
+                                      "unavailable":  true
+                                  }
+                  },
+                  {
+                      "name":  "node_unavailable",
+                      "status":  "pass",
+                      "details":  {
+                                      "command":  "node",
+                                      "found":  false,
+                                      "versionExitCode":  1,
+                                      "versionOutput":  "\u0027node\u0027 is not recognized as an internal or external command,\noperable program or batch file.",
+                                      "unavailable":  true
+                                  }
+                  },
+                  {
+                      "name":  "installer_silent_run",
+                      "status":  "pass",
+                      "details":  {
+                                      "args":  "/S /D=C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Programs\\ProjectVaultCleanTest",
+                                      "exitCode":  0
+                                  }
+                  },
+                  {
+                      "name":  "fixed_webview2_runtime_bundled",
+                      "status":  "pass",
+                      "details":  {
+                                      "bundled":  true,
+                                      "path":  "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Programs\\ProjectVaultCleanTest\\binaries\\webview2-fixed-runtime\\Microsoft.WebView2.FixedVersionRuntime.149.0.4022.96.x64\\msedgewebview2.exe",
+                                      "size":  4763464
+                                  }
+                  },
+                  {
+                      "name":  "webview2_runtime_available",
+                      "status":  "pass",
+                      "details":  {
+                                      "available":  true,
+                                      "registryPath":  "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\EdgeUpdate\\Clients\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",
+                                      "name":  "Microsoft Edge WebView2 Runtime",
+                                      "version":  "141.0.3537.71"
+                                  }
+                  },
+                  {
+                      "name":  "app_executable_found",
+                      "status":  "pass",
+                      "details":  {
+                                      "path":  "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Programs\\ProjectVaultCleanTest\\project-vault.exe",
+                                      "size":  8501248
+                                  }
+                  },
+                  {
+                      "name":  "app_started",
+                      "status":  "pass",
+                      "details":  {
+                                      "processName":  "project-vault",
+                                      "processId":  1280
+                                  }
+                  },
+                  {
+                      "name":  "app_main_webview_window",
+                      "status":  "pass",
+                      "details":  {
+                                      "processId":  1280,
+                                      "processName":  "project-vault",
+                                      "mainWindowTitle":  "Project Vault",
+                                      "mainWindowHandle":  131462
+                                  }
+                  },
+                  {
+                      "name":  "webview2_runtime_error_dialog_absent",
+                      "status":  "pass",
+                      "details":  {
+                                      "checkedProcessId":  1280,
+                                      "matchingDialogs":  0
+                                  }
+                  },
+                  {
+                      "name":  "backend_health",
+                      "status":  "pass",
+                      "details":  {
+                                      "processId":  5048,
+                                      "processName":  "project-vault-backend",
+                                      "port":  49724,
+                                      "uri":  "http://127.0.0.1:49724/api/v1/health",
+                                      "health":  {
+                                                     "status":  "ok",
+                                                     "service":  "project-vault-backend",
+                                                     "database":  {
+                                                                      "path":  "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\ProjectVault\\database\\project_vault.db",
+                                                                      "exists":  true
+                                                                  }
+                                                 }
+                                  }
+                  },
+                  {
+                      "name":  "packaged_knowledge_route",
+                      "status":  "pass",
+                      "details":  {
+                                      "uri":  "http://127.0.0.1:49724/openapi.json",
+                                      "route":  "/api/v1/projects/{project_id}/knowledge",
+                                      "present":  true
+                                  }
+                  },
+                  {
+                      "name":  "frontend_render",
+                      "status":  "pass",
+                      "details":  {
+                                      "processId":  1280,
+                                      "port":  49725,
+                                      "uri":  "http://127.0.0.1:49725/",
+                                      "statusCode":  200,
+                                      "containsProjectVaultShell":  true,
+                                      "containsBackendPortInjection":  true
+                                  }
+                  },
+                  {
+                      "name":  "database_path",
+                      "status":  "pass",
+                      "details":  {
+                                      "actual":  "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\ProjectVault\\database\\project_vault.db",
+                                      "expectedRoot":  "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\ProjectVault\\database",
+                                      "exists":  true
+                                  }
+                  },
+                  {
+                      "name":  "backend_exit_cleanup",
+                      "status":  "pass",
+                      "details":  {
+                                      "closeMainWindow":  true,
+                                      "checkedBackendProcessId":  5048
+                                  }
+                  }
+              ],
+    "finishedAt":  "2026-07-10T14:57:41.5696443+08:00"
+}

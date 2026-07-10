@@ -446,4 +446,4 @@ docs/planning/V2_EXECUTION_PLAN.md
 docs/planning/V2_CONFIRMATION_CHECKLIST.md
 ```
 
-V2.1-V2.6 are now frozen as a beta knowledge checkpoint plus semantic-search spike. New dependency, installer release, real AI generation, or production semantic search still requires separate confirmation.
+V2.1-V2.7 are accepted as the V2 beta knowledge checkpoint. The V2.7 AI path remains draft-only until the existing explicit apply confirmation. Vector dependency, batch apply, PDF/DOCX extraction, Agent/RAG, and production semantic search still require separate confirmation.

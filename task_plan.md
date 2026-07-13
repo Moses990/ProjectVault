@@ -865,7 +865,7 @@ V1.0 checkpoint/tag 判定：仓库卫生检查已通过，可以进入提交/ta
 
 ## Phase 19：Provider 凭据迁移与发布检查点（2026-07-13）
 
-状态：in_progress。
+状态：complete。
 
 目标：在应用启动时主动迁移旧 Provider 明文密钥，随后完成提交、推送和 GitHub CI 核验。
 
@@ -876,4 +876,10 @@ V1.0 checkpoint/tag 判定：仓库卫生检查已通过，可以进入提交/ta
 - 提交前完成安全导向代码审查、全量后端与前端验证、发布产物卫生检查。
 - 以独立分支提交、推送并创建草稿 PR；核验对应 GitHub Actions 结果。
 
-当前进度：已完成主动迁移实现、全量本地验证、发布产物卫生检查和提交前代码审查；待提交、推送与 CI 核验。
+结果：主动迁移已落地；本地运行库无待迁移项。变更已提交为 `9a732b5`、推送至 `agent/provider-security-hardening`，草稿 PR #4 已创建；GitHub Actions run #9 的后端测试、前端构建与测试全部成功。
+
+## Phase 20：真实 Provider 草稿验证
+
+状态：blocked。
+
+阻塞条件：当前本地运行库没有已配置 Provider。继续前需用户在 AI Center 配置可用 Provider，并明确同意向该 Provider 发送选定项目资料摘录；验证将只创建草稿，不写入 `project.json`。

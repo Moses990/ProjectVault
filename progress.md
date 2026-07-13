@@ -1207,3 +1207,5 @@ Phase 12.2：Packaged UI Render Validation，状态：in_progress。
 - 主动迁移：已对当前本地运行库执行迁移，结果 `migrated=0`、`retained=0`、`managed=0`、`legacy=0`；未读取或输出任何密钥。
 - 自动验证：后端 unittest 90 项、前端 vitest 11 项、前端生产构建（9 路由）和桌面 `cargo check` 均通过。前端构建仍仅报告既有 `output: export` 下 rewrites 不生效提示。
 - 提交前审查：已检查暂存差异、参数化 SQL、密钥格式、运行产物卫生与 Credential Manager 调用链；未发现 critical/high 问题。ADR 门禁引用 `docs/architecture/07_Backend_Architecture.md` 的 Windows Credential Manager 决策、`08_API_Specification.md` 的脱敏 API 要求和 `05_Database.md` 的 `key_reference` 定义，本轮为既有规范落实，无需新增 ADR。
+- 发布：提交 `9a732b5` 已推送至 `agent/provider-security-hardening`；草稿 PR #4 已创建。GitHub Actions run #9 已成功，后端测试、前端 install/build/test 和 WebView2 准备步骤均成功。
+- 下一阶段：真实 Provider 验证因本地运行库无已配置 Provider 而阻塞；需要用户配置可用服务并明确授权向其发送选定资料摘录。验证只创建 AI 草稿，不确认写入 `project.json`。

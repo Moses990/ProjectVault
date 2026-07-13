@@ -434,8 +434,58 @@ def scan_project_incremental(
                     project_id,
                     normalized_changed_paths,
                 )
+                current_by_path = {
+                    relative_path: build_single_file_record(project_dir, project_id, relative_path)
+                    for relative_path in normalized_changed_paths
+                }
+                handled_paths: set[str] = set()
+                existing_by_fingerprint: dict[str, str] = {}
+                for relative_path, existing in existing_by_path.items():
+                    if current_by_path[relative_path] is None:
+                        existing_by_fingerprint.setdefault(
+                            file_content_fingerprint(existing),
+                            relative_path,
+                        )
+
+                for relative_path, current in current_by_path.items():
+                    if current is None or relative_path in existing_by_path:
+                        continue
+                    old_relative_path = existing_by_fingerprint.pop(
+                        file_content_fingerprint(current),
+                        None,
+                    )
+                    if old_relative_path is None:
+                        continue
+                    existing = existing_by_path[old_relative_path]
+                    fast_path_entity_ids.add(existing["id"])
+                    fast_path_entity_ids.update(file_dependent_entity_ids(conn, existing["id"]))
+                    conn.execute(
+                        """
+                        UPDATE files
+                        SET file_hash = ?, relative_path = ?, relative_dir = ?, file_name = ?,
+                            extension = ?, size_bytes = ?, last_modified = ?
+                        WHERE id = ?
+                        """,
+                        (
+                            current["file_hash"], current["relative_path"], current["relative_dir"],
+                            current["file_name"], current["extension"], current["size_bytes"],
+                            current["last_modified"], existing["id"],
+                        ),
+                    )
+                    conn.execute(
+                        "UPDATE knowledge_sources SET relative_path = ? WHERE file_id = ?",
+                        (current["relative_path"], existing["id"]),
+                    )
+                    refresh_file_dependents(conn, project_id, existing["id"], current)
+                    fast_path_entity_ids.add(stable_id(project_id, "drawing", current["relative_path"]))
+                    fast_path_entity_ids.add(stable_id(project_id, "material", current["relative_path"]))
+                    handled_paths.update({old_relative_path, relative_path})
+                    moved_count += 1
+
                 for relative_path in sorted(normalized_changed_paths):
-                    current = build_single_file_record(project_dir, project_id, relative_path)
+                    if relative_path in handled_paths:
+                        continue
+                    current = current_by_path[relative_path]
                     existing = existing_by_path.get(relative_path)
                     if current is None:
                         if existing is None:

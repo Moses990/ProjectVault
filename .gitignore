@@ -52,3 +52,4 @@ release-validation/**/chrome-profile-*/
 release-validation/**/edge-profile-*/
 release-validation/**/chrome-profile/
 release-validation/**/edge-profile/
+release-validation/v2_beta_real_usage-*/

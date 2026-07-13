@@ -15,6 +15,7 @@ from app.api.knowledge import (
     ExtractTextRequest,
     get_project_knowledge,
     post_knowledge_apply,
+    post_knowledge_discard,
     post_knowledge_draft,
     post_knowledge_extract_text,
 )
@@ -59,7 +60,9 @@ def create_fixture_project(root: Path, db_path: Path) -> dict[str, str]:
     sheet = docs_dir / "materials.csv"
     sheet.write_text("name,value\n灯具,暖白\n", encoding="utf-8")
     pdf = docs_dir / "brief.pdf"
-    pdf.write_bytes(b"%PDF-unsupported")
+    _write_text_pdf(pdf, "")
+    pdf_text = docs_dir / "concept.pdf"
+    _write_text_pdf(pdf_text, "Customer circulation requirement")
 
     with closing(sqlite3.connect(db_path)) as conn:
         conn.execute(
@@ -73,6 +76,7 @@ def create_fixture_project(root: Path, db_path: Path) -> dict[str, str]:
             "brief": ("file-brief", "02_需求资料/brief.md", "brief.md", ".md"),
             "csv": ("file-csv", "02_需求资料/materials.csv", "materials.csv", ".csv"),
             "pdf": ("file-pdf", "02_需求资料/brief.pdf", "brief.pdf", ".pdf"),
+            "pdf_text": ("file-pdf-text", "02_需求资料/concept.pdf", "concept.pdf", ".pdf"),
         }
         for file_id, relative_path, file_name, extension in files.values():
             conn.execute(
@@ -83,10 +87,81 @@ def create_fixture_project(root: Path, db_path: Path) -> dict[str, str]:
                 (file_id, relative_path, file_name, extension),
             )
         conn.commit()
-    return {"brief": "file-brief", "csv": "file-csv", "pdf": "file-pdf"}
+    return {"brief": "file-brief", "csv": "file-csv", "pdf": "file-pdf", "pdf_text": "file-pdf-text"}
+
+
+def _write_text_pdf(path: Path, text: str) -> None:
+    content = f"BT /F1 12 Tf 72 720 Td ({text}) Tj ET".encode("ascii")
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        b"<< /Length " + str(len(content)).encode("ascii") + b" >>\nstream\n" + content + b"\nendstream",
+    ]
+    document = bytearray(b"%PDF-1.4\n")
+    offsets = [0]
+    for index, value in enumerate(objects, start=1):
+        offsets.append(len(document))
+        document.extend(f"{index} 0 obj\n".encode("ascii"))
+        document.extend(value)
+        document.extend(b"\nendobj\n")
+    xref = len(document)
+    document.extend(f"xref\n0 {len(objects) + 1}\n".encode("ascii"))
+    document.extend(b"0000000000 65535 f \n")
+    document.extend(b"".join(f"{offset:010} 00000 n \n".encode("ascii") for offset in offsets[1:]))
+    document.extend(f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode("ascii"))
+    path.write_bytes(document)
 
 
 class KnowledgeApiTests(unittest.TestCase):
+    def test_discard_draft_keeps_project_json_unchanged(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            db_path = root / "project_vault.db"
+            initialize_database(db_path)
+            files = create_fixture_project(root, db_path)
+            project_json = root / "Knowledge Fixture" / "project.json"
+            original = project_json.read_text(encoding="utf-8")
+
+            with patch("app.api.knowledge.get_database_path", return_value=db_path):
+                extracted = post_knowledge_extract_text(
+                    "knowledge-project",
+                    ExtractTextRequest(file_ids=[files["brief"]]),
+                )
+                draft = post_knowledge_draft(
+                    "knowledge-project",
+                    CreateDraftRequest(source_ids=[extracted["data"]["sources"][0]["id"]], mode="manual"),
+                )
+                discarded = post_knowledge_discard("knowledge-project", draft["data"]["draft_id"])
+
+            self.assertTrue(discarded["data"]["discarded"])
+            self.assertEqual(project_json.read_text(encoding="utf-8"), original)
+            with closing(sqlite3.connect(db_path)) as conn:
+                status = conn.execute(
+                    "SELECT status FROM knowledge_drafts WHERE id = ?",
+                    (draft["data"]["draft_id"],),
+                ).fetchone()[0]
+            self.assertEqual(status, "discarded")
+
+    def test_extract_text_reads_text_based_pdf(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            db_path = root / "project_vault.db"
+            initialize_database(db_path)
+            files = create_fixture_project(root, db_path)
+
+            with patch("app.api.knowledge.get_database_path", return_value=db_path):
+                response = post_knowledge_extract_text(
+                    "knowledge-project",
+                    ExtractTextRequest(file_ids=[files["pdf_text"]]),
+                )
+
+            source = response["data"]["sources"][0]
+            self.assertEqual(response["data"]["ready"], 1)
+            self.assertEqual(source["extractor"], "pypdf")
+            self.assertIn("Customer circulation", source["text_excerpt"])
+
     def test_extract_text_caches_supported_sources_and_failed_unsupported_file(self) -> None:
         with TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -108,7 +183,7 @@ class KnowledgeApiTests(unittest.TestCase):
             self.assertIn("控制顾客动线", sources[0]["text_excerpt"])
             self.assertNotIn(str(root), json.dumps(sources, ensure_ascii=False))
             self.assertEqual(sources[1]["status"], "failed")
-            self.assertEqual(sources[1]["error_message"], "unsupported_format")
+            self.assertEqual(sources[1]["error_message"], "no_extractable_text")
 
     def test_extract_rejects_file_from_another_project(self) -> None:
         with TemporaryDirectory() as temp_dir:

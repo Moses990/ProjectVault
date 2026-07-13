@@ -792,6 +792,9 @@ V1.0 checkpoint/tag 判定：仓库卫生检查已通过，可以进入提交/ta
 - 剩余发布风险：latest installer 还没有重新跑 clean Windows Sandbox，不作为 release-grade installer 声明。
 - V2.7 Real AI Draft Generation 已获用户确认并启动：复用现有 Provider 和文本来源，只生成草稿，不自动写 `project.json`，不新增依赖/schema。
 - 本轮同步推进 beta 仓库检查点、自动 review/test、远端 CI、installer 本机/clean Windows 验证，最后进入人工验收。
-- 向量依赖、批量 apply、PDF/DOCX 新依赖继续延后。
+- 向量依赖、批量 apply、DOCX 与图片 OCR 继续延后；2026-07-13 真实使用验证已补充文本型 PDF 本地提取。
 - V2.7 已完成并通过人工验收：AI 草稿记录 provider/model，失败不会写入已确认知识，旧 direct analyze 路径不能绕过草稿/确认门禁。
 - V2 beta release evidence：GitHub CI、33 步本机安装包回归、15 步 clean Windows 验证均通过；installer SHA256 `FCA20A8EBFDF08C6F2C6C5216F00355E6C55546ECD259E85D9A501E819AA668F`。
+- V2 Beta 真实使用验证已启动并完成自动阶段：使用真实室内设计项目的隔离副本，覆盖导入、扫描、索引、提取、AI 草稿、确认写入、备份、SQLite/FTS5、重启与异常路径；报告见 `docs/release/V2_BETA_REAL_USAGE_VALIDATION.md`。
+- 当前状态：`accepted`。用户已通过一键整理、Provider 配置提示和草稿处理流程验收；真实外部 Provider 的持续内容质量与隐私授权仍按实际项目使用观察。
+- 2026-07-13 简化决策：项目知识改为“一键整理项目知识 → AI 建议 → 确认写入 / 放弃草稿”。隐藏提取、手动草稿、字段复选框和索引细节；保留备份、人工确认、证据回溯和搜索同步。

@@ -45,24 +45,29 @@ async def run_watcher_loop(
 
     while True:
         events = await queue.get_ready()
-        affected_projects: set[str] = set()
+        affected_paths: dict[str, set[Path]] = {}
 
         if scanner_state is not None:
             scanner_state.status = "SCANNING"
             scanner_state.queue_length = queue.pending_count
 
         for event in events:
-            project_id = _find_project_for_path(event.path, db_path=db_path)
-            if project_id:
-                affected_projects.add(project_id)
+            for path in (event.path, event.source_path):
+                if path is None:
+                    continue
+                project_id = _find_project_for_path(path, db_path=db_path)
+                if project_id:
+                    affected_paths.setdefault(project_id, set()).add(path)
 
         import time
 
-        now = time.monotonic()
-        for project_id in affected_projects:
-            if now - last_scan.get(project_id, 0) < scan_cooldown:
-                logger.debug("Skipping scan for %s (cooldown)", project_id)
-                continue
+        for project_id, changed_paths in affected_paths.items():
+            cooldown_remaining = scan_cooldown - (
+                time.monotonic() - last_scan.get(project_id, 0)
+            )
+            if cooldown_remaining > 0:
+                logger.debug("Delaying scan for %s until cooldown ends", project_id)
+                await asyncio.sleep(cooldown_remaining)
             try:
                 project_path = _get_project_path(project_id, db_path=db_path)
                 if project_path is None:
@@ -70,7 +75,12 @@ async def run_watcher_loop(
                 if scanner_state is not None:
                     scanner_state.current_project = project_id
                 logger.info("Watcher triggered scan for project %s", project_id)
-                await asyncio.to_thread(scan_project_incremental, project_path, db_path)
+                await asyncio.to_thread(
+                    scan_project_incremental,
+                    project_path,
+                    db_path,
+                    changed_paths=sorted(changed_paths, key=str),
+                )
                 last_scan[project_id] = time.monotonic()
                 if scanner_state is not None:
                     scanner_state.total_events_processed += len(events)

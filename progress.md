@@ -1228,4 +1228,4 @@ Phase 12.2：Packaged UI Render Validation，状态：in_progress。
 - 初步调用链发现：`backend/app/watcher/processor.py` 已聚合 Watcher 事件，却调用 `scan_project_incremental(project_path, db_path)` 而未传入 `changed_paths`，因此已知变更仍走全项目对账分支；下一步将先补回归再做最小参数传递修复。
 - 阶段 1 验收：从 `489828d` 构建 `Project Vault_2.0.0-beta.1_x64-setup.exe`，SHA256 `8893612860AB75F6DCA533E1DCFEE695CAF7FD0670B7B68FCF6A1D60409D524B`；`scripts/verify_local_installed_usage.ps1` 在 `release-validation/v2.0.0-beta.1-20260713/` 生成报告，33/33 步通过。后端全量 90 项、前端 11 项测试通过；`git diff --check` 仅有既有 LF/CRLF 提示，高风险 release-validation 跟踪路径检查无命中。
 - 阶段 2 完成：PR #4 已更新为实际验证状态并在最新 CI 通过后合并到 `main`；合并提交 `ba14023b1c5aa1c3e3188f38cfa8f4eef75b996d`。首次 CI 在 WebView2 准备步骤无进展，取消后重跑成功；重跑完整覆盖 WebView2、后端、前端安装/构建/测试。
-- 阶段 3 实现：Watcher 现在按项目收集事件路径，并将新增、修改、删除以及移动的旧/新路径传给既有 `changed_paths` 快路径；冷却窗口改为延迟而非丢弃已收集事件。新增 `test_watcher_processor.py`，覆盖中文相对路径与新增、修改、删除、移动、冷却窗口内连续变更。定向 14 项、后端全量 92 项通过；待提交、推送和远端 CI。
+- 阶段 3 实现：Watcher 现在按项目收集事件路径，并将新增、修改、删除以及移动的旧/新路径传给既有 `changed_paths` 快路径；冷却窗口改为延迟而非丢弃已收集事件。新增 `test_watcher_processor.py`，覆盖中文相对路径与新增、修改、删除、移动、冷却窗口内连续变更。定向 14 项、后端全量 92 项通过；提交 `2195bdc` 已推送至 `fix/watcher-changed-paths`，等待远端 CI。

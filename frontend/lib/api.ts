@@ -154,6 +154,11 @@ export type KnowledgeApplyResult = {
   updated_fields: string[];
 };
 
+export type KnowledgeDiscardResult = {
+  draft_id: string;
+  discarded: boolean;
+};
+
 export type ProjectFile = {
   id: string;
   file_name: string;
@@ -353,6 +358,10 @@ export const api = {
     request<KnowledgeApplyResult>(`/projects/${id}/knowledge/apply`, {
       method: "POST",
       body: JSON.stringify({ draft_id: draftId, fields, confirm: true }),
+    }),
+  discardKnowledgeDraft: (id: string, draftId: string) =>
+    request<KnowledgeDiscardResult>(`/projects/${id}/knowledge/draft/${draftId}/discard`, {
+      method: "POST",
     }),
   toggleFavorite: (id: string, isFavorite: boolean) =>
     request<{ id: string; is_favorite: boolean }>(`/projects/${id}/favorite`, {

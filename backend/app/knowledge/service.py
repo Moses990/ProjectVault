@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from pypdf import PdfReader
+
 from app.db.database import connect
 from app.scanner.full_scanner import scan_project
 from app.services import ensure_project_exists, parse_json_list, row_to_dict
@@ -15,6 +17,7 @@ from app.services.ai_providers import generate_knowledge_payload
 from app.services.files import resolve_asset
 
 SUPPORTED_TEXT_EXTENSIONS = {".txt", ".md", ".csv", ".json"}
+SUPPORTED_EXTRACTION_EXTENSIONS = SUPPORTED_TEXT_EXTENSIONS | {".pdf"}
 MAX_SOURCE_BYTES = 64 * 1024
 MAX_EXCERPT_CHARS = 800
 APPLY_FIELDS = {"summary", "core_needs", "special_reqs", "risks", "lessons", "tags", "evidence"}
@@ -44,6 +47,13 @@ def _decode_text(path: Path) -> tuple[str, str]:
         except UnicodeDecodeError:
             continue
     return raw.decode("utf-8", errors="replace"), "utf-8"
+
+
+def _extract_pdf_text(path: Path) -> str:
+    try:
+        return "\n".join(page.extract_text() or "" for page in PdfReader(path).pages)
+    except Exception as exc:
+        raise ValueError("pdf_extract_failed") from exc
 
 
 def _normalize_excerpt(text: str) -> str:
@@ -302,14 +312,24 @@ def extract_text_sources(
         if relative_path == "project.json":
             status = "failed"
             error_message = "system_file_ignored"
-        elif asset.path.suffix.lower() not in SUPPORTED_TEXT_EXTENSIONS:
+        elif asset.path.suffix.lower() not in SUPPORTED_EXTRACTION_EXTENSIONS:
             status = "failed"
             error_message = "unsupported_format"
         else:
-            text, _encoding = _decode_text(asset.path)
-            text_hash = hashlib.sha256(text.encode("utf-8", errors="replace")).hexdigest()
-            text_length = len(text)
-            excerpt = _normalize_excerpt(text)
+            try:
+                if asset.path.suffix.lower() == ".pdf":
+                    extractor = "pypdf"
+                    text = _extract_pdf_text(asset.path)
+                else:
+                    text, _encoding = _decode_text(asset.path)
+                excerpt = _normalize_excerpt(text)
+                if not excerpt:
+                    raise ValueError("no_extractable_text")
+                text_hash = hashlib.sha256(text.encode("utf-8", errors="replace")).hexdigest()
+                text_length = len(text)
+            except ValueError as exc:
+                status = "failed"
+                error_message = str(exc)
 
         with connect(db_path) as conn:
             conn.execute(
@@ -496,6 +516,35 @@ def create_knowledge_draft(
         "provider_name": provider_name,
         "model_name": model_name,
     }
+
+
+def discard_knowledge_draft(
+    project_id: str,
+    *,
+    draft_id: str,
+    db_path: Path | None = None,
+) -> dict[str, object]:
+    now = _now()
+    with connect(db_path) as conn:
+        ensure_project_exists(conn, project_id)
+        updated = conn.execute(
+            """
+            UPDATE knowledge_drafts
+            SET status = 'discarded', updated_at = ?
+            WHERE project_id = ? AND id = ? AND status = 'draft'
+            """,
+            (now, project_id, draft_id),
+        )
+        if updated.rowcount != 1:
+            raise ValueError("draft_not_found")
+        conn.execute(
+            """
+            INSERT INTO knowledge_history (id, project_id, event_type, status, message, metadata_json, created_at)
+            VALUES (?, ?, 'discard_draft', 'discarded', NULL, ?, ?)
+            """,
+            (_history_id(), project_id, json.dumps({"draft_id": draft_id}), now),
+        )
+    return {"draft_id": draft_id, "discarded": True}
 
 
 def apply_knowledge_draft(

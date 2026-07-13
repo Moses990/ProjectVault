@@ -135,6 +135,39 @@ class IncrementalScannerTests(unittest.TestCase):
 
             self.assertEqual(moved, (original_id, "archive/brief.txt"))
 
+    def test_changed_paths_incremental_scan_detects_move_and_preserves_file_identity(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            db_path = root / "project_vault.db"
+            initialize_database(db_path)
+            project_dir = self.create_project(root)
+            scan_project(project_dir, db_path=db_path)
+
+            with closing(sqlite3.connect(db_path)) as conn:
+                original_id = conn.execute(
+                    "SELECT id FROM files WHERE relative_path = 'brief.txt'"
+                ).fetchone()[0]
+
+            archive = project_dir / "archive"
+            archive.mkdir()
+            old_path = project_dir / "brief.txt"
+            new_path = archive / "brief.txt"
+            old_path.replace(new_path)
+            result = scan_project_incremental(
+                project_dir,
+                db_path=db_path,
+                changed_paths=[old_path, new_path],
+            )
+
+            self.assertEqual(result.created_count, 0)
+            self.assertEqual(result.deleted_count, 0)
+            self.assertEqual(result.moved_count, 1)
+            with closing(sqlite3.connect(db_path)) as conn:
+                moved = conn.execute(
+                    "SELECT id, relative_path FROM files WHERE file_name = 'brief.txt'"
+                ).fetchone()
+            self.assertEqual(moved, (original_id, "archive/brief.txt"))
+
     def test_incremental_scan_treats_same_project_id_at_new_path_as_relocation(self) -> None:
         with TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

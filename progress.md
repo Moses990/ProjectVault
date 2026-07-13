@@ -46,7 +46,7 @@ pm run build 通过。
 - 已验证桌面开发运行：
 pm run dev 可启动 Tauri 窗口并加载 http://127.0.0.1:3000。
 - 已验证动态端口：测试中后端端口为 64674，GET /api/v1/health 返回 status=ok 且数据库存在。
-- 已验证异常退后清理：强制结束 project-vault.exe 后，后端父进程守护自动退出，检查结果为 
+- 已验证异常退后清理：强制结束 project-vault.exe 后，后端父进程守护自动退出，检查结果为
 o backend process remains。
 - 遗留风险：生产安装包打包不能直接使用 Next .next 目录作为 Tauri 静态资源，后续进入 Release/Packaging 阶段时需要确认生产前端导出策略。
 
@@ -136,12 +136,12 @@ Phase 5：增量扫描与符号迁移。
 - 验收清单：新文件、修改文件、删除文件都正确更新数据库；项目路径变化只更新项目路径且不级联删除项目数据；增量扫描通过覆盖测试达到本阶段正确要求。
 - 已新增 ackend/tests/test_incremental_scanner.py，覆盖新增、修改、删除、移动、项目路径迁移和丢失 project.json 的删除安全边界。
 - 已新增 ackend/app/scanner/incremental_scanner.py。
-- 已实现 Hash Diff：读取 SQLite 中的已有 iles 记录，与当前文件系统扫描结果按 
+- 已实现 Hash Diff：读取 SQLite 中的已有 iles 记录，与当前文件系统扫描结果按
 elative_path 和文件指针对比。
 - 已实现新增文件处理：插入 iles，并按扩展名刷新 drawings/materials 子索引。
 - 已实现修改文件处理：更新 ile_hash、大小、修改时间，并刷新子索引。
 - 已实现删除文件处理：只在已成功读取当前项目 project.json 后删除对应 iles 及子索引。
-- 已实现移动文件处理：相同内容指针的路径变化会保留原 iles.id，只更新 
+- 已实现移动文件处理：相同内容指针的路径变化会保留原 iles.id，只更新
 elative_path 等字段。
 - 已实现 Relocation：当扫描到同一 project_id 但项目根路径变化时，视为项目迁移，只更新 projects.project_path，不删除项目和子索引。
 - 已修正扫描历史：增量扫描成功和失败都写入 event_type=incremental_scan；扫描历史写入显性 created_at，避免同秒排序读到上一条记录。
@@ -206,7 +206,7 @@ Phase 7：FTS5 全局搜索。
 - TDD 记录：新增测试后先失败，失败原因为 ModuleNotFoundError: No module named 'app.search' 和 ModuleNotFoundError: No module named 'app.api.search'；实现搜索模块和 API 后转绿。
 - 已新增 ackend/app/search/indexer.py 和 ackend/app/search/service.py；已新增 ackend/app/api/search.py；已更新 ackend/app/main.py 注册搜索路由。
 - 已更新 ackend/app/scanner/full_scanner.py 和 ackend/app/scanner/incremental_scanner.py，扫描成功后按项目更新 FTS5 索引。
-- 修复记录：项目 ID project-search 这类带连字符查询会被 FTS5 当成表达式解析并抛 
+- 修复记录：项目 ID project-search 这类带连字符查询会被 FTS5 当成表达式解析并抛
 o such column: search；已通过短语译义处理用户查询，搜索项目 ID 和文件名更稳定。
 - 验证通过：.venv\Scripts\python.exe -m unittest tests.test_search_index tests.test_search_api -v，2 个搜索专项测试全部 OK。
 - 验证通过：.venv\Scripts\python.exe -m unittest tests.test_database_migrations tests.test_project_discovery tests.test_projects_api tests.test_full_scanner tests.test_incremental_scanner tests.test_watcher_engine tests.test_watchdog_adapter tests.test_watcher_service tests.test_search_index tests.test_search_api -v，34 个后端测试全部 OK。
@@ -230,7 +230,7 @@ Phase 8：核心 API 完整化。
 - Recommended Upgrade Path：新增 pp/api/response.py 统一响应；按领域新增 repository/service/router 模块；先用同步 FastAPI + sqlite3 继续当前代码风格，后续如需高并发再迁移到异步连接层。
 - Fallback Solution：如某些高功能力如缩略图生成或后台任务队列尚不成熟，本阶段先提供安全边界明确的占位行为，例如缩略图生成返回 404、扫描触发同步执行并返回结果；不退回到绝对路径直传。
 - 执行清单：补全核心 API 测试；实现统一响应工具；补 Dashboard/Projects/Files/Drawings/Materials/Assets/Settings/History/Scanner 路由与服务；更新 main 注册；全部验证并同步计划文件。
-- 验收清单：API 返回结构统一 status / data / message / meta；Projects 列表支持筛选、排序、分页；项目详情和文件列表返回 
+- 验收清单：API 返回结构统一 status / data / message / meta；Projects 列表支持筛选、排序、分页；项目详情和文件列表返回
 elative_path；资产内容只允许通过 ile_id 获取；不出现 GET /api/file?path=C:/... 类接口；后端/前端/界面验证通过。
 - 已新增 ackend/tests/test_phase8_core_api.py，覆盖 Dashboard、Projects 列表/收藏/详情/AI 元数据、Files、Drawings、Materials、Assets、Settings、History 和 Scanner API。
 - TDD 记录：新增 Phase 8 测试后先失败，失败原因为 ModuleNotFoundError: No module named 'app.api.assets'；补全 Phase 8 路由和核心服务后转绿。
@@ -1109,3 +1109,54 @@ Phase 12.2：Packaged UI Render Validation，状态：in_progress。
 - 人工验收：用户已确认 Sandbox 主窗口与网页 fixture 的提取文本、AI 生成草稿、确认应用流程通过。
 - 清理：临时 mock Provider、fixture backend、网页预览已停止；`8004 / 3007 / 18181` 无监听。前端将恢复默认构建。
 - 后续风险：真实第三方 Provider 凭据和实际项目语料尚未作为发布门禁验证；向量依赖、批量 apply、PDF/DOCX、新的生产语义搜索、Agent/RAG 仍不在 V2 beta 范围。
+
+## 2026-07-10 V2 Beta 真实使用验证自动阶段
+
+- 状态：waiting_for_user_acceptance。报告：`docs/release/V2_BETA_REAL_USAGE_VALIDATION.md`。
+- 数据边界：从真实室内设计项目创建独立副本 `release-validation/v2_beta_real_usage-20260710-161758/fixture-root/追觅`；原件未写入、未删除，原始绝对路径仅存在于被忽略的 `paths.txt`。
+- 自动流程通过：候选导入、初始化、251 文件全量扫描、CAD 24、材料 207、文本提取、不支持格式、AI 草稿、确认门禁、写前备份、确认写入、SQLite/FTS5、重启持久化、文件移动/删除和扫描异常记录。
+- 异常路径通过：API Key 缺失、Provider 失败、网络超时、无效 `project.json`、无效来源文件均返回受控错误，已确认知识未变化。
+- 缺陷修复 1：changed-path 增量扫描未配对移动文件，导致 `moved=0`；已在 `backend/app/scanner/incremental_scanner.py` 按指纹配对并保留 file ID，新增回归测试。
+- 缺陷修复 2：桌面静态服务遗漏 Next RSC 预取路径映射；已在 `desktop/src-tauri/src/main.rs` 映射 `__next.<route>.__PAGE__.txt`，新增 2 个路由单测。Chrome 等价静态预览 `error/warn=0`。
+- 性能：真实副本 250 个源文件、4.89 GB；全量扫描 78 ms，文件列表 1.59 ms，知识 FTS5 1.39 ms。当前不对 10,000+ 真实文件 UI 性能下结论。
+- 自动验证：backend 84 tests OK；frontend 12 tests passed；默认 `npm run build` 通过；desktop `cargo test` 2 passed；`8004 / 3007` 临时服务已停止。
+- 验证限制：本机 Rust toolchain 未安装 `rustfmt`，因此未执行格式检查；不影响已通过的 `cargo test` 编译与路由测试。
+- 人工验收待办：真实外部 Provider 草稿的专业准确性、隐私授权、字段确认体验和搜索工作流。未得到这些判断前，不建议宣称具备 V2 正式版候选条件；可继续受控 Beta 使用。
+
+## 2026-07-13 PDF 提取与筛选修复
+
+- 状态：ready_for_manual_validation。用户在真实副本验收中发现 PDF/图片占据提取名额，导致无法形成可审查 AI 草稿。
+- 修复：新增 `pypdf==6.14.2`；文本型 PDF 使用本地 `pypdf` 提取，扫描版返回 `no_extractable_text`，损坏文件返回 `pdf_extract_failed`，均不创建空来源。
+- 修复：前端仅提交 `.txt/.md/.csv/.json/.pdf`；图片等不支持格式显示为已跳过，不占 20 个提取名额。
+- 实际副本复核：抽检 PDF `status=ready`、`extractor=pypdf`、`text_length=13762`；仅操作隔离副本和独立数据库。
+- 自动验证：knowledge API 16 tests OK；backend 85 tests OK；frontend 12 tests passed；frontend build 通过。
+- 边界：图片 OCR、扫描版 PDF OCR、DOCX 不在本次变更范围。等待用户在临时环境复核 PDF 摘录与 AI 草稿质量。
+
+## 2026-07-13 三份会议纪要自动验证
+
+- 数据边界：用户提供的三份 Markdown 会议纪要仅复制到隔离副本 `00_AI验收资料/`；原件未修改。
+- 结果：重扫后精确选中 3/3；文本提取 3 ready、0 failed，合计 26,161 字符。
+- 草稿：三份来源创建 manual draft 成功，`status=draft`，证据数量 3，摘要长度 500；未调用外部 Provider，未写 `project.json`。
+- 限制：当前仅启用本地验证 Provider，不能据此判断真实模型的专业质量；真实 Provider 内容质量仍等待用户验收。
+
+## 2026-07-13 项目知识一键流程
+
+- 状态：ready_for_manual_validation。按用户确认方案收敛为“一键整理项目知识 → AI 建议 → 确认写入 / 放弃草稿”。
+- 前端：自动选择最多 20 个 `.txt/.md/.csv/.json/.pdf` 资料，提取后直接请求 AI 草稿；不再暴露提取、手动草稿、字段复选框和索引细节。
+- 安全：`确认写入` 仍弹窗确认、创建 `project.json` 备份并同步 SQLite/FTS；`放弃草稿` 新增最小 discard API，只更新 draft 状态和历史，不写项目文件。
+- 可审查性：核心需求、风险默认显示；来源与其他字段默认折叠。
+- 自动验证：discard 后端回归新增；backend 86 tests OK；frontend 10 tests passed；frontend build 通过；Chrome 控制台 `error/warn=0`。
+- 人工验收：确认页面只见“整理项目知识 / 确认写入 / 放弃草稿”；不要在真实 Provider 内容质量、隐私授权未确认前写入项目副本以外的资料。
+
+## 2026-07-13 临时 AI Provider 400 修复
+
+- 根因：隔离数据库保留 `V2 Real Usage Local Provider`，地址为未启动的 `127.0.0.1:19191`，一键整理请求返回 `400 network_error`。
+- 修复：禁用隔离环境的验证 Provider；前端将 `network_error` 映射为“AI 提供商无法连接。请在 AI 中心检查地址、模型和网络。”
+- 结果：未再向本地 mock 或外部 Provider 发送项目资料。用户需在 AI 中心自行配置可用 Provider 后执行真实 AI 草稿验收。
+- 验证：新增前端错误提示回归；frontend 11 tests passed，build 通过。
+
+## 2026-07-13 项目知识简化流程人工验收
+
+- 状态：accepted。用户已确认简化流程通过。
+- 验收范围：一键整理入口、草稿确认写入、放弃草稿、Provider 配置提示和隔离副本保护。
+- 保留边界：真实 Provider 内容质量、隐私授权、图片 OCR、扫描版 PDF OCR、DOCX 继续按后续真实使用观察，不作为本次 UI 流程通过声明。

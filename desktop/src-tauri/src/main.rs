@@ -82,6 +82,12 @@ fn route_to_asset_path(request_path: &str) -> String {
         return format!("/{}", &path[next_index..]);
     }
 
+    if let Some((route, rsc_asset)) = path.rsplit_once("/__next.") {
+        if let Some(segment) = rsc_asset.strip_suffix(".__PAGE__.txt") {
+            return format!("/{route}/__next.{segment}/__PAGE__.txt");
+        }
+    }
+
     if path.ends_with('/') {
         return format!("/{path}index.html");
     }
@@ -91,6 +97,27 @@ fn route_to_asset_path(request_path: &str) -> String {
     }
 
     format!("/{path}/index.html")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::route_to_asset_path;
+
+    #[test]
+    fn maps_nested_static_assets_to_the_export_root() {
+        assert_eq!(
+            route_to_asset_path("/projects/_next/static/chunks/app.js"),
+            "/_next/static/chunks/app.js"
+        );
+    }
+
+    #[test]
+    fn maps_next_rsc_prefetch_files_to_the_exported_path() {
+        assert_eq!(
+            route_to_asset_path("/settings/__next.settings.__PAGE__.txt?_rsc=probe"),
+            "/settings/__next.settings/__PAGE__.txt"
+        );
+    }
 }
 
 fn inject_backend_port(bytes: Vec<u8>, backend_port: u16) -> Vec<u8> {

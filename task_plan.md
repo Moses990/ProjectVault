@@ -882,4 +882,4 @@ V1.0 checkpoint/tag 判定：仓库卫生检查已通过，可以进入提交/ta
 
 状态：complete。
 
-结果：用户已配置可用 Provider，并明确授权发送三份选定 Markdown 会议纪要的摘录。真实请求成功创建 AI 草稿，记录了 Provider 和模型；经确认后，原 active manual draft 已标记为 discarded。生成链路未调用确认写入，`project.json` 保持不变。一次 2000-token 请求因推理输出耗尽共享预算而未生成草稿；默认预算提升到 4096 并增加回归断言后，使用同一三份来源的真实请求成功。
+结果：用户已配置可用 Provider，并明确授权发送三份选定 Markdown 会议纪要的摘录。真实请求成功创建 AI 草稿，记录了 Provider 和模型；经确认后，原 active manual draft 已标记为 discarded。一次 2000-token 请求因推理输出耗尽共享预算而未生成草稿；默认预算提升到 4096 并增加回归断言后，使用同一三份来源的真实请求成功。用户人工确认写入后，七类草稿字段、标签和证据均已写入 `project.json`；备份、成功历史记录及 SQLite 索引同步均已只读复核。

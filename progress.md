@@ -1160,3 +1160,50 @@ Phase 12.2：Packaged UI Render Validation，状态：in_progress。
 - 状态：accepted。用户已确认简化流程通过。
 - 验收范围：一键整理入口、草稿确认写入、放弃草稿、Provider 配置提示和隔离副本保护。
 - 保留边界：真实 Provider 内容质量、隐私授权、图片 OCR、扫描版 PDF OCR、DOCX 继续按后续真实使用观察，不作为本次 UI 流程通过声明。
+
+## 2026-07-13 V2 知识链路审查与最小加固
+
+- 状态：complete。
+- 范围：以 V2 真实使用后的知识链路为优先审查对象：文本/PDF 提取、来源校验、AI 草稿、确认写入。
+- ADR 门禁：本轮为既有服务层资源/输入校验缺陷修复，不引入新架构、API、schema 或依赖，未发现需要新增 ADR 的决策。
+- 已确认并修复：PDF 提取原先会拼接整份文档文本；现改为逐页读取并按 `MAX_SOURCE_BYTES` 累计截断，保存的文本长度不会超过现有普通文本边界。
+- 复核结论：AI 草稿已有 `ready_sources_required` 服务层门禁，在调用 Provider 前拒绝没有有效摘录的请求；不重复增加同类校验。
+- 测试：第一次补丁因测试断言文本不完全匹配而未应用，未改代码；按实际片段重新定位后补丁应用成功。
+- 验证通过：新增 PDF 上限回归测试通过；`backend` 全量 unittest 87 tests OK；`frontend` `npm run test` 11 tests passed；`frontend` `npm run build` 通过，9 个静态路由生成成功。
+- 复查：`git diff --check` 退出正常，仅输出既有 LF/CRLF 归一化警告；本轮未运行安装包回归，原因是未改打包路径、API 或桌面端。
+
+## 2026-07-13 资产缩略图缓存审查启动
+
+- 状态：complete。
+- 审查范围：资产 `file_id` 解析、内容/缩略图/文本端点和缓存隔离。
+- 已修复：缩略图生成函数改为使用已解析资产的 `file_id` 作为缓存键；不同目录或项目的同名图片不再共享缓存。
+- 补充修复：PIL 源图片读取改为上下文管理，避免 Windows 下缩略图生成后遗留文件句柄。
+- 回归：新增同名 `preview.png` 的两目录测试，验证返回不同缓存文件和不同图片内容。
+- 测试：首次定向测试发现直接调用 FastAPI 路由默认 `Query` 值不适用于单元测试且暴露 PIL 文件锁；保持原有 FastAPI 参数校验，测试改为传入显式尺寸，代码仅修复缓存键与文件句柄。
+- 验证通过：后端 unittest 88 tests OK；前端 `npm run test` 11 tests passed。
+- ADR 门禁：既有缓存键修复，不引入新架构、API、schema 或依赖，无需新增 ADR。
+
+## 2026-07-13 AI Provider 网络边界审查
+
+- 状态：complete。
+- 审查范围：Provider 创建/更新、连通性测试和 AI 草稿真实调用的地址、超时和错误传播。
+- 已修复：统一拒绝非 HTTP(S) 或无主机名地址；AI 草稿的 `HTTPError` 仅返回 `api_error: <状态码>`，不再回显远端正文。
+- 验证通过：Provider/知识定向回归 26 项、后端全量 unittest 88 项均通过；`git diff --check` 正常，仅有既有 LF/CRLF 归一化提示。
+- ADR 门禁：既有输入/错误边界修复，不引入新架构、API、schema 或依赖，无需新增 ADR。
+
+## 2026-07-13 AI Provider 系统凭据存储
+
+- 状态：complete。
+- 实现：新增 `backend/app/services/provider_credentials.py`，通过 Windows Credential Manager 保存密钥；SQLite 的 `key_reference` 仅为 `wincred:<provider_id>` 引用。
+- 调用链：新建/更新保存系统凭据；清空/删除清理凭据；连接测试与 AI 草稿解析引用。旧明文只会在系统写入成功后迁移，失败时仍可按旧路径使用。
+- ADR 门禁：这是既有 API 规范“OS 托管密钥”的落实，未新增 API、schema、依赖或运行时架构，因此无需新增 ADR。
+- 验证：定向 Provider/知识回归 27 项、后端全量 unittest 89 项通过；已用临时凭据完成真实 Windows Credential Manager 写入、读取、清理往返验证。
+
+## 2026-07-13 Provider 凭据迁移与发布检查点
+
+- 状态：in_progress。
+- 用户确认顺序：先主动迁移旧明文 Provider 密钥，再提交/推送并核验 GitHub CI，最后仅在已有配置和数据授权明确时做真实 AI 草稿验证。
+- 发布前置已确认：`gh 2.96.0` 已登录 `Moses990`，令牌具备 `repo` 与 `workflow` 权限；当前工作树的代码与计划文件变更均为本轮审查产生。
+- 主动迁移：已对当前本地运行库执行迁移，结果 `migrated=0`、`retained=0`、`managed=0`、`legacy=0`；未读取或输出任何密钥。
+- 自动验证：后端 unittest 90 项、前端 vitest 11 项、前端生产构建（9 路由）和桌面 `cargo check` 均通过。前端构建仍仅报告既有 `output: export` 下 rewrites 不生效提示。
+- 提交前审查：已检查暂存差异、参数化 SQL、密钥格式、运行产物卫生与 Credential Manager 调用链；未发现 critical/high 问题。ADR 门禁引用 `docs/architecture/07_Backend_Architecture.md` 的 Windows Credential Manager 决策、`08_API_Specification.md` 的脱敏 API 要求和 `05_Database.md` 的 `key_reference` 定义，本轮为既有规范落实，无需新增 ADR。

@@ -51,7 +51,19 @@ def _decode_text(path: Path) -> tuple[str, str]:
 
 def _extract_pdf_text(path: Path) -> str:
     try:
-        return "\n".join(page.extract_text() or "" for page in PdfReader(path).pages)
+        parts: list[str] = []
+        remaining = MAX_SOURCE_BYTES
+        for page in PdfReader(path).pages:
+            if remaining <= 0:
+                break
+            text = page.extract_text() or ""
+            if parts:
+                parts.append("\n")
+                remaining -= 1
+            excerpt = text[:remaining]
+            parts.append(excerpt)
+            remaining -= len(excerpt)
+        return "".join(parts)
     except Exception as exc:
         raise ValueError("pdf_extract_failed") from exc
 

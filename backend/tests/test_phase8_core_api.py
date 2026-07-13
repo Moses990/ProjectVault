@@ -5,9 +5,10 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from fastapi import HTTPException
+from PIL import Image
 from starlette.responses import FileResponse
 
-from app.api.assets import get_asset_content
+from app.api.assets import get_asset_content, get_asset_thumbnail
 from app.api.dashboard import get_dashboard_metrics, get_recent_projects
 from app.api.drawings import get_drawing_versions, get_drawings_center, get_project_drawings
 from app.api.files import get_project_files
@@ -127,6 +128,33 @@ class Phase8CoreApiTests(unittest.TestCase):
 
             self.assertIsInstance(response, FileResponse)
             self.assertEqual(raised.exception.status_code, 404)
+
+    def test_thumbnail_cache_uses_file_id_for_same_named_images(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            db_path = root / "project_vault.db"
+            initialize_database(db_path)
+            project_dir = create_project(root)
+            for directory, color in (("render-a", "red"), ("render-b", "blue")):
+                image_dir = project_dir / directory
+                image_dir.mkdir()
+                Image.new("RGB", (32, 32), color).save(image_dir / "preview.png")
+            scan_project(project_dir, db_path=db_path)
+
+            with patch("app.api.files.get_database_path", return_value=db_path):
+                files = get_project_files("project-phase8", extension=".png")
+            file_ids = {item["relative_path"]: item["id"] for item in files["data"]}
+            cache_dir = root / "thumbnail-cache"
+            cache_dir.mkdir()
+
+            with patch("app.api.assets.get_database_path", return_value=db_path), patch(
+                "app.api.assets.THUMBNAIL_CACHE", cache_dir
+            ):
+                first = get_asset_thumbnail(file_ids["render-a/preview.png"], size=200)
+                second = get_asset_thumbnail(file_ids["render-b/preview.png"], size=200)
+
+            self.assertNotEqual(first.path, second.path)
+            self.assertNotEqual(Path(first.path).read_bytes(), Path(second.path).read_bytes())
 
     def test_settings_and_scanner_endpoints(self) -> None:
         with TemporaryDirectory() as temp_dir:

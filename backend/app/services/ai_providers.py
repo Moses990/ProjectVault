@@ -8,10 +8,20 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from app.db.database import connect
+from app.services import provider_credentials
 
 MAX_PROVIDER_RESPONSE_BYTES = 1024 * 1024
+
+
+def _normalize_base_url(value: str) -> str:
+    base_url = value.strip().rstrip("/")
+    parsed = urlparse(base_url)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise ValueError("base_url_invalid")
+    return base_url
 
 
 def _read_provider_response(response: Any) -> bytes:
@@ -21,8 +31,70 @@ def _read_provider_response(response: Any) -> bytes:
     return data
 
 
-def _chat_completion_json(provider: Any, prompt: str) -> dict[str, object]:
-    base_url = (provider["base_url"] or "").rstrip("/")
+def _store_provider_key(provider_id: str, key_reference: str) -> str | None:
+    if not key_reference:
+        return None
+    try:
+        return provider_credentials.store_secret(provider_id, key_reference)
+    except OSError as exc:
+        raise ValueError("provider_key_store_failed") from exc
+
+
+def _migrate_legacy_provider_key(provider_id: str, key_reference: str, db_path: Path | None) -> bool:
+    try:
+        managed_reference = provider_credentials.store_secret(provider_id, key_reference)
+    except OSError:
+        return False
+    with connect(db_path) as conn:
+        result = conn.execute(
+            "UPDATE ai_providers SET key_reference = ? WHERE id = ? AND key_reference = ?",
+            (managed_reference, provider_id, key_reference),
+        )
+    return result.rowcount == 1
+
+
+def migrate_legacy_provider_keys(db_path: Path | None = None) -> dict[str, int]:
+    with connect(db_path) as conn:
+        rows = conn.execute(
+            "SELECT id, key_reference FROM ai_providers "
+            "WHERE COALESCE(key_reference, '') != ''"
+        ).fetchall()
+    legacy_rows = [
+        row
+        for row in rows
+        if not provider_credentials.is_managed_reference(
+            str(row["id"]), str(row["key_reference"])
+        )
+    ]
+    migrated = sum(
+        _migrate_legacy_provider_key(str(row["id"]), str(row["key_reference"]), db_path)
+        for row in legacy_rows
+    )
+    return {"migrated": migrated, "retained": len(legacy_rows) - migrated}
+
+
+def _resolve_provider_key(provider: Any, db_path: Path | None) -> str:
+    key_reference = str(provider["key_reference"] or "")
+    if not key_reference:
+        return ""
+    provider_id = str(provider["id"])
+    if provider_credentials.is_managed_reference(provider_id, key_reference):
+        try:
+            key = provider_credentials.read_secret(provider_id, key_reference)
+        except OSError as exc:
+            raise ValueError("provider_key_unavailable") from exc
+        if not key:
+            raise ValueError("provider_key_unavailable")
+        return key
+
+    # Existing databases used plaintext values. Keep the request usable even if
+    # migration fails, and replace the value only after the system write works.
+    _migrate_legacy_provider_key(provider_id, key_reference, db_path)
+    return key_reference
+
+
+def _chat_completion_json(provider: Any, prompt: str, key: str) -> dict[str, object]:
+    base_url = _normalize_base_url(provider["base_url"] or "")
     model = provider["default_model"] or "gpt-4o"
     payload = json.dumps(
         {
@@ -37,7 +109,7 @@ def _chat_completion_json(provider: Any, prompt: str) -> dict[str, object]:
         f"{base_url}/chat/completions",
         data=payload,
         headers={
-            "Authorization": f"Bearer {provider['key_reference']}",
+            "Authorization": f"Bearer {key}",
             "Content-Type": "application/json",
         },
         method="POST",
@@ -46,8 +118,7 @@ def _chat_completion_json(provider: Any, prompt: str) -> dict[str, object]:
         with urllib.request.urlopen(request, timeout=60) as response:
             response_data = json.loads(_read_provider_response(response).decode("utf-8"))
     except urllib.error.HTTPError as exc:
-        error_body = exc.read(501).decode("utf-8", errors="replace")[:500]
-        raise ValueError(f"api_error: {exc.code} - {error_body}") from exc
+        raise ValueError(f"api_error: {exc.code}") from exc
     except urllib.error.URLError as exc:
         raise ValueError(f"network_error: {exc.reason}") from exc
 
@@ -125,7 +196,7 @@ def generate_knowledge_payload(
 }}
 
 资料没有支持的信息留空，不要编造。"""
-    result = _chat_completion_json(provider, prompt)
+    result = _chat_completion_json(provider, prompt, _resolve_provider_key(provider, db_path))
     evidence = [
         {
             "source_id": source["id"],
@@ -181,12 +252,14 @@ def create_ai_provider(
 ) -> dict[str, object]:
     if not name.strip() or not base_url.strip():
         raise ValueError("name_and_base_url_required")
+    normalized_base_url = _normalize_base_url(base_url)
     provider_id = str(uuid.uuid4())
+    stored_key_reference = _store_provider_key(provider_id, key_reference)
     with connect(db_path) as conn:
         conn.execute(
             "INSERT INTO ai_providers (id, name, base_url, default_model, is_enabled, key_reference) "
             "VALUES (?, ?, ?, ?, 1, ?)",
-            (provider_id, name.strip(), base_url.strip(), default_model.strip() or None, key_reference or None),
+            (provider_id, name.strip(), normalized_base_url, default_model.strip() or None, stored_key_reference),
         )
         row = conn.execute(
             "SELECT id, name, base_url, default_model, is_enabled, key_reference "
@@ -206,12 +279,14 @@ def update_ai_provider(
     key_reference: str | None = None,
     db_path: Path | None = None,
 ) -> dict[str, object]:
+    previous_key_reference = ""
     with connect(db_path) as conn:
         existing = conn.execute(
-            "SELECT id FROM ai_providers WHERE id = ?", (provider_id,)
+            "SELECT id, key_reference FROM ai_providers WHERE id = ?", (provider_id,)
         ).fetchone()
         if existing is None:
             raise ValueError("provider_not_found")
+        previous_key_reference = str(existing["key_reference"] or "")
         fields: list[str] = []
         params: list[object] = []
         if name is not None:
@@ -223,7 +298,7 @@ def update_ai_provider(
             if not base_url.strip():
                 raise ValueError("base_url_required")
             fields.append("base_url = ?")
-            params.append(base_url.strip())
+            params.append(_normalize_base_url(base_url))
         if default_model is not None:
             fields.append("default_model = ?")
             params.append(default_model.strip() or None)
@@ -232,7 +307,7 @@ def update_ai_provider(
             params.append(1 if is_enabled else 0)
         if key_reference is not None:
             fields.append("key_reference = ?")
-            params.append(key_reference or None)
+            params.append(_store_provider_key(provider_id, key_reference))
         if fields:
             params.append(provider_id)
             conn.execute(
@@ -244,17 +319,26 @@ def update_ai_provider(
             "FROM ai_providers WHERE id = ?",
             (provider_id,),
         ).fetchone()
+    if key_reference == "":
+        try:
+            provider_credentials.delete_secret(provider_id, previous_key_reference)
+        except OSError:
+            pass
     return _provider_row_to_dict(row)
 
 
 def delete_ai_provider(provider_id: str, db_path: Path | None = None) -> dict[str, object]:
     with connect(db_path) as conn:
         existing = conn.execute(
-            "SELECT id FROM ai_providers WHERE id = ?", (provider_id,)
+            "SELECT id, key_reference FROM ai_providers WHERE id = ?", (provider_id,)
         ).fetchone()
         if existing is None:
             raise ValueError("provider_not_found")
         conn.execute("DELETE FROM ai_providers WHERE id = ?", (provider_id,))
+    try:
+        provider_credentials.delete_secret(provider_id, str(existing["key_reference"] or ""))
+    except OSError:
+        pass
     return {"id": provider_id, "deleted": True}
 
 
@@ -277,8 +361,8 @@ def test_ai_provider(provider_id: str, db_path: Path | None = None) -> dict[str,
         if row is None:
             raise ValueError("provider_not_found")
 
-    base_url = (row["base_url"] or "").rstrip("/")
-    key = row["key_reference"] or ""
+    base_url = row["base_url"] or ""
+    key = _resolve_provider_key(row, db_path)
 
     if not base_url or not key:
         return {
@@ -286,6 +370,16 @@ def test_ai_provider(provider_id: str, db_path: Path | None = None) -> dict[str,
             "name": row["name"],
             "ready": False,
             "message": "missing_base_url_or_key",
+        }
+
+    try:
+        base_url = _normalize_base_url(base_url)
+    except ValueError:
+        return {
+            "id": provider_id,
+            "name": row["name"],
+            "ready": False,
+            "message": "base_url_invalid",
         }
 
     url = f"{base_url}/models"

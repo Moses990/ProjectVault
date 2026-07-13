@@ -1,4 +1,5 @@
 import json
+import io
 import sqlite3
 import unittest
 import urllib.error
@@ -23,7 +24,12 @@ from app.api.projects import post_project_ai_analyze
 from app.db.database import initialize_database
 from app.scanner.full_scanner import scan_project
 from app.search.service import search
-from app.services.ai_providers import MAX_PROVIDER_RESPONSE_BYTES, create_ai_provider
+from app.knowledge.service import MAX_SOURCE_BYTES
+from app.services.ai_providers import (
+    MAX_PROVIDER_OUTPUT_TOKENS,
+    MAX_PROVIDER_RESPONSE_BYTES,
+    create_ai_provider,
+)
 
 
 def create_fixture_project(root: Path, db_path: Path) -> dict[str, str]:
@@ -115,6 +121,33 @@ def _write_text_pdf(path: Path, text: str) -> None:
 
 
 class KnowledgeApiTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._secrets: dict[str, str] = {}
+        self._credentials_patches = [
+            patch(
+                "app.services.ai_providers.provider_credentials.store_secret",
+                side_effect=self._store_secret,
+            ),
+            patch(
+                "app.services.ai_providers.provider_credentials.read_secret",
+                side_effect=lambda provider_id, _reference: self._secrets.get(provider_id),
+            ),
+            patch(
+                "app.services.ai_providers.provider_credentials.delete_secret",
+                side_effect=lambda provider_id, _reference: self._secrets.pop(provider_id, None),
+            ),
+        ]
+        for credential_patch in self._credentials_patches:
+            credential_patch.start()
+
+    def tearDown(self) -> None:
+        for credential_patch in reversed(self._credentials_patches):
+            credential_patch.stop()
+
+    def _store_secret(self, provider_id: str, secret: str) -> str:
+        self._secrets[provider_id] = secret
+        return f"wincred:{provider_id}"
+
     def test_discard_draft_keeps_project_json_unchanged(self) -> None:
         with TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -161,6 +194,30 @@ class KnowledgeApiTests(unittest.TestCase):
             self.assertEqual(response["data"]["ready"], 1)
             self.assertEqual(source["extractor"], "pypdf")
             self.assertIn("Customer circulation", source["text_excerpt"])
+
+    def test_extract_text_bounds_pdf_content_before_storing(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            db_path = root / "project_vault.db"
+            initialize_database(db_path)
+            files = create_fixture_project(root, db_path)
+            page = MagicMock()
+            page.extract_text.return_value = "x" * (MAX_SOURCE_BYTES + 100)
+            reader = MagicMock()
+            reader.pages = [page]
+
+            with patch("app.api.knowledge.get_database_path", return_value=db_path), patch(
+                "app.knowledge.service.PdfReader", return_value=reader
+            ):
+                response = post_knowledge_extract_text(
+                    "knowledge-project",
+                    ExtractTextRequest(file_ids=[files["pdf_text"]]),
+                )
+
+            source = response["data"]["sources"][0]
+            self.assertEqual(source["status"], "ready")
+            self.assertEqual(source["text_length"], MAX_SOURCE_BYTES)
+            self.assertEqual(len(source["text_excerpt"]), 800)
 
     def test_extract_text_caches_supported_sources_and_failed_unsupported_file(self) -> None:
         with TemporaryDirectory() as temp_dir:
@@ -352,6 +409,7 @@ class KnowledgeApiTests(unittest.TestCase):
             self.assertEqual(draft["data"]["draft"]["evidence"][0]["relative_path"], "02_需求资料/brief.md")
             request = urlopen.call_args.args[0]
             self.assertIn("控制顾客动线", request.data.decode("utf-8"))
+            self.assertEqual(json.loads(request.data)["max_tokens"], MAX_PROVIDER_OUTPUT_TOKENS)
 
             with closing(sqlite3.connect(db_path)) as conn:
                 conn.row_factory = sqlite3.Row
@@ -419,6 +477,25 @@ class KnowledgeApiTests(unittest.TestCase):
                             ),
                         )
             self.assertEqual(invalid_raised.exception.detail, "invalid_response")
+
+            provider_error = urllib.error.HTTPError(
+                "http://127.0.0.1:43211/v1/chat/completions",
+                502,
+                "Bad Gateway",
+                None,
+                io.BytesIO(b"provider-returned-sensitive-detail"),
+            )
+            with patch("app.api.knowledge.get_database_path", return_value=db_path):
+                with patch("urllib.request.urlopen", side_effect=provider_error):
+                    with self.assertRaises(HTTPException) as provider_raised:
+                        post_knowledge_draft(
+                            "knowledge-project",
+                            CreateDraftRequest(
+                                source_ids=[extracted["data"]["sources"][0]["id"]],
+                                mode="ai",
+                            ),
+                        )
+            self.assertEqual(provider_raised.exception.detail, "api_error: 502")
 
             with closing(sqlite3.connect(db_path)) as conn:
                 approved = conn.execute(

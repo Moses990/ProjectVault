@@ -18,16 +18,15 @@ def _get_thumbnail_path(file_id: str, size: int) -> Path:
     return THUMBNAIL_CACHE / f"{file_id}_{size}.jpg"
 
 
-def _generate_thumbnail(asset_path: Path, size: int) -> Path:
+def _generate_thumbnail(asset_path: Path, file_id: str, size: int) -> Path:
     from PIL import Image
 
-    thumb_path = _get_thumbnail_path(asset_path.stem, size)
+    thumb_path = _get_thumbnail_path(file_id, size)
     if thumb_path.exists():
         return thumb_path
 
-    img = Image.open(asset_path)
-    if img.mode in ("RGBA", "LA", "P"):
-        img = img.convert("RGB")
+    with Image.open(asset_path) as source:
+        img = source.convert("RGB") if source.mode in ("RGBA", "LA", "P") else source.copy()
     img.thumbnail((size, size), Image.Resampling.LANCZOS)
     img.save(thumb_path, "JPEG", quality=85)
     return thumb_path
@@ -59,9 +58,8 @@ def get_asset_thumbnail(file_id: str, size: int = Query(200, ge=32, le=800)) -> 
 
     if asset.path.suffix.lower() not in IMAGE_EXTENSIONS:
         raise HTTPException(status_code=404, detail="not_an_image")
-
     try:
-        thumb_path = _generate_thumbnail(asset.path, size)
+        thumb_path = _generate_thumbnail(asset.path, asset.file_id, size)
     except Exception:
         raise HTTPException(status_code=500, detail="thumbnail_generation_failed")
 

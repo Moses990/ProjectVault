@@ -23,6 +23,7 @@ from app.api.settings import router as settings_router
 from app.api.system import router as system_router
 from app.core.config import get_settings
 from app.db.database import initialize_database
+from app.services.ai_providers import migrate_legacy_provider_keys
 from app.services.settings import settings_get
 from app.services.system import ScannerState, set_scanner_state
 from app.watcher.processor import run_watcher_loop
@@ -33,6 +34,7 @@ from app.watcher.service import FileWatcherService
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     initialize_database()
+    migrate_legacy_provider_keys()
 
     # Start file watcher if root_path is configured
     watcher_service: FileWatcherService | None = None

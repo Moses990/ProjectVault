@@ -1220,3 +1220,10 @@ Phase 12.2：Packaged UI Render Validation，状态：in_progress。
 
 - 修复：应用壳的主内容列从 `1fr` 改为 `minmax(0, 1fr)`，防止长项目知识内容撑开固定侧栏后的可用宽度并触发页面横向滚动。
 - 验证：前端 11 项测试、生产静态构建通过；使用真实已确认项目知识在 1280px 与 768px 视口复核，主区域、详情页和知识卡片的滚动宽度均未超过可用宽度，来源展开交互正常。
+
+## 2026-07-13 Phase 21 启动：最新 Beta 发布与增量扫描收口
+
+- 用户确认按顺序执行：最新安装包验收、PR #4 审查/合并、增量扫描优化。
+- 当前基线：分支 `agent/provider-security-hardening` 位于 `489828d`，工作树干净；PR #4 无审查或未解决线程，历史 CI 已通过。
+- 初步调用链发现：`backend/app/watcher/processor.py` 已聚合 Watcher 事件，却调用 `scan_project_incremental(project_path, db_path)` 而未传入 `changed_paths`，因此已知变更仍走全项目对账分支；下一步将先补回归再做最小参数传递修复。
+- 阶段 1 验收：从 `489828d` 构建 `Project Vault_2.0.0-beta.1_x64-setup.exe`，SHA256 `8893612860AB75F6DCA533E1DCFEE695CAF7FD0670B7B68FCF6A1D60409D524B`；`scripts/verify_local_installed_usage.ps1` 在 `release-validation/v2.0.0-beta.1-20260713/` 生成报告，33/33 步通过。后端全量 90 项、前端 11 项测试通过；`git diff --check` 仅有既有 LF/CRLF 提示，高风险 release-validation 跟踪路径检查无命中。

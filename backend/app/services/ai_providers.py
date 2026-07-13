@@ -14,6 +14,7 @@ from app.db.database import connect
 from app.services import provider_credentials
 
 MAX_PROVIDER_RESPONSE_BYTES = 1024 * 1024
+MAX_PROVIDER_OUTPUT_TOKENS = 4096
 
 
 def _normalize_base_url(value: str) -> str:
@@ -101,7 +102,7 @@ def _chat_completion_json(provider: Any, prompt: str, key: str) -> dict[str, obj
             "model": model,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.2,
-            "max_tokens": 2000,
+            "max_tokens": MAX_PROVIDER_OUTPUT_TOKENS,
         },
         ensure_ascii=False,
     ).encode("utf-8")

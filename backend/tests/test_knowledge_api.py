@@ -25,7 +25,11 @@ from app.db.database import initialize_database
 from app.scanner.full_scanner import scan_project
 from app.search.service import search
 from app.knowledge.service import MAX_SOURCE_BYTES
-from app.services.ai_providers import MAX_PROVIDER_RESPONSE_BYTES, create_ai_provider
+from app.services.ai_providers import (
+    MAX_PROVIDER_OUTPUT_TOKENS,
+    MAX_PROVIDER_RESPONSE_BYTES,
+    create_ai_provider,
+)
 
 
 def create_fixture_project(root: Path, db_path: Path) -> dict[str, str]:
@@ -405,6 +409,7 @@ class KnowledgeApiTests(unittest.TestCase):
             self.assertEqual(draft["data"]["draft"]["evidence"][0]["relative_path"], "02_需求资料/brief.md")
             request = urlopen.call_args.args[0]
             self.assertIn("控制顾客动线", request.data.decode("utf-8"))
+            self.assertEqual(json.loads(request.data)["max_tokens"], MAX_PROVIDER_OUTPUT_TOKENS)
 
             with closing(sqlite3.connect(db_path)) as conn:
                 conn.row_factory = sqlite3.Row

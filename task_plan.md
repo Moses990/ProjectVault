@@ -880,6 +880,6 @@ V1.0 checkpoint/tag 判定：仓库卫生检查已通过，可以进入提交/ta
 
 ## Phase 20：真实 Provider 草稿验证
 
-状态：blocked。
+状态：complete。
 
-阻塞条件：当前本地运行库没有已配置 Provider。继续前需用户在 AI Center 配置可用 Provider，并明确同意向该 Provider 发送选定项目资料摘录；验证将只创建草稿，不写入 `project.json`。
+结果：用户已配置可用 Provider，并明确授权发送三份选定 Markdown 会议纪要的摘录。真实请求成功创建 AI 草稿，记录了 Provider 和模型；经确认后，原 active manual draft 已标记为 discarded。生成链路未调用确认写入，`project.json` 保持不变。一次 2000-token 请求因推理输出耗尽共享预算而未生成草稿；默认预算提升到 4096 并增加回归断言后，使用同一三份来源的真实请求成功。

@@ -1209,3 +1209,8 @@ Phase 12.2：Packaged UI Render Validation，状态：in_progress。
 - 提交前审查：已检查暂存差异、参数化 SQL、密钥格式、运行产物卫生与 Credential Manager 调用链；未发现 critical/high 问题。ADR 门禁引用 `docs/architecture/07_Backend_Architecture.md` 的 Windows Credential Manager 决策、`08_API_Specification.md` 的脱敏 API 要求和 `05_Database.md` 的 `key_reference` 定义，本轮为既有规范落实，无需新增 ADR。
 - 发布：提交 `9a732b5` 已推送至 `agent/provider-security-hardening`；草稿 PR #4 已创建。GitHub Actions run #9 已成功，后端测试、前端 install/build/test 和 WebView2 准备步骤均成功。
 - 下一阶段：真实 Provider 验证因本地运行库无已配置 Provider 而阻塞；需要用户配置可用服务并明确授权向其发送选定资料摘录。验证只创建 AI 草稿，不确认写入 `project.json`。
+- 授权检查：用户已明确允许发送选定资料摘要；但当前运行库的 Provider 数与项目数均为 0。首次只读查询误用了不存在的 `projects.updated_at`，未写入数据；改读实际表结构后确认可用字段为 `last_updated_at`。仍需用户在 AI Center 配置可用 Provider，并导入或选择待验证项目。
+- 真实验证准备：用户已配置并允许使用 `agens / agnes-2.0-flash`，三份指定纪要均精确属于桌面运行库的“02_需求资料”项目；Provider 连接复验成功。发现该项目已有一个 2026-07-10 的 active manual draft；现有创建逻辑会把它自动标记为 discarded，因此暂停在外发资料前，等待用户明确决定是否替换该草稿。
+- 首次真实请求：用户确认替换后，三份纪要已提取为 ready，但 `agnes-2.0-flash` 在现有 `max_tokens=2000` 下只返回推理内容并以 `finish_reason=length` 结束，未创建新草稿、未替换旧草稿。无资料的 4096-token 探针正常返回 JSON，确认是共享输出上限不足；准备将上限调整为 4096 并补回归断言。
+- 真实验证完成：默认输出预算调整为 4096，新增请求载荷回归断言；同一三份用户授权资料的真实请求成功生成 AI 草稿，Provider/模型审计信息已记录。用户确认替换后，旧 manual draft 已标记为 discarded；生成流程未调用确认写入，`project.json` 保持不变。
+- 验收边界：本轮确认的是外部 Provider 连通性、资料选择、草稿生成和不写回门禁；草稿内容仍应由用户在项目 AI 页面人工复核后，才决定是否执行“确认写入”。

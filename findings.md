@@ -7,7 +7,7 @@
 
 - 远端公开仓库：`Moses990/ProjectVault`；本轮集成记录为 [GitHub PR #9](https://github.com/Moses990/ProjectVault/pull/9)。
 - 本地冻结分支：`feat/phase-10-ai-provider` @ `564ec26`，标签 `phase-10-complete`。
-- `origin/main=95862182a03ad5f46eee859fd15800c36d61637e`；PR #9 已 squash 合并阶段 7～10 的公开安全差异。
+- 阶段 7～10 功能集成的 merge SHA 为 `95862182a03ad5f46eee859fd15800c36d61637e`；PR #9 已 squash 合并公开安全差异。
 - 远端 `main` 受 ruleset `18599350` 保护：禁止删除/非快进，严格要求检查 `ci`。
 - 公开集成分支最终 head 为 `7b5f7f5dd4f263ae2c4a1c9fe3a52e1ce56585ca`；必需检查 `ci` 成功，PR 无评论或未解决审查线程。
 - 原始阶段分支与本地标签未推送；公开主线不包含本地验收材料。

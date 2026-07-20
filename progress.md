@@ -7,7 +7,7 @@
 
 - 产品：V2 Beta `2.0.0-beta.1`；阶段 10 已验收，阶段 11 未启动。
 - 本轮任务：已完成阶段 7～10 审查，并通过 PR #9 squash 并入远端 `main`。
-- 远端主线：`origin/main=95862182a03ad5f46eee859fd15800c36d61637e`；必需检查 `ci` 成功。
+- 阶段 7～10 功能集成 merge SHA：`95862182a03ad5f46eee859fd15800c36d61637e`；必需检查 `ci` 成功。
 - 本地源分支：`feat/phase-10-ai-provider` @ `564ec26`；公开集成分支最终 head 为 `7b5f7f5`。
 - 原始阶段分支、标签和含真实环境材料的 `docs/reviews/` 不推送。
 

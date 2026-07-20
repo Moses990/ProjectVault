@@ -7,10 +7,10 @@
 ## 当前执行摘要（2026-07-20）
 
 - V2 Beta `2.0.0-beta.1` 与阶段 10 已完成验收；阶段 11 未定义、未启动。
-- 阶段 7～10 的远端集成由 [GitHub PR #9](https://github.com/Moses990/ProjectVault/pull/9) 承载；CI、合并状态和最终 SHA 以该 PR 的事实记录为准。
+- 阶段 7～10 已通过 [GitHub PR #9](https://github.com/Moses990/ProjectVault/pull/9) squash 并入远端 `main`；merge SHA 为 `95862182a03ad5f46eee859fd15800c36d61637e`。
 - 公开集成不包含新增 `docs/reviews/`、截图、真实项目清单、本机绝对路径或本地阶段标签。
-- 合并前门禁：后端全量、前端全量、Next 静态构建、Rust 检查、`git diff --check`、公开差异隐私扫描、GitHub 必需检查 `ci`。
-- 本轮只完成远端集成与连续性文件同步，不进入阶段 11，不修改真实项目文件或正式数据库。
+- 合并门禁已通过：后端全量、前端全量、Next 静态构建、Rust 检查、`git diff --check`、公开差异隐私扫描和 GitHub 必需检查 `ci`。
+- 本轮远端集成与连续性文件同步已收口；未进入阶段 11，未修改真实项目文件或正式数据库。
 
 ## 目标
 

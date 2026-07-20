@@ -69,7 +69,7 @@ class Phase8ProjectLibraryTests(unittest.TestCase):
                 with self.assertRaises(HTTPException) as absolute_escape:
                     get_project_resources("p8-library", directory="C:\\outside")
             with patch("app.api.projects.get_database_path", return_value=db_path):
-                listed = get_projects(q=str(root), page=1, limit=10)
+                listed = get_projects(q=str(root.resolve()), page=1, limit=10)
                 overview = get_project_overview("p8-library")
 
             self.assertEqual(parent_escape.exception.status_code, 400)

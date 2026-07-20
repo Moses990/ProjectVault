@@ -183,7 +183,7 @@ class Phase8CoreApiTests(unittest.TestCase):
                     )
                 )
                 settings = get_settings_api()
-            self.assertEqual(updated["data"]["root_path"], str(root))
+            self.assertTrue(Path(updated["data"]["root_path"]).samefile(root))
             self.assertEqual(settings["data"]["scan_interval"], 30)
 
             with patch("app.api.scanner.get_database_path", return_value=db_path):

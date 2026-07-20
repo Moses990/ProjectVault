@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, HistoryItem } from "@/lib/api";
+import { formatEventType, formatLocalDateTime, formatScanMessage, formatStatus } from "@/lib/presentation";
 
 export function HistoryTab({ projectId }: { projectId: string }) {
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -19,13 +20,13 @@ export function HistoryTab({ projectId }: { projectId: string }) {
   }, [projectId, historyPage]);
 
   return (
-    <div className="card tab-card">
+    <div className="card tab-card history-table-card">
       {!loaded ? (
         <div className="empty-state"><span className="spinner" /> 加载中...</div>
       ) : history.length === 0 ? (
         <div className="empty-state"><p>暂无历史事件。</p></div>
       ) : (
-        <table className="data-table">
+        <table className="data-table project-history-table">
           <thead>
             <tr>
               <th>时间</th>
@@ -37,20 +38,19 @@ export function HistoryTab({ projectId }: { projectId: string }) {
             </tr>
           </thead>
           <tbody>
-            {history.map((h) => (
-              <tr key={h.id}>
-                <td className="text-dim text-sm">{h.created_at}</td>
-                <td className="text-mono text-sm">{h.event_type}</td>
-                <td>
-                  {h.status === "success" ? <span className="badge badge-success">{h.status}</span>
-                    : h.status === "failed" ? <span className="badge badge-danger">{h.status}</span>
-                    : <span className="badge">{h.status}</span>}
-                </td>
-                <td className="text-sm">{h.message ?? <span className="text-dim">-</span>}</td>
-                <td className="text-sm">{h.duration_ms !== null ? `${h.duration_ms}ms` : <span className="text-dim">-</span>}</td>
-                <td className="text-sm">{h.affected_files ?? <span className="text-dim">-</span>}</td>
-              </tr>
-            ))}
+            {history.map((h) => {
+              const status = formatStatus(h.status);
+              return (
+                <tr key={h.id}>
+                  <td className="text-dim text-sm history-time-cell">{formatLocalDateTime(h.created_at)}</td>
+                  <td className="text-sm">{formatEventType(h.event_type)}</td>
+                  <td><span className={`badge ${status.badgeClass}`}>{status.label}</span></td>
+                  <td className="text-sm history-message-cell">{formatScanMessage(h.message, h.status, h.event_type)}</td>
+                  <td className="text-sm history-number-cell">{h.duration_ms !== null ? `${h.duration_ms} ms` : "—"}</td>
+                  <td className="text-sm history-number-cell">{h.affected_files ?? "—"}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}

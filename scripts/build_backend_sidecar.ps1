@@ -1,6 +1,8 @@
 param(
     [switch]$SkipInstall,
-    [switch]$Clean
+    [switch]$Clean,
+    [string]$OutputDir,
+    [string]$WorkDir
 )
 
 $ErrorActionPreference = "Stop"
@@ -10,8 +12,14 @@ $BackendDir = Join-Path $ProjectRoot "backend"
 $Python = Join-Path $BackendDir ".venv\Scripts\python.exe"
 $BuildRequirements = Join-Path $BackendDir "requirements-build.txt"
 $BinaryName = "project-vault-backend-x86_64-pc-windows-msvc"
-$OutputDir = Join-Path $ProjectRoot "desktop\src-tauri\binaries"
-$WorkDir = Join-Path $ProjectRoot "desktop\src-tauri\target\pyinstaller"
+if ([string]::IsNullOrWhiteSpace($OutputDir)) {
+    $OutputDir = Join-Path $ProjectRoot "desktop\src-tauri\binaries"
+}
+if ([string]::IsNullOrWhiteSpace($WorkDir)) {
+    $WorkDir = Join-Path $ProjectRoot "desktop\src-tauri\target\pyinstaller"
+}
+$OutputDir = [IO.Path]::GetFullPath($OutputDir)
+$WorkDir = [IO.Path]::GetFullPath($WorkDir)
 $SpecDir = $WorkDir
 $OutputExe = Join-Path $OutputDir "$BinaryName.exe"
 
@@ -28,6 +36,9 @@ New-Item -ItemType Directory -Force -Path $WorkDir | Out-Null
 
 if (-not $SkipInstall) {
     & $Python -m pip install -r $BuildRequirements
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
 }
 
 if ($Clean) {
@@ -62,6 +73,9 @@ try {
         --hidden-import uvicorn.protocols.http.auto `
         --hidden-import uvicorn.protocols.websockets.auto `
         app\run_server.py
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
 }
 finally {
     Pop-Location

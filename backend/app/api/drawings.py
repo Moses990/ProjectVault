@@ -31,22 +31,26 @@ def get_drawings_center(
     sort_by: str = "last_modified",
     category: str | None = None,
     q: str | None = None,
+    project_id: str | None = None,
 ) -> dict[str, object]:
     try:
-        items, total, resolved_page, resolved_limit = drawings_center(
+        items, total, resolved_page, resolved_limit, category_counts = drawings_center(
             page=page,
             limit=limit,
             sort_by=sort_by,
             category=category,
             q=q,
+            project_id=project_id,
             db_path=get_database_path(),
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    meta = page_meta(resolved_page, resolved_limit, total)
+    meta["category_counts"] = category_counts
     return success_response(
         items,
         "drawings_center",
-        page_meta(resolved_page, resolved_limit, total),
+        meta,
     )
 
 

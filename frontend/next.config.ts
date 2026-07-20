@@ -13,7 +13,6 @@ const nextConfig: NextConfig = {
   // 生产构建：导出 Tauri 使用的静态前端。
   output: "export",
   trailingSlash: true,
-  assetPrefix: ".",
 };
 
 export default nextConfig;

@@ -92,11 +92,12 @@ Project Vault 的接口设计秉持以下原则：
 
 - **Endpoint:**`/api/v1/projects/candidates`
 - **HTTP Method:**`GET`
-- **Purpose:** 扫描用户配置的根目录第一层子文件夹，返回尚未包含 `project.json` 的普通文件夹，供用户批量初始化。
+- **Purpose:** 扫描用户配置的根目录第一层子文件夹，返回带结构分类的目录列表；标准资料子目录和已有项目仅展示，不可初始化。
 - **Query Parameters:**`root_path` (可选，不传时使用系统设置)
 - **Request Body:** 无
 - **Response Schema:**`data`: `[{ folder_name, absolute_path, created_at, estimated_files }]`
-- **Error Conditions:** 400 (根目录非法), 403 (无读取权限)
+- **Response Schema:**`data`: `[{ folder_name, absolute_path, created_at, estimated_files, category, candidate_type, confidence, evidence, warnings, selectable, requires_confirmation, will_write_project_json }]`；旧 `category` 保持兼容，新增 `candidate_type` 为 `initialized_project`、`structured_project_candidate`、`ordinary_project_candidate`、`suspected_project_subdirectory`、`non_project_directory` 或 `confirmation_required`。普通候选和待确认目录必须人工确认，`will_write_project_json` 在候选发现阶段固定为 `false`。
+- **Error Conditions:** 400 (根目录非法、已是项目或疑似单项目根目录), 403 (无读取权限)
 
 ### 6.4 批量初始化项目
 
@@ -104,7 +105,7 @@ Project Vault 的接口设计秉持以下原则：
 - **HTTP Method:**`POST`
 - **Purpose:** 将用户选中的普通文件夹转换为标准 Vault 项目：写入默认 `project.json`，生成 `project_id`，并触发首次扫描。
 - **Query Parameters:** 无
-- **Request Body:**`{ paths: string[], default_tags?: string[] }`
+- **Request Body:**`{ paths: string[], default_tags?: string[], confirmed_paths?: string[] }`；需要确认的目录必须出现在 `confirmed_paths`，否则只跳过、不写入。
 - **Response Schema:**`data`: `{ initialized_count, project_ids: string[], skipped: [{ path, reason }] }`
 - **Error Conditions:** 400 (路径非法或已存在 project.json), 403 (无写入权限)
 
@@ -212,15 +213,16 @@ Project Vault 的接口设计秉持以下原则：
 
 ## 10. Search APIs
 
-### 10.1 Command Palette 全局检索 (Ctrl+K)
+### 10.1 全局检索
 
 - **Endpoint:**`/api/v1/search`
 - **HTTP Method:**`GET`
-- **Purpose:** 对接 FTS5 提供极速全文检索，前端执行防抖查询。
-- **Query Parameters:**`q` (必填), `limit`, `category` (可选，Projects/Files/CAD/Materials)
+- **Purpose:** 搜索现有索引中的项目、文件名、相对路径与分类；前端执行防抖查询。不是文件正文搜索。
+- **Query Parameters:** `q`（必填）、`type`（`all|project|knowledge|file|drawing|material`）、`project_id`（可选）、`limit`（默认 20，最大 100）、`offset`（默认 0）。旧 `category` 参数兼容映射到 `type`；两者冲突返回 400。
 - **Request Body:** 无
-- **Response Schema:**`data`: `[{ entity_id, entity_type, title, project_id, highlighted_content, score }]`
-- **Error Conditions:** 400 (搜索词为空)
+- **Response Schema:** `data`: `{ query, items, total, limit, offset, has_more, elapsed_ms }`；每个 `items` 行包含 `result_id`、`entity_type`、`entity_id`、`project_id`、`project_name`、`title`、`relative_path`、`parent_path`、`extension`、`category`、`file_id`、`available`、`labels`、`match_source`、`highlighted_content`、`score`。不可用字段使用 `null` 或空数组。
+- **Error Conditions:** 400（空搜索词、无效类型、冲突过滤器）；422（负 `offset`）。
+- **Search Behavior:** 查询先做 NFKC 与空白规范化；保留项目、项目知识、文件、图纸和材料的 FTS5 召回，并对中文局部词、扩展名和少量业务别名使用现有 `fts_global.title/content` 的 LIKE 兜底。物理文件只按 `file_id` 合并，`drawing` 优先于普通 `file`，同时以 `labels` 保留所有真实身份；项目知识保持独立结果并进入项目知识页。不根据文件名或路径猜测合并。排序基于匹配层级、FTS BM25（低分更相关）、固定类型顺序、自然标题和 `result_id`，分页在后端完成，不新增数据库 Schema。
 
 ### 10.2 获取近期搜索记录 (Recent)
 
@@ -241,7 +243,7 @@ Project Vault 的接口设计秉持以下原则：
 - **Purpose:** 动态渲染 AI Center 列表。
 - **Query Parameters:** 无
 - **Request Body:** 无
-- **Response Schema:**`data`: `[{ id, name, base_url, default_model, is_enabled, is_configured }]` (脱敏 API Key)
+- **Response Schema:**`data`: `[{ id, name, base_url, default_model, is_enabled, has_key, auth_mode, credential_state }]`（脱敏 API Key）
 - **Error Conditions:** 无
 
 ### 11.2 创建模型服务商
@@ -250,9 +252,9 @@ Project Vault 的接口设计秉持以下原则：
 - **HTTP Method:**`POST`
 - **Purpose:** UI 层新增自定义 Provider 实例。
 - **Query Parameters:** 无
-- **Request Body:**`{ name: string, base_url: string, default_model: string, api_key: string (可选) }`
-- **Response Schema:**`data`: `{ id, is_configured: true }`
-- **Error Conditions:** 400 (必填参数缺失)
+- **Request Body:**`{ name: string, base_url: string, default_model: string, api_key?: string, auth_mode: "api_key" | "none", is_enabled: boolean }`
+- **Response Schema:**`data`: 脱敏 Provider；`auth_mode="none"` 表示用户明确声明服务无需认证，`credential_state="not_required"`。
+- **Error Conditions:** 400（必填参数缺失、认证模式无效或无认证模式同时提交 Key）
 
 ### 11.3 更新配置
 
@@ -260,8 +262,8 @@ Project Vault 的接口设计秉持以下原则：
 - **HTTP Method:**`PUT`
 - **Purpose:** 更新指定 Provider 的 API Key 及基础配置，交由 OS 托管加密。
 - **Query Parameters:** 无
-- **Request Body:**`{ base_url: string, default_model: string, api_key: string (可选), is_enabled: boolean }`
-- **Response Schema:**`data`: `{ id, is_configured: true }`
+- **Request Body:**`{ base_url?: string, default_model?: string, api_key?: string, auth_mode?: "api_key" | "none", is_enabled?: boolean, clear_api_key?: boolean }`
+- **Response Schema:**`data`: 脱敏 Provider；切换认证模式不会把密钥写入 SQLite。
 - **Error Conditions:** 400, 404
 
 ### 11.4 删除模型服务商
@@ -347,7 +349,7 @@ Project Vault 的接口设计秉持以下原则：
 - **Purpose:** 获取 `scan_history` 记录，渲染活动时间线。
 - **Query Parameters:**`page`, `limit`, `project_id` (可选)
 - **Request Body:** 无
-- **Response Schema:**`data`: `[{ id, event_type, status, message, created_at, duration_ms }]`
+- **Response Schema:**`data`: `[{ id, project_id, project_name, event_type, status, message, created_at, duration_ms, scanner_version, affected_files }]`；`project_name` 由同一条分页查询 `LEFT JOIN projects` 返回，原始 `project_id` 保留。
 - **Error Conditions:** 无
 
 ## 15. Maintenance & Backup APIs
@@ -378,6 +380,25 @@ Project Vault 的接口设计秉持以下原则：
 - **Request Body:**`{ name: string, confirm: boolean }`
 - **Response Schema:**`data`: `{ restored: boolean, name: string }`
 - **Error Conditions:** 400 (未确认或备份名非法), 404 (备份不存在)
+
+### 15.4 检查项目索引 (Dry Run)
+
+- **Endpoint:**`/api/v1/system/index/audit`
+- **HTTP Method:**`POST`
+- **Purpose:** 只读检查项目库中的有效项目、疑似错误项目索引、嵌套 `project.json`、缺失索引和项目归属异常。
+- **Request Body:**`{ root_path?: string }`；未提供时使用已保存的项目根路径。
+- **Response Schema:**`data`: `{ status, valid_projects, suspected_invalid_project_count, missing_index_count, suspected_nested_project_json_count, files_to_reindex, drawings_to_reindex, materials_to_reindex, filesystem_changes: 0, project_json_changes: 0, database_schema_changes: 0 }`
+- **Error Conditions:** 400 (根路径未配置、根路径无效或选择了单个项目目录)
+
+### 15.5 备份并重建项目索引
+
+- **Endpoint:**`/api/v1/system/index/rebuild`
+- **HTTP Method:**`POST`
+- **Purpose:** 先备份 SQLite，再在事务中重建 `projects/files/drawings/materials` 及现有 FTS 派生索引；排除标准资料子目录和嵌套错误 `project.json`。
+- **Request Body:**`{ root_path?: string, confirm: boolean }`
+- **Response Schema:**`data`: `{ status, valid_projects, excluded_invalid_projects, excluded_nested_project_json, backup, indexed_count, filesystem_changes: 0, project_json_changes: 0, database_schema_changes: 0 }`
+- **Safety:** 未确认不执行；备份失败不执行；受保护知识数据存在于待排除项目时阻断；事务失败自动回滚。不会删除、移动或修改项目文件及 `project.json`。
+- **Error Conditions:** 400 (未确认或根路径无效), 409 (备份无效、重建被受保护数据阻断或事务失败)
 
 ## 16. Future Reserved APIs
 为 V2 扩展留下架构接口空间：

@@ -4,6 +4,12 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from app.db.database import connect
+from app.projects.project_structure import (
+    EXISTING_PROJECT,
+    NON_PROJECT_DIRECTORY,
+    SUSPECTED_SUBDIRECTORY,
+    classify_project_directory,
+)
 
 
 @dataclass(frozen=True)
@@ -87,8 +93,12 @@ def initialize_projects(
     paths: list[str | Path],
     db_path: Path | None = None,
     default_tags: list[str] | None = None,
+    confirmed_paths: list[str | Path] | None = None,
 ) -> InitializeProjectsResult:
     tags = default_tags or []
+    confirmations = {
+        str(Path(path).expanduser().resolve()) for path in (confirmed_paths or [])
+    }
     initialized_ids: list[str] = []
     skipped: list[SkippedProject] = []
 
@@ -97,10 +107,24 @@ def initialize_projects(
         if not project_dir.exists() or not project_dir.is_dir():
             skipped.append(SkippedProject(path=str(project_dir), reason="path_invalid"))
             continue
-        if (project_dir / "project.json").exists():
+        structure = classify_project_directory(project_dir)
+        if structure.category == SUSPECTED_SUBDIRECTORY:
+            skipped.append(
+                SkippedProject(path=str(project_dir), reason="standard_project_directory")
+            )
+            continue
+        if structure.category == NON_PROJECT_DIRECTORY:
+            skipped.append(
+                SkippedProject(path=str(project_dir), reason="non_project_directory")
+            )
+            continue
+        if structure.category == EXISTING_PROJECT:
             skipped.append(
                 SkippedProject(path=str(project_dir), reason="project_json_exists")
             )
+            continue
+        if structure.requires_confirmation and str(project_dir) not in confirmations:
+            skipped.append(SkippedProject(path=str(project_dir), reason="confirmation_required"))
             continue
 
         data = build_default_project_json(project_dir, tags)

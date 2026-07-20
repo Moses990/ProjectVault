@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
+from app.core.config import resolve_runtime_database
 from app.db.database import connect
+from app.db.schema import CURRENT_SCHEMA_VERSION
 from app.services import clamp_limit, clamp_page, ensure_project_exists, parse_json_list, row_to_dict
+from app.services.system import scanner_status
 
 
 def dashboard_metrics(db_path: Path | None = None) -> dict[str, int]:
@@ -39,6 +43,77 @@ def recent_projects(limit: int = 10, db_path: Path | None = None) -> list[dict[s
     return [row_to_dict(row) for row in rows]
 
 
+def dashboard_summary(db_path: Path | None = None) -> dict[str, object]:
+    """Return the read-only data needed to render the Dashboard in one request."""
+    runtime = resolve_runtime_database()
+    activity: dict[str, object] = {"status": "ready", "items": []}
+    with connect(db_path) as conn:
+        metrics = conn.execute(
+            """
+            SELECT
+              (SELECT COUNT(*) FROM projects) AS projects,
+              (SELECT COUNT(*) FROM files) AS indexed_files,
+              (SELECT COUNT(*) FROM drawings) AS drawings,
+              (SELECT COUNT(*) FROM materials) AS materials
+            """
+        ).fetchone()
+        recent_rows = conn.execute(
+            """
+            SELECT id, name, status, file_count, cad_count, material_count, last_updated_at
+            FROM projects
+            ORDER BY CASE WHEN last_updated_at IS NULL THEN 1 ELSE 0 END,
+                     last_updated_at DESC, created_at DESC, name ASC
+            LIMIT 8
+            """
+        ).fetchall()
+        settings_rows = conn.execute(
+            """
+            SELECT key, value FROM system_settings
+            WHERE key IN ('root_path', 'scan_interval', 'auto_scan')
+            """
+        ).fetchall()
+        integrity = str(conn.execute("PRAGMA integrity_check").fetchone()[0]).lower()
+        schema_version = int(conn.execute("PRAGMA user_version").fetchone()[0])
+        try:
+            activity_rows = conn.execute(
+                """
+                SELECT h.id, h.project_id, p.name AS project_name, h.event_type, h.status,
+                       h.message, h.created_at, h.duration_ms, h.scanner_version,
+                       h.affected_files
+                FROM scan_history h
+                LEFT JOIN projects p ON p.id = h.project_id
+                ORDER BY h.created_at DESC, h.id DESC
+                LIMIT 5
+                """
+            ).fetchall()
+            activity["items"] = [row_to_dict(row) for row in activity_rows]
+        except Exception:
+            activity = {"status": "unavailable", "items": [], "reason": "history_query_failed"}
+
+    settings = {str(row["key"]): str(row["value"] or "") for row in settings_rows}
+    root_value = settings.get("root_path", "").strip()
+    root_path = Path(root_value) if root_value else None
+    root_accessible = bool(root_path and root_path.is_dir())
+    auto_scan_enabled = settings.get("auto_scan", "true").lower() not in {"false", "0", "no"}
+    interval = int(settings.get("scan_interval", "60") or 60)
+    index_status = "healthy" if integrity == "ok" and schema_version == CURRENT_SCHEMA_VERSION else "warning"
+    return {
+        "stats": {key: int(metrics[key]) for key in ("projects", "indexed_files", "drawings", "materials")},
+        "recent_projects": [row_to_dict(row) for row in recent_rows],
+        "workspace": {
+            "root_path": root_value,
+            "root_path_accessible": root_accessible,
+            "auto_scan_effective": auto_scan_enabled and root_accessible,
+            "scan_interval_effective": interval if auto_scan_enabled and root_accessible else None,
+            "index_status": index_status,
+            "runtime_mode": runtime.mode,
+            "database_source": runtime.source,
+            "scanner": scanner_status(),
+        },
+        "recent_activity": activity,
+    }
+
+
 def list_projects(
     *,
     q: str | None = None,
@@ -68,9 +143,9 @@ def list_projects(
     filters: list[str] = []
     params: list[object] = []
     if q:
-        filters.append("(p.name LIKE ? OR p.id LIKE ? OR p.manager LIKE ?)")
+        filters.append("(p.name LIKE ? OR p.project_path LIKE ?)")
         pattern = f"%{q}%"
-        params.extend([pattern, pattern, pattern])
+        params.extend([pattern, pattern])
     if project_type:
         filters.append("p.type = ?")
         params.append(project_type)
@@ -89,16 +164,18 @@ def list_projects(
                 params,
             ).fetchone()["total"]
         )
+        sort_expression = sort_columns[sort_by]
+        nulls_last = "CASE WHEN p.last_updated_at IS NULL THEN 1 ELSE 0 END ASC," if sort_by == "last_updated_at" else ""
         rows = conn.execute(
             f"""
-            SELECT p.id, p.name, p.type, p.phase, p.status, p.manager,
+            SELECT p.id, p.name, p.project_path, p.type, p.phase, p.status, p.manager,
                    p.file_count, p.cad_count, p.material_count, p.last_updated_at,
                    CASE WHEN f.entity_id IS NULL THEN 0 ELSE 1 END AS is_favorite
             FROM projects p
             LEFT JOIN favorites f
               ON f.identity_type = 'project' AND f.entity_id = p.id
             {where}
-            ORDER BY {sort_columns[sort_by]} {normalized_order.upper()}, p.name ASC
+            ORDER BY {nulls_last} {sort_expression} {normalized_order.upper()}, p.name ASC
             LIMIT ? OFFSET ?
             """,
             [*params, resolved_limit, offset],
@@ -136,7 +213,7 @@ def project_overview(project_id: str, db_path: Path | None = None) -> dict[str, 
             """
             SELECT p.id, p.name, p.project_path AS path, p.type, p.phase, p.status,
                    p.manager, p.file_count, p.cad_count, p.material_count,
-                   p.last_updated_at, m.summary
+                   p.created_at, p.last_updated_at, m.summary
             FROM projects p
             LEFT JOIN ai_metadata m ON m.project_id = p.id
             WHERE p.id = ?
@@ -154,6 +231,15 @@ def project_overview(project_id: str, db_path: Path | None = None) -> dict[str, 
         ]
     data = row_to_dict(row)
     data["tags"] = tags
+    schema_version: int | None = None
+    project_json = Path(str(data["path"])) / "project.json"
+    try:
+        payload = json.loads(project_json.read_text(encoding="utf-8"))
+        value = payload.get("schema_version") if isinstance(payload, dict) else None
+        schema_version = int(value) if isinstance(value, int | str) and str(value).isdigit() else None
+    except (OSError, json.JSONDecodeError, ValueError):
+        schema_version = None
+    data["schema_version"] = schema_version
     return data
 
 

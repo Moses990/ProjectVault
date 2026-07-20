@@ -2,10 +2,32 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
 from app.api.response import page_meta, success_response
-from app.core_api import get_project_file_tree, list_project_files
+from app.core_api import get_project_file_tree, list_project_files, list_project_resources
 from app.db.database import get_database_path
 
 router = APIRouter(prefix="/projects", tags=["files"])
+
+
+@router.get("/{project_id}/resources")
+def get_project_resources(
+    project_id: str,
+    directory: str | None = None,
+    sort_by: str = "name",
+    order: str = "asc",
+) -> dict[str, object]:
+    try:
+        data = list_project_resources(
+            project_id,
+            directory=directory,
+            sort_by=sort_by,
+            order=order,
+            db_path=get_database_path(),
+        )
+    except ValueError as exc:
+        detail = str(exc)
+        status_code = 404 if detail == "project_not_found" else 400
+        raise HTTPException(status_code=status_code, detail=detail) from exc
+    return success_response(data, "project_resources")
 
 
 @router.get("/{project_id}/files")

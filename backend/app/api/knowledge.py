@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 
 from app.api.response import success_response
 from app.db.database import get_database_path
-from app.knowledge.service import apply_knowledge_draft, create_knowledge_draft, discard_knowledge_draft, extract_text_sources, get_knowledge
+from app.knowledge.service import apply_knowledge_draft, create_knowledge_draft, discard_knowledge_draft, extract_text_sources, get_knowledge, list_knowledge_history
 
 router = APIRouter(prefix="/projects/{project_id}/knowledge", tags=["knowledge"])
 
@@ -17,6 +17,8 @@ class CreateDraftRequest(BaseModel):
     source_ids: list[str] = Field(default_factory=list)
     mode: str = "manual"
     draft: dict[str, object] | None = None
+    provider_id: str | None = None
+    model_id: str | None = None
 
 
 class ApplyDraftRequest(BaseModel):
@@ -66,6 +68,8 @@ def post_knowledge_draft(
             source_ids=request.source_ids,
             mode=request.mode,
             draft=request.draft,
+            provider_id=request.provider_id,
+            model_id=request.model_id,
             db_path=get_database_path(),
         )
     except ValueError as exc:
@@ -104,3 +108,19 @@ def post_knowledge_discard(project_id: str, draft_id: str) -> dict[str, object]:
         status_code = 404 if detail in {"project_not_found", "draft_not_found"} else 400
         raise HTTPException(status_code=status_code, detail=detail) from exc
     return success_response(data, "knowledge_draft_discarded")
+
+
+@router.get("/history")
+def get_knowledge_history(project_id: str, limit: int = 20, offset: int = 0) -> dict[str, object]:
+    try:
+        data = list_knowledge_history(
+            project_id,
+            limit=limit,
+            offset=offset,
+            db_path=get_database_path(),
+        )
+    except ValueError as exc:
+        detail = str(exc)
+        status_code = 404 if detail == "project_not_found" else 400
+        raise HTTPException(status_code=status_code, detail=detail) from exc
+    return success_response(data, "knowledge_history")

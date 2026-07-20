@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TreeNode } from "@/lib/api";
 
 interface DirectoryTreeProps {
@@ -23,6 +23,11 @@ function TreeNodeItem({ node, depth, path, selectedDir, onSelect }: TreeNodeItem
   const hasChildren = node.children.length > 0;
   const currentPath = path ? `${path}/${node.name}` : node.name;
   const isSelected = selectedDir === currentPath;
+  const containsSelection = Boolean(selectedDir?.startsWith(`${currentPath}/`));
+
+  useEffect(() => {
+    if (containsSelection) setExpanded(true);
+  }, [containsSelection]);
 
   return (
     <div>

@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useEffect, useState, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api, ProjectOverview } from "@/lib/api";
 import { OverviewTab } from "./tabs/OverviewTab";
 import { FilesTab } from "./tabs/FilesTab";
@@ -10,29 +10,31 @@ import { DrawingsTab } from "./tabs/DrawingsTab";
 import { MaterialsTab } from "./tabs/MaterialsTab";
 import { AiTab } from "./tabs/AiTab";
 import { HistoryTab } from "./tabs/HistoryTab";
+import { formatLocalDateTime, formatStatus } from "@/lib/presentation";
 
 type Tab = "overview" | "files" | "drawings" | "materials" | "ai" | "history";
+const tabKeys: Tab[] = ["overview", "files", "drawings", "materials", "ai", "history"];
+
+function safeMessage(error: unknown): string {
+  return error instanceof Error && error.message.startsWith("404") ? "项目不存在或已不可访问。" : "项目数据暂时无法加载，请重试。";
+}
 
 export default function ProjectDetailPage() {
-  return (
-    <Suspense fallback={<div className="empty-state"><span className="spinner" /> 加载项目中...</div>}>
-      <ProjectDetailContent />
-    </Suspense>
-  );
+  return <Suspense fallback={<div className="empty-state"><span className="spinner" /> 加载项目中...</div>}><ProjectDetailContent /></Suspense>;
 }
 
 function ProjectDetailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id") ?? "";
-  const initialTab = (searchParams.get("tab") as Tab) || "overview";
-
+  const tabParam = searchParams.get("tab");
+  const tab: Tab = tabKeys.includes(tabParam as Tab) ? tabParam as Tab : "overview";
+  const path = searchParams.get("path") ?? "";
+  const focus = searchParams.get("focus") ?? "";
   const [overview, setOverview] = useState<ProjectOverview | null>(null);
-  const [tab, setTab] = useState<Tab>(initialTab);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<string | null>(null);
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
 
   const loadOverview = useCallback(async () => {
     if (!id) {
@@ -42,34 +44,31 @@ function ProjectDetailContent() {
     }
     setLoading(true);
     try {
-      const data = await api.projectOverview(id);
-      setOverview(data);
+      setOverview(await api.projectOverview(id));
       setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "加载项目失败");
+    } catch (caught) {
+      setError(safeMessage(caught));
     } finally {
       setLoading(false);
     }
   }, [id]);
 
-  useEffect(() => {
-    loadOverview();
-  }, [loadOverview]);
+  useEffect(() => { loadOverview(); }, [loadOverview]);
 
-  async function handleScan() {
-    if (!id) return;
-    setScanning(true);
-    setScanResult(null);
+  function setLocation(nextTab: Tab, nextPath = "", nextFocus = "") {
+    const params = new URLSearchParams({ id, tab: nextTab });
+    if (nextTab === "files" && nextPath) params.set("path", nextPath);
+    if (nextTab === "files" && nextFocus) params.set("focus", nextFocus);
+    router.push(`/project-detail?${params.toString()}`);
+  }
+
+  async function copyProjectPath() {
+    if (!overview) return;
     try {
-      const result = await api.scanProject(id);
-      setScanResult(
-        `扫描完成：${result.created_count} 新增，${result.updated_count} 更新，${result.deleted_count} 删除`
-      );
-      await loadOverview();
-    } catch (e) {
-      setScanResult(`扫描失败：${e instanceof Error ? e.message : "未知错误"}`);
-    } finally {
-      setScanning(false);
+      await navigator.clipboard.writeText(overview.path);
+      setCopyMessage("已复制项目路径。");
+    } catch {
+      setCopyMessage("无法复制路径，请检查系统剪贴板权限。");
     }
   }
 
@@ -82,82 +81,30 @@ function ProjectDetailContent() {
     { key: "history", label: "历史" },
   ];
 
-  if (loading && !overview) {
-    return <div className="empty-state"><span className="spinner" /> 加载项目中...</div>;
-  }
+  if (loading && !overview) return <div className="empty-state"><span className="spinner" /> 加载项目中...</div>;
+  if (error && !overview) return <div className="project-detail-page"><div className="page-header project-detail-header"><h1 className="page-title">项目详情</h1><Link href="/projects" className="btn btn-sm">返回项目库</Link></div><div className="project-alert error">{error}<button className="btn btn-sm" type="button" onClick={loadOverview}>重新加载</button></div></div>;
 
-  if (error && !overview) {
-    return (
-      <div className="project-detail-page">
-        <div className="page-header project-detail-header">
-          <h1 className="page-title">项目</h1>
-          <Link href="/projects" className="btn btn-sm">返回列表</Link>
-        </div>
-        <div className="project-alert error">
-          {error}
+  return <div className="project-detail-page">
+    <div className="page-header project-detail-header">
+      <div className="project-title-row">
+        <Link href="/projects" className="btn btn-sm">返回项目库</Link>
+        <div className="project-title-copy"><div className="project-title-badges"><h1 className="page-title project-title">{overview?.name ?? "项目"}</h1>{overview?.status && <span className={`badge ${formatStatus(overview.status).badgeClass}`}>{formatStatus(overview.status).label}</span>}</div>
+          <p className="project-header-meta" title={overview?.path}>{overview?.path}</p>
+          <p className="project-header-meta">最近更新：{formatLocalDateTime(overview?.last_updated_at, "—")}</p>
         </div>
       </div>
-    );
-  }
-
-  return (
-    <div className="project-detail-page">
-      <div className="page-header project-detail-header">
-        <div className="project-title-row">
-          <button className="btn-icon" onClick={() => router.back()} title="返回">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
-          </button>
-          <div>
-            <div className="project-title-badges">
-              <h1 className="page-title project-title">{overview?.name ?? "项目"}</h1>
-              {overview?.phase && <span className="badge badge-accent">{overview.phase}</span>}
-              {overview?.status && <span className="badge">{overview.status}</span>}
-            </div>
-          </div>
-        </div>
-        <button className="btn btn-sm" onClick={handleScan} disabled={scanning}>
-          {scanning ? (
-            <><span className="spinner spinner-sm" /> 扫描中...</>
-          ) : (
-            <>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 11-3-6.7" /><path d="M21 3v6h-6" /></svg>
-              重新扫描
-            </>
-          )}
-        </button>
-      </div>
-
-      {scanResult && (
-        <div className="project-alert success">{scanResult}</div>
-      )}
-
-      {error && (
-        <div className="project-alert warn">
-          {error}（显示缓存数据）
-        </div>
-      )}
-
-      <div className="tabs project-tabs">
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            className={`tab ${tab === t.key ? "active" : ""}`}
-            onClick={() => setTab(t.key)}
-          >
-            {t.label}
-            {t.count !== undefined && t.count > 0 && (
-              <span className="tab-count">{t.count}</span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {tab === "overview" && overview && <OverviewTab overview={overview} />}
-      {tab === "files" && id && <FilesTab projectId={id} />}
-      {tab === "drawings" && id && <DrawingsTab projectId={id} />}
-      {tab === "materials" && id && <MaterialsTab projectId={id} />}
-      {tab === "ai" && id && <AiTab projectId={id} />}
-      {tab === "history" && id && <HistoryTab projectId={id} />}
+      <button className="btn btn-sm" type="button" onClick={copyProjectPath}>复制路径</button>
     </div>
-  );
+    {copyMessage && <div className="project-alert success">{copyMessage}</div>}
+    {error && <div className="project-alert warn">{error}（显示已加载数据）</div>}
+    <div className="tabs project-tabs" role="tablist" aria-label="项目详情导航">
+      {tabs.map((item) => <button key={item.key} className={`tab ${tab === item.key ? "active" : ""}`} role="tab" aria-selected={tab === item.key} onClick={() => setLocation(item.key)}>{item.label}{item.count !== undefined && item.count > 0 && <span className="tab-count">{item.count}</span>}</button>)}
+    </div>
+    {tab === "overview" && overview && <OverviewTab overview={overview} />}
+    {tab === "files" && id && <FilesTab projectId={id} projectName={overview?.name} fileCount={overview?.file_count} directory={path} focusFileId={focus} onDirectoryChange={(nextPath) => setLocation("files", nextPath)} />}
+    {tab === "drawings" && id && <DrawingsTab projectId={id} />}
+    {tab === "materials" && id && <MaterialsTab projectId={id} />}
+    {tab === "ai" && id && <AiTab projectId={id} />}
+    {tab === "history" && id && <HistoryTab projectId={id} />}
+  </div>;
 }

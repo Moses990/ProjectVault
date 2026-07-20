@@ -18,6 +18,8 @@ from app.services.ai_providers import (
     create_ai_provider,
     delete_ai_provider,
     list_ai_providers,
+    list_provider_models,
+    preview_provider_models,
     test_ai_provider,
     update_ai_provider,
 )
@@ -30,12 +32,14 @@ from app.services.drawings import (
 from app.services.files import (
     get_project_file_tree,
     list_project_files,
+    list_project_resources,
     open_explorer_target,
     read_asset_text,
     resolve_asset,
 )
 from app.services.projects import (
     dashboard_metrics,
+    dashboard_summary,
     list_projects,
     project_ai_metadata,
     project_overview,
@@ -55,3 +59,4 @@ from app.services.system import (
     scan_project_by_id,
     scanner_status,
 )
+from app.services.index_maintenance import audit_project_indexes, rebuild_project_indexes

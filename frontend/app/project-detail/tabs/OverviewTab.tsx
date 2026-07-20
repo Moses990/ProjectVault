@@ -1,29 +1,22 @@
 "use client";
 
 import { ProjectOverview } from "@/lib/api";
-
-function formatOverviewValue(label: string, value: string | null | undefined): string | null | undefined {
-  if (label !== "最后更新" || !value) return value;
-  return value.replace("T", " ").replace(/\.\d+.*$/, "").replace(/\+.*$/, "");
-}
+import { formatLocalDateTime, formatStatus } from "@/lib/presentation";
 
 export function OverviewTab({ overview }: { overview: ProjectOverview }) {
   return (
     <div className="card project-overview-card">
       <div className="project-overview-grid">
-        <InfoField label="类型" value={overview.type} />
-        <InfoField label="负责人" value={overview.manager} />
-        <InfoField label="阶段" value={overview.phase} />
-        <InfoField label="状态" value={overview.status} />
-        <InfoField label="文件数" value={String(overview.file_count)} />
-        <InfoField label="最后更新" value={overview.last_updated_at} mono />
+        <InfoField label="状态" value={formatStatus(overview.status).label} />
+        <InfoField label="已索引文件" value={String(overview.file_count)} />
+        <InfoField label="CAD" value={String(overview.cad_count)} />
+        <InfoField label="材料" value={String(overview.material_count)} />
+        <InfoField label="项目路径" value={overview.path} mono />
+        <InfoField label="创建时间" value={formatLocalDateTime(overview.created_at, "—")} />
+        <InfoField label="最后更新" value={formatLocalDateTime(overview.last_updated_at, "—")} />
+        <InfoField label="project.json 版本" value={overview.schema_version === null ? "—" : String(overview.schema_version)} />
       </div>
-      {overview.summary && (
-        <div className="project-overview-section">
-          <div className="form-label">摘要</div>
-          <div className="project-overview-copy">{overview.summary}</div>
-        </div>
-      )}
+      <div className="project-overview-section"><div className="form-label">项目简介</div><div className="project-overview-copy">{overview.summary || "暂无项目简介"}</div></div>
       {overview.tags.length > 0 && (
         <div className="project-overview-section compact">
           <div className="form-label">标签</div>
@@ -39,13 +32,11 @@ export function OverviewTab({ overview }: { overview: ProjectOverview }) {
 }
 
 function InfoField({ label, value, mono }: { label: string; value: string | null | undefined; mono?: boolean }) {
-  const displayValue = formatOverviewValue(label, value);
-
   return (
     <div className="project-info-field">
       <div className="form-label">{label}</div>
-      <div className={`project-info-value${mono ? " mono" : ""}${displayValue ? "" : " empty"}`}>
-        {displayValue || "-"}
+      <div className={`project-info-value${mono ? " mono" : ""}${value ? "" : " empty"}`}>
+        {value || "-"}
       </div>
     </div>
   );

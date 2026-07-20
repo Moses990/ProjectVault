@@ -505,7 +505,7 @@ Need user confirmation before code:
 V2.1-V2.5 implementation status:
 
 - `project.json` contract accepted and implemented for approved draft apply.
-- SQLite migration to `user_version=2` implemented for knowledge cache tables.
+- SQLite `user_version=2` implements knowledge cache tables; `user_version=3` adds the explicit `ai_providers.auth_mode` contract without reinterpreting legacy key references.
 - Knowledge endpoints implemented: get, extract text, draft, apply.
 - First extraction formats implemented: `.txt`, `.md`, `.csv`, `.json`; root `project.json` is excluded.
 - Project Detail AI tab has been upgraded into Project Knowledge.

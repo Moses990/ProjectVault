@@ -20,6 +20,7 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 class InitializeProjectsRequest(BaseModel):
     paths: list[str] = Field(default_factory=list)
     default_tags: list[str] = Field(default_factory=list)
+    confirmed_paths: list[str] = Field(default_factory=list)
 
 
 class FavoriteRequest(BaseModel):
@@ -41,7 +42,11 @@ def get_project_candidates(root_path: str) -> dict[str, object]:
 def post_initialize_projects(request: InitializeProjectsRequest) -> dict[str, object]:
     if not request.paths:
         raise HTTPException(status_code=400, detail="paths_required")
-    result = initialize_projects(request.paths, default_tags=request.default_tags)
+    result = initialize_projects(
+        request.paths,
+        default_tags=request.default_tags,
+        confirmed_paths=request.confirmed_paths,
+    )
     return success_response(result_to_dict(result), "projects_initialized")
 
 

@@ -52,7 +52,7 @@ class DatabaseMigrationTests(unittest.TestCase):
             with closing(sqlite3.connect(db_path)) as conn:
                 existing_tables = table_names(conn)
                 self.assertTrue(EXPECTED_TABLES.issubset(existing_tables))
-                self.assertEqual(conn.execute("PRAGMA user_version").fetchone()[0], 2)
+                self.assertEqual(conn.execute("PRAGMA user_version").fetchone()[0], 3)
                 self.assertEqual(
                     conn.execute("PRAGMA journal_mode").fetchone()[0].lower(),
                     "wal",
@@ -70,7 +70,37 @@ class DatabaseMigrationTests(unittest.TestCase):
                 rows = conn.execute(
                     "SELECT version FROM schema_migrations ORDER BY version"
                 ).fetchall()
-                self.assertEqual([row[0] for row in rows], ["1", "2"])
+                self.assertEqual([row[0] for row in rows], ["1", "2", "3"])
+
+    def test_v2_database_adds_provider_auth_mode_without_reinterpreting_keys(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            db_path = Path(temp_dir) / "project_vault.db"
+            with closing(sqlite3.connect(db_path)) as conn:
+                conn.execute(
+                    "CREATE TABLE ai_providers (id TEXT PRIMARY KEY, name TEXT NOT NULL, "
+                    "base_url TEXT NOT NULL, default_model TEXT, is_enabled INTEGER NOT NULL DEFAULT 1, "
+                    "key_reference TEXT)"
+                )
+                conn.execute(
+                    "INSERT INTO ai_providers (id, name, base_url, key_reference) "
+                    "VALUES ('legacy', 'Legacy', 'https://example.com/v1', 'noauth')"
+                )
+                conn.execute("CREATE TABLE schema_migrations (version TEXT PRIMARY KEY)")
+                conn.execute("INSERT INTO schema_migrations (version) VALUES ('1'), ('2')")
+                conn.execute("CREATE TABLE app_metadata (key TEXT PRIMARY KEY, value TEXT)")
+                conn.execute("PRAGMA user_version = 2")
+                conn.commit()
+
+            initialize_database(db_path)
+
+            with closing(sqlite3.connect(db_path)) as conn:
+                columns = {row[1] for row in conn.execute("PRAGMA table_info(ai_providers)")}
+                self.assertIn("auth_mode", columns)
+                self.assertEqual(conn.execute("PRAGMA user_version").fetchone()[0], 3)
+                row = conn.execute(
+                    "SELECT key_reference, auth_mode FROM ai_providers WHERE id = 'legacy'"
+                ).fetchone()
+                self.assertEqual(row, ("noauth", "api_key"))
 
     def test_files_use_project_relative_path_as_unique_identity(self) -> None:
         with TemporaryDirectory() as temp_dir:

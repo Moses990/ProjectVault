@@ -130,6 +130,7 @@ Project Vault 的数据库设计遵循“抛弃即重建 (Disposable & Rebuildab
 | default_model | TEXT | 默认模型版本号 |
 | is_enabled | BOOLEAN | 启用状态 |
 | key_reference | TEXT | 凭据存储标识，用于调用本地安全机制获取密钥 |
+| auth_mode | TEXT | SQLite v3 新增；仅允许 `api_key` 或 `none`，默认 `api_key`；不从凭据内容推断认证模式 |
 
 ## 11. scan_history 表
 

@@ -26,6 +26,7 @@ fn start_backend(app: &tauri::App, port: u16) -> Result<CommandChild, String> {
         .args(["--host", "127.0.0.1", "--port"])
         .arg(port.to_string())
         .args(["--parent-pid", &parent_pid])
+        .env("PROJECT_VAULT_RUNTIME_MODE", if cfg!(debug_assertions) { "desktop-debug" } else { "desktop-production" })
         .spawn()
         .map_err(|error| error.to_string())?;
 
@@ -62,7 +63,7 @@ fn response_headers(status: &str, content_type: &str, body_len: usize, frontend_
          Content-Type: {content_type}\r\n\
          Cache-Control: no-store\r\n\
          Connection: close\r\n\
-         Content-Security-Policy: default-src 'self' 'unsafe-inline' 'unsafe-eval' http://127.0.0.1:{frontend_port}; connect-src http://127.0.0.1:*; img-src 'self' data: blob:; font-src 'self' data:\r\n\
+         Content-Security-Policy: default-src 'self' 'unsafe-inline' 'unsafe-eval' http://127.0.0.1:{frontend_port}; connect-src 'self' http://127.0.0.1:* http://ipc.localhost; img-src 'self' data: blob:; font-src 'self' data:\r\n\
          X-Content-Type-Options: nosniff\r\n\
          X-Frame-Options: DENY\r\n\
          Referrer-Policy: no-referrer\r\n\
@@ -334,6 +335,7 @@ fn main() {
     tracing::info!("WebView2 runtime detected");
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .manage(BackendProcess(Mutex::new(None)))
         .setup(|app| {

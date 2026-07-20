@@ -152,6 +152,19 @@ Relocation Scan
 
 ------
 
+候选发现对项目库根目录直属一级目录返回可解释分类：
+
+```text
+initialized_project
+structured_project_candidate
+ordinary_project_candidate
+suspected_project_subdirectory
+non_project_directory
+confirmation_required
+```
+
+普通项目候选只能作为待确认项展示，证据来自目录层级、文件数量、设计类扩展名和业务目录信号；候选发现不写入 `project.json`，也不建立 SQLite 项目索引。
+
 项目位移与盘符漂移处理：
 
 ```text
@@ -319,12 +332,17 @@ List Depth=1 Directories
 ↓
 Filter folders without project.json
 ↓
+Classify directories: existing / pending / suspected subdirectory / confirmation required
+↓
 Return candidates to API
 ```
 
 约束：
 
 - 只扫描第一层目录，避免深层遍历造成界面长时间等待。
+- `00_项目档案` 至 `07_现场资料` 只属于项目内部资料目录，不得作为候选项目。
+- 当前根目录已有 `project.json`，或包含 `00_项目档案` 且至少两个其他标准资料目录时，返回受控层级错误，避免把单个项目目录误当成项目库根目录。
+- 候选返回 `category`、`selectable` 和 `requires_confirmation`；前端只默认选择 `pending_project`，标准子目录和已有项目不可选。
 - 发现候选目录时不写数据库，不创建 `project.json`。
 - 只有用户确认初始化后，才进入写入与首次扫描流程。
 
@@ -339,6 +357,7 @@ Return candidates to API
 ```text
 paths[]
 default_tags[]
+confirmed_paths[]
 ```
 
 ------
@@ -346,10 +365,12 @@ default_tags[]
 动作：
 
 1. 校验目录存在且可写。
-2. 校验目录内不存在 `project.json`。
-3. 生成稳定 `project_id` 与默认元数据。
-4. 原子写入 `project.json`。
-5. 触发 Single Project Scan。
+2. 校验目录不是 `00_项目档案` 至 `07_现场资料` 标准子目录。
+3. 校验目录内不存在 `project.json`。
+4. 对 `requires_confirmation` 目录校验用户确认。
+5. 生成稳定 `project_id` 与默认元数据。
+6. 原子写入 `project.json`。
+7. 触发 Single Project Scan。
 
 ------
 

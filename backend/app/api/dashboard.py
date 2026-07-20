@@ -1,10 +1,18 @@
 from fastapi import APIRouter
 
 from app.api.response import success_response
-from app.core_api import dashboard_metrics, recent_projects
+from app.core_api import dashboard_metrics, dashboard_summary, recent_projects
 from app.db.database import get_database_path
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+
+
+@router.get("/summary")
+def get_dashboard_summary() -> dict[str, object]:
+    return success_response(
+        dashboard_summary(db_path=get_database_path()),
+        "dashboard_summary",
+    )
 
 
 @router.get("/metrics")

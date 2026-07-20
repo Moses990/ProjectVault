@@ -70,6 +70,30 @@
 - V1.4 当前已完成 Settings onboarding、Dashboard readiness、Sidebar 状态、可选 AI、可选备份和开发态端到端回归；剩余重点是 packaged installer / 本机安装包路径复验。
 - 品牌方向保持 `Project Vault`，沿用 `frontend/app/components/Sidebar.tsx` 的 `project-vault-logo.svg`、`brand-mark`、`brand-copy` 和 archive 深色密集视觉；不要引入无依据的新 LOGO、吉祥物、营销口号或独立品牌系统。
 
+## Phase 7 / 8 Dashboard 与项目库收口
+
+- 涉及 Dashboard、项目库或 Project Detail 时，先读取 `task_plan.md` 的阶段 7 / 8 条目；本地验收报告若存在可作为补充证据，但不是公开仓库的必需依赖。阶段 8 已完成人工验收并冻结，后续修改应从阶段 9 的独立范围开始。
+- Dashboard 统计保持单个只读 summary 聚合；最近活动最多五条，活动查询失败只能降级为模块不可用，不能影响其余 Dashboard 数据。
+- 项目库 / 详情收口不得修改 Schema、真实 `project.json`、真实项目文件、正式索引或历史，也不得改 CAD 分类、搜索、Dashboard、Settings、Onboarding、AI 或 Tauri；测试只能使用临时数据库、隔离目录，正式库复核必须用只读连接。
+- 项目资源浏览以物理目录作为导航来源、以 SQLite 索引提供元数据：保留空目录，分别展示 `indexed` / `available` 状态；只接受项目内相对目录，必须拒绝路径逃逸、符号链接和 junction，且响应不得暴露绝对路径。
+- Materials 必须 `LEFT JOIN files`；历史缺失文件关联保留为 `available=false`，前端显示“文件不可用”并禁用打开/显示操作，不得被 INNER JOIN 静默过滤。
+- Phase 8 关闭前运行 `backend\\.venv\\Scripts\\python.exe -m unittest tests.test_phase8_project_library -v`、前端专项测试、`cmd /c npm run build`、`cargo check`、`cargo test` 和 `git diff --check`；Files 的根目录、嵌套目录、空目录和 1024×800 截图必须逐张人工核验，重复画布或无法确认内容的截图一律无效。
+
+## V2 知识平台 Beta 工作流
+
+- 涉及项目知识、文本提取、草稿、确认写入、知识搜索或 AI Provider 时，先读取 `docs/planning/V2_KNOWLEDGE_PLATFORM_PLAN.md`、`docs/planning/V2_SCHEMA_API_RFC.md`、`docs/planning/V2_EXECUTION_PLAN.md`、`docs/release/V2_BETA_ACCEPTANCE_CHECKPOINT.md`；真实使用验证再读取 `docs/release/V2_BETA_REAL_USAGE_VALIDATION.md`。
+- `project.json` 仍是业务真源，SQLite 只作可重建缓存；知识 API 只接受 `file_id`，不得向前端暴露本地绝对路径。
+- AI 生成只能创建草稿。草稿未确认前不得进入全局搜索；写入必须保留显式 `confirm=true`、写前 `project.json.bak.<timestamp>` 备份以及 SQLite/FTS 同步。不得新增绕过草稿/确认门禁的写入路径。
+- 当前一键整理最多处理 20 个 `.txt`、`.md`、`.csv`、`.json`、`.pdf` 来源；图片 OCR、扫描版 PDF OCR、DOCX、批量 apply 与 Agent/RAG 不在当前范围。新增解析依赖、向量依赖或跨项目批量写入前必须取得单独确认。
+- 当前知识搜索保持 FTS5；向量依赖已决定延后。只有收集到真实 FTS miss-query 样本后，才可先评估最小 alias/query-expansion，再重新请求向量方案确认。
+- AI Provider 基础地址只能是带主机名的 HTTP(S) URL；密钥应通过 Windows Credential Manager 的 `wincred:<provider_id>` 引用管理，禁止新增明文 SQLite 存储或 API 回显。知识草稿调用的 Provider HTTP 失败只返回受控状态码/通用错误，不回传第三方响应正文。
+
+## Watcher 与桌面打包回归
+
+- Watcher 已聚合的新增、修改、删除、移动旧/新路径必须传给 `scan_project_incremental(..., changed_paths=...)`；冷却窗口只能延迟处理，不能丢弃已收集事件。涉及该链路时，至少运行 `backend/tests/test_watcher_processor.py` 的定向回归。
+- `desktop/package.json` 的 `prebuild` 会依次构建 `frontend` 静态导出和 Python Sidecar，`desktop/src-tauri/tauri.conf.json` 从 `frontend/out` 打包。涉及桌面、Sidecar、静态导出或安装包的改动，先在 `desktop` 运行 `cmd /c npm run build`，再确认目标 installer 为本次构建产物。
+- 安装包回归使用隔离 fixture、临时安装目录和 Mock Provider：`pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify_local_installed_usage.ps1 -InstallerPath <installer> -ReportDir <temp-report-dir>`。报告只作为本机安装验收；是否另做 clean Windows 验收以当前发布范围和用户明确决定为准，汇报时必须区分两者。
+
 ## Git 与变更管理
 
 - 开发前查看当前工作区状态，避免覆盖用户改动。

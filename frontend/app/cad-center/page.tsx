@@ -1,41 +1,40 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, Filter, FolderOpen, GitBranch, Search, SortAsc, X } from "lucide-react";
-import { api, type DrawingCenterItem, type DrawingVersionChain } from "../../lib/api";
-
-const categoryLabels: Record<string, string> = {
-  PLAN: "平面图",
-  ELEVATION: "立面图",
-  CEILING: "天花图",
-  DETAIL: "节点图",
-  CONSTRUCTION: "构造图",
-  UNKNOWN: "其他",
-};
+import { api, type DrawingCenterItem, type DrawingVersionChain, type Project } from "../../lib/api";
+import { drawingCategoryLabels, formatDrawingCategory, formatLocalDateTime } from "../../lib/presentation";
 
 const categoryColors: Record<string, string> = {
+  GENERAL_PLAN: "badge-blue",
   PLAN: "badge-blue",
-  ELEVATION: "badge-green",
   CEILING: "badge-purple",
+  FLOORING: "badge-green",
+  ELEVATION: "badge-green",
+  SECTION: "badge-amber",
   DETAIL: "badge-amber",
+  ENLARGED: "badge-amber",
+  DOOR: "badge-purple",
+  MATERIAL_SCHEDULE: "badge-green",
+  MEP: "badge-blue",
+  STRUCTURE: "badge-orange",
   CONSTRUCTION: "badge-orange",
+  UNCLASSIFIED: "badge-gray",
   UNKNOWN: "badge-gray",
+  OTHER: "badge-gray",
 };
 
-function categoryLabel(category: string | null): string {
-  return categoryLabels[category || "UNKNOWN"] || "其他";
-}
-
 function versionLabel(versionNumber: number | null): string {
-  if (!versionNumber) return "未标记";
+  if (!versionNumber) return "—";
   if (versionNumber === 9999) return "最终版";
   return `V${versionNumber}`;
 }
 
-function formatDate(value: string | null): string {
-  if (!value) return "-";
-  return new Date(value).toLocaleDateString("zh-CN");
+function formatSize(value: number): string {
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / 1024 / 1024).toFixed(1)} MB`;
 }
 
 export default function CADCenterPage() {
@@ -47,6 +46,9 @@ export default function CADCenterPage() {
   const [total, setTotal] = useState(0);
   const [sortBy, setSortBy] = useState("last_modified");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [projectFilter, setProjectFilter] = useState("all");
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [selectedChain, setSelectedChain] = useState<DrawingVersionChain | null>(null);
@@ -62,31 +64,37 @@ export default function CADCenterPage() {
         limit,
         sort_by: sortBy,
         category: categoryFilter === "all" ? undefined : categoryFilter,
+        project_id: projectFilter === "all" ? undefined : projectFilter,
         q: submittedQuery || undefined,
       });
       setDrawings(response.data);
       setTotal(response.meta.total ?? 0);
+      const counts = response.meta.category_counts;
+      setCategoryCounts(counts && typeof counts === "object" ? counts as Record<string, number> : {});
     } catch (err) {
       setError(err instanceof Error ? err.message : "加载失败");
     } finally {
       setLoading(false);
     }
-  }, [categoryFilter, page, sortBy, submittedQuery]);
+  }, [categoryFilter, page, projectFilter, sortBy, submittedQuery]);
 
   useEffect(() => {
     loadDrawings();
   }, [loadDrawings]);
 
-  const totalPages = Math.max(1, Math.ceil(total / limit));
+  useEffect(() => {
+    let active = true;
+    api.projects({ page: 1, limit: 100, sort_by: "name", order: "asc" })
+      .then((response) => {
+        if (active) setProjects(response.data);
+      })
+      .catch(() => {
+        if (active) setProjects([]);
+      });
+    return () => { active = false; };
+  }, []);
 
-  const categoryCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const drawing of drawings) {
-      const key = drawing.dwg_category || "UNKNOWN";
-      counts.set(key, (counts.get(key) || 0) + 1);
-    }
-    return counts;
-  }, [drawings]);
+  const totalPages = Math.max(1, Math.ceil(total / limit));
 
   const submitSearch = () => {
     setPage(1);
@@ -96,6 +104,13 @@ export default function CADCenterPage() {
   const selectCategory = (category: string) => {
     setPage(1);
     setCategoryFilter(category);
+  };
+
+  const categoryCount = (category: string) => {
+    if (category === "UNCLASSIFIED") {
+      return (categoryCounts.UNCLASSIFIED || 0) + (categoryCounts.UNKNOWN || 0) + (categoryCounts.OTHER || 0);
+    }
+    return categoryCounts[category] || 0;
   };
 
   const openVersionChain = async (drawingId: string) => {
@@ -135,14 +150,27 @@ export default function CADCenterPage() {
         </div>
         <label className="select-field">
           <Filter size={15} />
+          <select
+            aria-label="项目筛选"
+            value={projectFilter}
+            onChange={(event) => {
+              setPage(1);
+              setProjectFilter(event.target.value);
+            }}
+          >
+            <option value="all">全部项目</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>{project.name}</option>
+            ))}
+          </select>
+        </label>
+        <label className="select-field">
+          <Filter size={15} />
           <select value={categoryFilter} onChange={(event) => selectCategory(event.target.value)}>
             <option value="all">全部分类</option>
-            <option value="PLAN">平面图</option>
-            <option value="ELEVATION">立面图</option>
-            <option value="CEILING">天花图</option>
-            <option value="DETAIL">节点图</option>
-            <option value="CONSTRUCTION">构造图</option>
-            <option value="UNKNOWN">其他</option>
+            {Object.entries(drawingCategoryLabels).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
           </select>
         </label>
         <label className="select-field">
@@ -156,7 +184,7 @@ export default function CADCenterPage() {
       </section>
 
       <section className="segmented-row">
-        {Object.entries(categoryLabels).map(([key, label]) => (
+        {Object.entries(drawingCategoryLabels).map(([key, label]) => (
           <button
             key={key}
             className={categoryFilter === key ? "segment active" : "segment"}
@@ -164,7 +192,7 @@ export default function CADCenterPage() {
             onClick={() => selectCategory(key)}
           >
             {label}
-            <span>{categoryCounts.get(key) || 0}</span>
+            <span>{categoryCount(key)}</span>
           </button>
         ))}
       </section>
@@ -183,44 +211,58 @@ export default function CADCenterPage() {
         ) : drawings.length === 0 ? (
           <div className="empty-state">暂无图纸数据</div>
         ) : (
-          <table>
+          <table className="cad-table">
+            <colgroup>
+              <col className="cad-col-file" />
+              <col className="cad-col-project" />
+              <col className="cad-col-category" />
+              <col className="cad-col-version" />
+              <col className="cad-col-time" />
+              <col className="cad-col-size" />
+              <col className="cad-col-actions" />
+            </colgroup>
             <thead>
               <tr>
-                <th>文件名</th>
+                <th>文件</th>
                 <th>项目</th>
                 <th>分类</th>
                 <th>版本</th>
-                <th>路径</th>
                 <th>修改时间</th>
+                <th>大小</th>
                 <th>操作</th>
               </tr>
             </thead>
             <tbody>
               {drawings.map((drawing) => (
                 <tr key={drawing.drawing_id}>
-                  <td className="strong-cell">
+                  <td>
+                    <div className="cad-file-cell" title={`${drawing.file_name}\n${drawing.relative_path}`}>
                     <FileText size={15} />
-                    {drawing.file_name}
+                      <span className="cad-file-copy">
+                        <strong className="cad-file-name">{drawing.file_name}</strong>
+                        <span className="cad-file-path">{drawing.relative_path}</span>
+                      </span>
+                    </div>
                   </td>
                   <td>
-                    <button className="link-button" type="button" onClick={() => router.push(`/project-detail?id=${encodeURIComponent(drawing.project_id)}`)}>
+                    <button className="link-button cad-project-link" title={drawing.project_name} type="button" onClick={() => router.push(`/project-detail?id=${encodeURIComponent(drawing.project_id)}`)}>
                       {drawing.project_name}
                     </button>
                   </td>
                   <td>
-                    <span className={`badge ${categoryColors[drawing.dwg_category || "UNKNOWN"] || categoryColors.UNKNOWN}`}>
-                      {categoryLabel(drawing.dwg_category)}
+                    <span className={`badge cad-category-badge ${categoryColors[drawing.dwg_category || "UNCLASSIFIED"] || categoryColors.UNCLASSIFIED}`}>
+                      {formatDrawingCategory(drawing.dwg_category)}
                     </span>
                   </td>
                   <td>
                     <span className="mono-chip">{versionLabel(drawing.version_number)}</span>
                   </td>
-                  <td className="path-cell">{drawing.relative_path}</td>
-                  <td>{formatDate(drawing.last_modified)}</td>
-                  <td className="actions-cell">
+                  <td className="cad-time-cell">{formatLocalDateTime(drawing.last_modified, "—")}</td>
+                  <td className="cad-size-cell">{formatSize(drawing.size_bytes)}</td>
+                  <td className="actions-cell cad-actions-cell">
                     <button className="icon-text-button" type="button" onClick={() => openVersionChain(drawing.drawing_id)}>
                       <GitBranch size={14} />
-                      版本链
+                      版本
                     </button>
                     <button className="icon-text-button" type="button" onClick={() => router.push(`/project-detail?id=${encodeURIComponent(drawing.project_id)}`)}>
                       <FolderOpen size={14} />
@@ -260,7 +302,7 @@ export default function CADCenterPage() {
                   <span className="mono-chip">{versionLabel(item.version_number)}</span>
                   <div>
                     <strong>{item.file_name}</strong>
-                    <p>{formatDate(item.last_modified)}</p>
+                    <p>{formatLocalDateTime(item.last_modified, "—")}</p>
                   </div>
                 </div>
               ))}

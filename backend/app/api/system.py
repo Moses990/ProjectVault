@@ -3,11 +3,14 @@ from pydantic import BaseModel
 
 from app.api.response import success_response
 from app.core_api import (
+    audit_project_indexes,
     create_database_backup,
     open_explorer_target,
+    rebuild_project_indexes,
     restore_database_backup,
     run_database_maintenance,
 )
+from app.services.settings import settings_get
 from app.db.database import get_database_path
 
 router = APIRouter(prefix="/system", tags=["system"])
@@ -31,6 +34,21 @@ class MaintenanceRequest(BaseModel):
 class BackupRestoreRequest(BaseModel):
     name: str
     confirm: bool = False
+
+
+class IndexMaintenanceRequest(BaseModel):
+    root_path: str | None = None
+    confirm: bool = False
+
+
+def _root_path_or_setting(root_path: str | None) -> str:
+    value = (root_path or "").strip()
+    if value:
+        return value
+    configured = settings_get(db_path=get_database_path()).get("root_path", "")
+    if not str(configured).strip():
+        raise ValueError("root_path_not_configured")
+    return str(configured)
 
 
 @router.post("/explorer/open")
@@ -82,3 +100,29 @@ def post_restore_backup(request: BackupRestoreRequest) -> dict[str, object]:
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return success_response(data, "backup_restored")
+
+
+@router.post("/index/audit")
+def post_index_audit(request: IndexMaintenanceRequest | None = None) -> dict[str, object]:
+    try:
+        root_path = _root_path_or_setting(request.root_path if request else None)
+        data = audit_project_indexes(root_path=root_path, db_path=get_database_path())
+    except (ValueError, FileNotFoundError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return success_response(data, "index_audit_completed")
+
+
+@router.post("/index/rebuild")
+def post_index_rebuild(request: IndexMaintenanceRequest) -> dict[str, object]:
+    try:
+        root_path = _root_path_or_setting(request.root_path)
+        data = rebuild_project_indexes(
+            root_path=root_path,
+            confirm=request.confirm,
+            db_path=get_database_path(),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except (FileNotFoundError, RuntimeError) as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return success_response(data, "index_rebuild_completed")

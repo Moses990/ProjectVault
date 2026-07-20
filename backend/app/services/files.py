@@ -4,12 +4,137 @@ from __future__ import annotations
 
 import mimetypes
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
 
 from app.db.database import connect
 from app.services import ResolvedAsset, clamp_page, clamp_limit, ensure_project_exists, row_to_dict
+
+
+def _natural_key(value: str) -> list[object]:
+    return [int(part) if part.isdigit() else part.casefold() for part in re.split(r"(\d+)", value)]
+
+
+def _normalize_resource_path(value: str | None) -> tuple[str, list[str]]:
+    raw = (value or "").strip()
+    if not raw:
+        return "", []
+    if raw.startswith(("/", "\\")) or ":" in raw:
+        raise ValueError("resource_path_invalid")
+    parts = [part for part in raw.replace("\\", "/").split("/") if part]
+    if any(part in {".", ".."} for part in parts):
+        raise ValueError("resource_path_invalid")
+    return "/".join(parts), parts
+
+
+def _project_resource_directory(project_id: str, relative_path: str | None, db_path: Path | None) -> tuple[Path, str]:
+    normalized_path, parts = _normalize_resource_path(relative_path)
+    with connect(db_path) as conn:
+        row = conn.execute("SELECT project_path FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if row is None:
+        raise ValueError("project_not_found")
+
+    root = Path(row["project_path"])
+    if not root.is_dir() or root.is_symlink() or root.is_junction():
+        raise ValueError("project_directory_unavailable")
+    resolved_root = root.resolve()
+    current = root
+    for part in parts:
+        current = current / part
+        if not current.exists() or not current.is_dir() or current.is_symlink() or current.is_junction():
+            raise ValueError("resource_directory_unavailable")
+    resolved_current = current.resolve()
+    if resolved_current != resolved_root and resolved_root not in resolved_current.parents:
+        raise ValueError("resource_path_invalid")
+    return resolved_current, normalized_path
+
+
+def list_project_resources(
+    project_id: str,
+    *,
+    directory: str | None = None,
+    sort_by: str = "name",
+    order: str = "asc",
+    db_path: Path | None = None,
+) -> dict[str, object]:
+    """List one physical project directory while retaining index provenance.
+
+    The request accepts only a relative directory. Physical folders are the
+    navigation source (so empty folders remain visible); indexed metadata is
+    joined once for the current directory and is never used to fabricate a
+    physical file.
+    """
+    if sort_by not in {"name", "modified", "size", "type"}:
+        raise ValueError("sort_by_invalid")
+    normalized_order = order.lower()
+    if normalized_order not in {"asc", "desc"}:
+        raise ValueError("order_invalid")
+
+    current, normalized_directory = _project_resource_directory(project_id, directory, db_path)
+    with connect(db_path) as conn:
+        rows = conn.execute(
+            """
+            SELECT id, file_name, relative_path, extension, size_bytes, last_modified
+            FROM files
+            WHERE project_id = ? AND COALESCE(relative_dir, '') = ?
+            """,
+            (project_id, normalized_directory),
+        ).fetchall()
+    indexed = {str(row["file_name"]): row_to_dict(row) for row in rows}
+
+    folders: list[dict[str, object]] = []
+    files: list[dict[str, object]] = []
+    physical_names: set[str] = set()
+    for entry in current.iterdir():
+        if entry.is_symlink() or entry.is_junction():
+            continue
+        if entry.is_dir():
+            folders.append({"name": entry.name, "relative_path": "/".join(filter(None, [normalized_directory, entry.name]))})
+            continue
+        if not entry.is_file():
+            continue
+        physical_names.add(entry.name)
+        stored = indexed.get(entry.name)
+        stat = entry.stat()
+        files.append({
+            "id": stored.get("id") if stored else None,
+            "file_name": entry.name,
+            "relative_path": stored.get("relative_path") if stored else "/".join(filter(None, [normalized_directory, entry.name])),
+            "extension": stored.get("extension") if stored else entry.suffix.lower() or None,
+            "size_bytes": int(stored.get("size_bytes") or stat.st_size) if stored else int(stat.st_size),
+            "last_modified": stored.get("last_modified") if stored else None,
+            "indexed": stored is not None,
+            "available": True,
+        })
+
+    for name, stored in indexed.items():
+        if name in physical_names:
+            continue
+        files.append({
+            "id": stored["id"],
+            "file_name": stored["file_name"],
+            "relative_path": stored["relative_path"],
+            "extension": stored["extension"],
+            "size_bytes": stored["size_bytes"],
+            "last_modified": stored["last_modified"],
+            "indexed": True,
+            "available": False,
+        })
+
+    folders.sort(key=lambda item: _natural_key(str(item["name"])))
+    descending = normalized_order == "desc"
+    field = {"name": "file_name", "modified": "last_modified", "size": "size_bytes", "type": "extension"}[sort_by]
+    files.sort(
+        key=lambda item: (_natural_key(str(item.get(field) or "")), _natural_key(str(item["file_name"]))),
+        reverse=descending,
+    )
+    return {
+        "directory": normalized_directory,
+        "folders": folders,
+        "files": files,
+    }
 
 
 def list_project_files(

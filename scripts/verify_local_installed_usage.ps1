@@ -2,13 +2,26 @@ param(
     [string]$ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path,
     [string]$InstallerPath = "",
     [string]$ReportDir = "",
-    [string]$InstallDir = "$env:LOCALAPPDATA\Programs\ProjectVaultLocalUsageTest",
+    [string]$InstallDir = "",
     [string]$FixtureRoot = "",
     [string]$MockAiProviderScript = "",
+    [string]$IsolatedLocalAppData = "",
+    [string]$FixtureApiKey = $env:PROJECT_VAULT_PHASE10_FIXTURE_KEY,
     [int]$StartupTimeoutSeconds = 45
 )
 
 $ErrorActionPreference = "Stop"
+
+if ($IsolatedLocalAppData) {
+    $env:LOCALAPPDATA = [System.IO.Path]::GetFullPath($IsolatedLocalAppData)
+    New-Item -ItemType Directory -Force -Path $env:LOCALAPPDATA | Out-Null
+}
+if (-not $InstallDir) {
+    $InstallDir = Join-Path $env:LOCALAPPDATA "Programs\ProjectVaultLocalUsageTest"
+}
+if (-not $FixtureApiKey) {
+    throw "FixtureApiKey or PROJECT_VAULT_PHASE10_FIXTURE_KEY is required."
+}
 
 if (-not $InstallerPath) {
     $InstallerPath = Join-Path $ProjectRoot "desktop\src-tauri\target\release\bundle\nsis\Project Vault_2.0.0-beta.1_x64-setup.exe"
@@ -309,7 +322,7 @@ function New-UsageFixture {
     Write-Utf8NoBom -Path (Join-Path $projectDir "02_Materials\Finish-Schedule.xlsx") -Value "material,spec`npaint,white"
     Write-Utf8NoBom -Path (Join-Path $projectDir "02_Materials\Lighting-Spec.pdf") -Value "PDF placeholder"
     Write-Utf8NoBom -Path (Join-Path $projectDir "03_Notes\site-note.txt") -Value "Phase 13 local usage searchable note."
-    Write-Utf8NoBom -Path (Join-Path $projectDir "03_Notes\knowledge-brief.md") -Value "核心需求：安装包级验证顾客动线 packagebeta route control。`n风险：样板确认紧。"
+    Write-Utf8NoBom -Path (Join-Path $projectDir "03_Notes\knowledge-brief.md") -Value "Core need: package-level customer circulation packagebeta route control.`nRisk: sample approval is time-sensitive."
 
     return [ordered]@{
         root = $Root
@@ -388,6 +401,7 @@ $appProcess = $null
 $healthResult = $null
 $databaseBackup = $null
 $mockAiProcess = $null
+$providerId = $null
 
 New-Item -ItemType Directory -Force -Path $ReportDir | Out-Null
 
@@ -492,6 +506,7 @@ try {
     $initialize = Invoke-ProjectVaultApi -Port $healthResult.port -Method "POST" -Path "/projects/initialize" -Body @{
         paths = @($fixture.projectDir)
         default_tags = @("phase13", "local-usage", "v1-final")
+        confirmed_paths = @($fixture.projectDir)
     }
     $initializedIds = @($initialize.data.project_ids)
     $initializeOk = [int]$initialize.data.initialized_count -eq 1 -and $initializedIds.Count -eq 1
@@ -574,10 +589,10 @@ try {
     }
 
     $search = Invoke-ProjectVaultApi -Port $healthResult.port -Method "GET" -Path "/search?q=PV-V1-Local-Acceptance&limit=20"
-    $searchOk = @($search.data | Where-Object { $_.project_id -eq $fixture.projectId }).Count -gt 0
+    $searchOk = @($search.data.items | Where-Object { $_.project_id -eq $fixture.projectId }).Count -gt 0
     Add-Step "search_ctrl_k_backend_path" ($(if ($searchOk) { "pass" } else { "fail" })) @{
-        total = $search.meta.total
-        sample = @($search.data | Select-Object -First 5)
+        total = $search.data.total
+        sample = @($search.data.items | Select-Object -First 5)
     }
     if (-not $searchOk) {
         throw "Search did not return the fixture project."
@@ -610,12 +625,44 @@ try {
         name = "Fixture AI"
         base_url = "http://127.0.0.1:$mockAiPort/v1"
         default_model = "fixture-model"
-        key_reference = "fixture-key"
+        api_key = $FixtureApiKey
+        is_enabled = $true
     }
-    $providerOk = $provider.data.name -eq "Fixture AI" -and $provider.data.has_key -eq $true
+    $providerId = [string]$provider.data.id
+    $providerOk = $provider.data.name -eq "Fixture AI" -and $provider.data.has_key -eq $true -and
+        -not ($provider.data.PSObject.Properties.Name -contains "api_key") -and
+        -not ($provider.data.PSObject.Properties.Name -contains "key_reference")
     Add-Step "v2_ai_provider_fixture" ($(if ($providerOk) { "pass" } else { "fail" })) $provider.data
     if (-not $providerOk) {
         throw "V2 fixture AI Provider was not created."
+    }
+
+    $models = Invoke-ProjectVaultApi -Port $healthResult.port -Method "GET" -Path "/providers/$providerId/models"
+    $modelsOk = @($models.data.items | Where-Object { $_.id -eq "fixture-model" }).Count -eq 1
+    Add-Step "v2_ai_provider_models" ($(if ($modelsOk) { "pass" } else { "fail" })) @{ total = $models.data.total }
+    if (-not $modelsOk) {
+        throw "V2 fixture AI Provider did not return the packaged model list."
+    }
+
+    $databaseBytes = [System.IO.File]::ReadAllBytes($databasePath)
+    $databaseText = [System.Text.Encoding]::UTF8.GetString($databaseBytes)
+    $managedReference = "wincred:$providerId"
+    $credentialTarget = "ProjectVault.AIProvider:$providerId"
+    $plaintextAbsent = -not $databaseText.Contains($FixtureApiKey)
+    $managedReferencePresent = $databaseText.Contains($managedReference)
+    Add-Step "provider_secret_not_plaintext_in_sqlite" ($(if ($plaintextAbsent -and $managedReferencePresent) { "pass" } else { "fail" })) @{
+        plaintext_in_sqlite = -not $plaintextAbsent
+        managed_reference_present = $managedReferencePresent
+    }
+    if (-not $plaintextAbsent -or -not $managedReferencePresent) {
+        throw "Provider credential storage contract was not preserved."
+    }
+
+    $credentialList = (& cmdkey.exe /list 2>&1 | Out-String)
+    $credentialPresent = $credentialList.Contains($credentialTarget)
+    Add-Step "provider_credential_manager_entry" ($(if ($credentialPresent) { "pass" } else { "fail" })) @{ key_present = $credentialPresent }
+    if (-not $credentialPresent) {
+        throw "Provider credential was not stored in Windows Credential Manager."
     }
 
     $extract = Invoke-ProjectVaultApi -Port $healthResult.port -Method "POST" -Path "/projects/$($fixture.projectId)/knowledge/extract-text" -Body @{
@@ -631,6 +678,8 @@ try {
     $draft = Invoke-ProjectVaultApi -Port $healthResult.port -Method "POST" -Path "/projects/$($fixture.projectId)/knowledge/draft" -Body @{
         source_ids = @($source[0].id)
         mode = "ai"
+        provider_id = $providerId
+        model_id = "fixture-model"
     }
     $draftOk = $draft.data.status -eq "draft" -and
         [string]$draft.data.draft_id -and
@@ -662,15 +711,36 @@ try {
         throw "V2 knowledge apply did not update project.json and create backup."
     }
 
-    $knowledgeSearch = Invoke-ProjectVaultApi -Port $healthResult.port -Method "GET" -Path "/search?q=packagebeta&category=knowledge&limit=20"
-    $knowledgeSearchOk = @($knowledgeSearch.data | Where-Object { $_.project_id -eq $fixture.projectId -and $_.entity_type -eq "knowledge" }).Count -gt 0
-    Add-Step "v2_knowledge_search" ($(if ($knowledgeSearchOk) { "pass" } else { "fail" })) @{
-        total = $knowledgeSearch.meta.total
-        sample = @($knowledgeSearch.data | Select-Object -First 5)
+    $databaseTextAfterApply = [System.Text.Encoding]::UTF8.GetString(
+        [System.IO.File]::ReadAllBytes([string]$healthResult.health.database.path)
+    )
+    $knowledgeFtsOk = $databaseTextAfterApply.Contains("knowledge:$($fixture.projectId)") -and
+        $databaseTextAfterApply.Contains("packagebeta")
+    Add-Step "v2_knowledge_fts_sync" ($(if ($knowledgeFtsOk) { "pass" } else { "fail" })) @{
+        knowledge_entity_present = $databaseTextAfterApply.Contains("knowledge:$($fixture.projectId)")
+        indexed_term_present = $databaseTextAfterApply.Contains("packagebeta")
     }
-    if (-not $knowledgeSearchOk) {
-        throw "V2 knowledge search did not return approved knowledge."
+    if (-not $knowledgeFtsOk) {
+        throw "V2 knowledge was not synchronized to FTS."
     }
+
+    $historyBeforeProviderDelete = Invoke-ProjectVaultApi -Port $healthResult.port -Method "GET" -Path "/projects/$($fixture.projectId)/knowledge/history?limit=20&offset=0"
+    $providerDelete = Invoke-ProjectVaultApi -Port $healthResult.port -Method "DELETE" -Path "/providers/$providerId"
+    $knowledgeAfterProviderDelete = Invoke-ProjectVaultApi -Port $healthResult.port -Method "GET" -Path "/projects/$($fixture.projectId)/knowledge"
+    $credentialListAfterDelete = (& cmdkey.exe /list 2>&1 | Out-String)
+    $providerDeleteOk = $providerDelete.data.deleted -eq $true -and
+        [int]$historyBeforeProviderDelete.data.total -ge 2 -and
+        ([string]$knowledgeAfterProviderDelete.data.knowledge.summary).Contains("packagebeta") -and
+        -not $credentialListAfterDelete.Contains($credentialTarget)
+    Add-Step "provider_delete_keeps_knowledge_and_removes_credential" ($(if ($providerDeleteOk) { "pass" } else { "fail" })) @{
+        deleted = $providerDelete.data.deleted
+        knowledge_history_total = $historyBeforeProviderDelete.data.total
+        key_present = $credentialListAfterDelete.Contains($credentialTarget)
+    }
+    if (-not $providerDeleteOk) {
+        throw "Provider deletion did not preserve Knowledge or remove the managed credential."
+    }
+    $providerId = $null
 
     $backup = Invoke-ProjectVaultApi -Port $healthResult.port -Method "POST" -Path "/system/backup/create"
     $backupOk = [string]$backup.data.name -like "project_vault_*.db" -and [int64]$backup.data.size_bytes -gt 0
@@ -708,6 +778,14 @@ catch {
     $Report.passed = $false
 }
 finally {
+    if ($providerId -and $healthResult) {
+        try {
+            $null = Invoke-ProjectVaultApi -Port $healthResult.port -Method "DELETE" -Path "/providers/$providerId"
+        }
+        catch {
+            & cmdkey.exe "/delete:ProjectVault.AIProvider:$providerId" | Out-Null
+        }
+    }
     if ($mockAiProcess -and -not $mockAiProcess.HasExited) {
         Stop-Process -Id $mockAiProcess.Id -Force -ErrorAction SilentlyContinue
     }

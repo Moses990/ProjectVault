@@ -101,7 +101,7 @@ def dashboard_summary(db_path: Path | None = None) -> dict[str, object]:
         "stats": {key: int(metrics[key]) for key in ("projects", "indexed_files", "drawings", "materials")},
         "recent_projects": [row_to_dict(row) for row in recent_rows],
         "workspace": {
-            "root_path": root_value,
+            "root_path_configured": bool(root_value),
             "root_path_accessible": root_accessible,
             "auto_scan_effective": auto_scan_enabled and root_accessible,
             "scan_interval_effective": interval if auto_scan_enabled and root_accessible else None,
@@ -143,8 +143,9 @@ def list_projects(
     filters: list[str] = []
     params: list[object] = []
     if q:
-        filters.append("(p.name LIKE ? OR p.project_path LIKE ?)")
-        pattern = f"%{q}%"
+        filters.append("(p.name LIKE ? ESCAPE '\\' OR p.project_path LIKE ? ESCAPE '\\')")
+        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        pattern = f"%{escaped}%"
         params.extend([pattern, pattern])
     if project_type:
         filters.append("p.type = ?")

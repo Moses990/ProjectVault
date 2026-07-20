@@ -7,6 +7,12 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def get_api_token() -> str | None:
+    """Read API token from environment. None means dev mode (auth skipped)."""
+    token = os.environ.get("PV_API_TOKEN", "").strip()
+    return token or None
+
+
 @dataclass(frozen=True)
 class RuntimeDatabase:
     mode: str

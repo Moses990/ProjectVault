@@ -226,11 +226,35 @@ def resolve_asset(file_id: str, db_path: Path | None = None) -> ResolvedAsset:
     )
 
 
-def _launch_system_path(path: Path) -> bool:
-    # Security: verify path is within an allowed project directory
+OPENABLE_EXTENSIONS = {
+    # Documents
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+    ".txt", ".md", ".csv", ".json", ".xml", ".yaml", ".yml",
+    ".rtf", ".odt", ".ods", ".odp",
+    # Images
+    ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg", ".webp",
+    ".tiff", ".tif", ".ico", ".psd", ".ai",
+    # Video / Audio
+    ".mp4", ".avi", ".mkv", ".mov", ".wmv", ".flv", ".webm",
+    ".mp3", ".wav", ".flac", ".aac", ".ogg",
+    # CAD / Engineering
+    ".dwg", ".dxf", ".rvt", ".rfa", ".ifc", ".skp", ".3ds",
+    ".step", ".stp", ".iges", ".stl",
+    # Archives (view only)
+    ".zip", ".rar", ".7z", ".tar", ".gz",
+}
+
+
+def _launch_system_path(path: Path, *, check_extension: bool = False, select_only: bool = False) -> bool:
     resolved = path.resolve()
+    if check_extension and resolved.is_file():
+        if resolved.suffix.lower() not in OPENABLE_EXTENSIONS:
+            raise ValueError("file_type_not_openable")
     if os.name == "nt":
-        os.startfile(str(resolved))  # type: ignore[attr-defined]
+        if select_only:
+            subprocess.Popen(["explorer", "/select,", str(resolved)])
+        else:
+            os.startfile(str(resolved))  # type: ignore[attr-defined]
         return True
     if shutil.which("open"):
         subprocess.Popen(["open", str(resolved)])
@@ -245,8 +269,10 @@ def open_explorer_target(file_id: str, mode: str, db_path: Path | None = None) -
     if mode not in {"open_file", "reveal_folder"}:
         raise ValueError("mode_invalid")
     asset = resolve_asset(file_id, db_path=db_path)
-    target = asset.path if mode == "open_file" else asset.path.parent
-    _launch_system_path(target)
+    if mode == "open_file":
+        _launch_system_path(asset.path, check_extension=True)
+    else:
+        _launch_system_path(asset.path, select_only=True)
     return {"success": True, "mode": mode, "file_id": asset.file_id}
 
 

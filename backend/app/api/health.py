@@ -25,11 +25,9 @@ def health_check() -> dict[str, object]:
         "status": "ok",
         "service": "project-vault-backend",
         "database": {
-            "path": str(database_path),
             "exists": database_path.exists(),
         },
         "runtime_mode": runtime.mode,
-        "database_path": str(database_path),
         "database_source": runtime.source,
         "database_user_version": database_user_version(str(database_path)),
     }

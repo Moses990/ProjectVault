@@ -10,6 +10,7 @@ from app.projects.project_structure import (
     SUSPECTED_SUBDIRECTORY,
     classify_project_directory,
 )
+from app.services.settings import settings_get
 
 
 @dataclass(frozen=True)
@@ -102,8 +103,21 @@ def initialize_projects(
     initialized_ids: list[str] = []
     skipped: list[SkippedProject] = []
 
+    # Security: all paths must be under the configured root_path
+    allowed_root: Path | None = None
+    try:
+        current_settings = settings_get(db_path)
+        root_value = current_settings.get("root_path", "")
+        if root_value:
+            allowed_root = Path(str(root_value)).expanduser().resolve()
+    except Exception:
+        pass  # No settings table yet (first run / test) — skip containment check
+
     for raw_path in paths:
         project_dir = Path(raw_path).expanduser().resolve()
+        if allowed_root is not None and project_dir != allowed_root and allowed_root not in project_dir.parents:
+            skipped.append(SkippedProject(path=str(project_dir), reason="path_outside_root"))
+            continue
         if not project_dir.exists() or not project_dir.is_dir():
             skipped.append(SkippedProject(path=str(project_dir), reason="path_invalid"))
             continue

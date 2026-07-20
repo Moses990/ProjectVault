@@ -5,10 +5,11 @@
 
 ## 仓库事实
 
-- 工作区：`D:/Workflows/ProjectVault`；远端公开仓库：`Moses990/ProjectVault`。
+- 远端公开仓库：`Moses990/ProjectVault`；本轮集成记录为 [GitHub PR #9](https://github.com/Moses990/ProjectVault/pull/9)。
 - 本地冻结分支：`feat/phase-10-ai-provider` @ `564ec26`，标签 `phase-10-complete`。
 - `origin/main=5a85014`，是本地冻结点祖先；待集成范围领先 5 个提交。
 - 远端 `main` 受 ruleset `18599350` 保护：禁止删除/非快进，严格要求检查 `ci`。
+- 公开集成分支为 `integrate/phase-10-mainline-20260720`，首个审查后提交为 `7551bbb`；PR 的 CI、合并状态和最终 SHA 是稳定远端事实源。
 - 用户已授权本轮推送集成分支、创建 PR、等待 CI 并合并远端主线。
 - 阶段 11 未定义、未启动；本轮不扩展产品范围。
 

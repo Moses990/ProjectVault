@@ -278,8 +278,79 @@ def get_knowledge(project_id: str, db_path: Path | None = None) -> dict[str, obj
         "knowledge": knowledge,
         "status": "approved" if has_knowledge else "empty",
         "draft": _active_draft(project_id, db_path=db_path),
+        "sources": list_knowledge_sources(project_id, db_path=db_path),
         "updated_at": None,
     }
+
+
+def list_knowledge_sources(project_id: str, db_path: Path | None = None) -> list[dict[str, object]]:
+    with connect(db_path) as conn:
+        ensure_project_exists(conn, project_id)
+        rows = conn.execute(
+            """
+            SELECT id, file_id, relative_path, extractor, text_excerpt, text_length,
+                   status, error_message, extracted_at
+            FROM knowledge_sources
+            WHERE project_id = ?
+            ORDER BY extracted_at DESC, relative_path ASC
+            """,
+            (project_id,),
+        ).fetchall()
+    return [_source_row_to_dict(row) for row in rows]
+
+
+def list_knowledge_history(
+    project_id: str,
+    *,
+    limit: int = 20,
+    offset: int = 0,
+    db_path: Path | None = None,
+) -> dict[str, object]:
+    resolved_limit = max(1, min(int(limit), 100))
+    resolved_offset = max(0, int(offset))
+    with connect(db_path) as conn:
+        ensure_project_exists(conn, project_id)
+        total = int(conn.execute(
+            "SELECT COUNT(*) AS total FROM knowledge_history WHERE project_id = ?",
+            (project_id,),
+        ).fetchone()["total"])
+        rows = conn.execute(
+            """
+            SELECT id, event_type, status, metadata_json, created_at
+            FROM knowledge_history
+            WHERE project_id = ?
+            ORDER BY created_at DESC, id DESC
+            LIMIT ? OFFSET ?
+            """,
+            (project_id, resolved_limit, resolved_offset),
+        ).fetchall()
+        drafts = {
+            row["id"]: row
+            for row in conn.execute(
+                "SELECT id, provider_name, model_name FROM knowledge_drafts WHERE project_id = ?",
+                (project_id,),
+            ).fetchall()
+        }
+    items: list[dict[str, object]] = []
+    for row in rows:
+        try:
+            metadata = json.loads(row["metadata_json"] or "{}")
+        except (json.JSONDecodeError, TypeError):
+            metadata = {}
+        if not isinstance(metadata, dict):
+            metadata = {}
+        draft_id = str(metadata.get("draft_id") or "") or None
+        draft = drafts.get(draft_id) if draft_id else None
+        items.append({
+            "id": row["id"],
+            "event_type": row["event_type"],
+            "draft_id": draft_id,
+            "provider_name": metadata.get("provider_name") or (draft["provider_name"] if draft else None),
+            "model_id": metadata.get("model_name") or (draft["model_name"] if draft else None),
+            "status": row["status"],
+            "created_at": row["created_at"],
+        })
+    return {"items": items, "total": total, "limit": resolved_limit, "offset": resolved_offset}
 
 
 def extract_text_sources(
@@ -299,15 +370,10 @@ def extract_text_sources(
         ensure_project_exists(conn, project_id)
 
     for file_id in selected_ids:
-        asset = resolve_asset(file_id, db_path=db_path)
-        if asset.project_id != project_id:
-            raise ValueError("file_not_in_project")
-
         source_id = _source_id(file_id)
-        relative_path = ""
         with connect(db_path) as conn:
             row = conn.execute(
-                "SELECT relative_path FROM files WHERE id = ? AND project_id = ?",
+                "SELECT relative_path, extension FROM files WHERE id = ? AND project_id = ?",
                 (file_id, project_id),
             ).fetchone()
             if row is None:
@@ -319,17 +385,21 @@ def extract_text_sources(
         excerpt = ""
         text_hash = "unsupported"
         text_length = 0
-        extractor = asset.path.suffix.lower().lstrip(".") or "text"
+        extension = str(row["extension"] or Path(relative_path).suffix).lower()
+        extractor = extension.lstrip(".") or "text"
 
         if relative_path == "project.json":
             status = "failed"
             error_message = "system_file_ignored"
-        elif asset.path.suffix.lower() not in SUPPORTED_EXTRACTION_EXTENSIONS:
+        elif extension not in SUPPORTED_EXTRACTION_EXTENSIONS:
             status = "failed"
             error_message = "unsupported_format"
         else:
             try:
-                if asset.path.suffix.lower() == ".pdf":
+                asset = resolve_asset(file_id, db_path=db_path)
+                if asset.project_id != project_id:
+                    raise ValueError("file_not_in_project")
+                if extension == ".pdf":
                     extractor = "pypdf"
                     text = _extract_pdf_text(asset.path)
                 else:
@@ -342,6 +412,9 @@ def extract_text_sources(
             except ValueError as exc:
                 status = "failed"
                 error_message = str(exc)
+            except FileNotFoundError:
+                status = "failed"
+                error_message = "file_unavailable"
 
         with connect(db_path) as conn:
             conn.execute(
@@ -423,7 +496,12 @@ def _load_sources(project_id: str, source_ids: list[str], db_path: Path | None =
             """,
             [project_id, *source_ids],
         ).fetchall()
-    return [_source_row_to_dict(row) for row in rows]
+    sources = [_source_row_to_dict(row) for row in rows]
+    if len(sources) != len(set(source_ids)):
+        raise ValueError("source_not_found")
+    if any(source["status"] != "ready" for source in sources):
+        raise ValueError("source_not_ready")
+    return sources
 
 
 def _draft_from_sources(sources: list[dict[str, object]]) -> dict[str, object]:
@@ -456,18 +534,28 @@ def create_knowledge_draft(
     source_ids: list[str],
     mode: str,
     draft: dict[str, object] | None = None,
+    provider_id: str | None = None,
+    model_id: str | None = None,
     db_path: Path | None = None,
 ) -> dict[str, object]:
     if mode not in {"manual", "ai"}:
         raise ValueError("mode_invalid")
     with connect(db_path) as conn:
         ensure_project_exists(conn, project_id)
+    if _active_draft(project_id, db_path=db_path) is not None:
+        raise ValueError("active_draft_exists")
 
     sources = _load_sources(project_id, source_ids, db_path=db_path)
     provider_name = None
     model_name = None
     if mode == "ai":
-        generated = generate_knowledge_payload(project_id, sources, db_path=db_path)
+        generated = generate_knowledge_payload(
+            project_id,
+            sources,
+            db_path=db_path,
+            provider_id=provider_id,
+            model_id=model_id,
+        )
         draft_payload = generated["draft"]
         provider_name = str(generated["provider_name"])
         model_name = str(generated["model_name"])
@@ -478,10 +566,6 @@ def create_knowledge_draft(
     draft_id = _draft_id()
 
     with connect(db_path) as conn:
-        conn.execute(
-            "UPDATE knowledge_drafts SET status = 'discarded', updated_at = ? WHERE project_id = ? AND status = 'draft'",
-            (now, project_id),
-        )
         conn.execute(
             """
             INSERT INTO knowledge_drafts (
@@ -661,6 +745,19 @@ def apply_knowledge_draft(
             raise RuntimeError("apply_rollback_failed") from rollback_error
         finally:
             _release_claimed_draft(project_id, draft_id, db_path=db_path)
+        with connect(db_path) as conn:
+            conn.execute(
+                """
+                INSERT INTO knowledge_history (id, project_id, event_type, status, message, metadata_json, created_at)
+                VALUES (?, ?, 'apply_draft', 'failed', NULL, ?, ?)
+                """,
+                (
+                    _history_id(),
+                    project_id,
+                    json.dumps({"draft_id": draft_id}, ensure_ascii=False),
+                    _now(),
+                ),
+            )
         raise ValueError("apply_failed_rolled_back") from apply_error
 
     return {

@@ -24,6 +24,9 @@ class ProjectsApiTests(unittest.TestCase):
 
             self.assertEqual(body["status"], "success")
             self.assertEqual(body["data"][0]["folder_name"], "Candidate")
+            self.assertIn("candidate_type", body["data"][0])
+            self.assertIn("evidence", body["data"][0])
+            self.assertFalse(body["data"][0]["will_write_project_json"])
 
     def test_initialize_endpoint_writes_project_json(self) -> None:
         with TemporaryDirectory() as temp_dir:
@@ -37,11 +40,12 @@ class ProjectsApiTests(unittest.TestCase):
                 from app.projects.initializer import initialize_projects
                 from app.projects.initializer import result_to_dict
 
-                def initialize_with_test_db(paths, default_tags):
+                def initialize_with_test_db(paths, default_tags, confirmed_paths):
                     return initialize_projects(
                         paths,
                         db_path=db_path,
                         default_tags=default_tags,
+                        confirmed_paths=confirmed_paths,
                     )
 
                 mocked_initialize.side_effect = initialize_with_test_db
@@ -49,6 +53,7 @@ class ProjectsApiTests(unittest.TestCase):
                     InitializeProjectsRequest(
                         paths=[str(project_dir)],
                         default_tags=["retail"],
+                        confirmed_paths=[str(project_dir)],
                     )
                 )
 

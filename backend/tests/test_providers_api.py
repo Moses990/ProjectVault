@@ -3,14 +3,14 @@ import unittest
 import tempfile
 import os
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from app.db.database import connect, initialize_database
 from app.core_api import (
     create_ai_provider,
     delete_ai_provider,
     list_ai_providers,
-    test_ai_provider,
+    test_ai_provider as run_ai_provider_test,
     update_ai_provider,
 )
 from app.services.ai_providers import migrate_legacy_provider_keys
@@ -53,7 +53,7 @@ class TestAIProvidersAPI(unittest.TestCase):
             "OpenAI",
             "https://api.openai.com/v1",
             default_model="gpt-4",
-            key_reference="env:OPENAI_API_KEY",
+            api_key="env:OPENAI_API_KEY",
             db_path=self.db_path,
         )
         self.assertEqual(provider["name"], "OpenAI")
@@ -87,14 +87,14 @@ class TestAIProvidersAPI(unittest.TestCase):
             provider["id"],
             name="Renamed",
             is_enabled=False,
-            key_reference="rotated-secret",
+            api_key="rotated-secret",
             db_path=self.db_path,
         )
         self.assertEqual(updated["name"], "Renamed")
         self.assertFalse(updated["is_enabled"])
         self.assertEqual(self._secrets[provider["id"]], "rotated-secret")
 
-        cleared = update_ai_provider(provider["id"], key_reference="", db_path=self.db_path)
+        cleared = update_ai_provider(provider["id"], clear_api_key=True, db_path=self.db_path)
         self.assertFalse(cleared["has_key"])
         self.assertNotIn(provider["id"], self._secrets)
 
@@ -109,7 +109,7 @@ class TestAIProvidersAPI(unittest.TestCase):
 
     def test_delete_provider(self):
         provider = create_ai_provider(
-            "ToDelete", "https://x", key_reference="delete-secret", db_path=self.db_path
+            "ToDelete", "https://x", api_key="delete-secret", db_path=self.db_path
         )
         result = delete_ai_provider(provider["id"], db_path=self.db_path)
         self.assertTrue(result["deleted"])
@@ -123,20 +123,30 @@ class TestAIProvidersAPI(unittest.TestCase):
 
     def test_test_provider_readiness(self):
         provider_no_key = create_ai_provider("NoKey", "https://x", db_path=self.db_path)
-        result = test_ai_provider(provider_no_key["id"], db_path=self.db_path)
+        response = MagicMock()
+        response.getcode.return_value = 200
+        response.read.return_value = b'{"data": []}'
+        response.__enter__.return_value = response
+        with patch("app.services.ai_providers._open_provider_request", return_value=response) as open_request:
+            result = run_ai_provider_test(provider_no_key["id"], db_path=self.db_path)
         self.assertFalse(result["ready"])
-        self.assertEqual(result["message"], "missing_base_url_or_key")
+        self.assertEqual(result["code"], "provider_credential_unavailable")
+        open_request.assert_not_called()
 
         provider_full = create_ai_provider(
-            "Full", "https://x", key_reference="env:KEY", db_path=self.db_path
+            "Full", "https://x", api_key="env:KEY", db_path=self.db_path
         )
-        with patch("urllib.request.urlopen") as urlopen:
-            result2 = test_ai_provider(provider_full["id"], db_path=self.db_path)
+        response = MagicMock()
+        response.getcode.return_value = 200
+        response.read.return_value = b'{"data": []}'
+        response.__enter__.return_value = response
+        with patch("app.services.ai_providers._open_provider_request", return_value=response) as open_request:
+            result2 = run_ai_provider_test(provider_full["id"], db_path=self.db_path)
         self.assertTrue(result2["ready"])
         self.assertEqual(result2["message"], "provider_connected")
-        urlopen.assert_called_once()
+        self.assertEqual(open_request.call_args.kwargs["headers"]["Authorization"], "Bearer env:KEY")
 
-    def test_connection_test_migrates_legacy_key_after_credential_write(self):
+    def test_connection_test_rejects_legacy_plaintext_key_without_migration(self):
         provider = create_ai_provider("Legacy", "https://x", db_path=self.db_path)
         with connect(self.db_path) as conn:
             conn.execute(
@@ -144,16 +154,14 @@ class TestAIProvidersAPI(unittest.TestCase):
                 ("legacy-secret", provider["id"]),
             )
 
-        with patch("urllib.request.urlopen") as urlopen:
-            result = test_ai_provider(provider["id"], db_path=self.db_path)
-
-        self.assertTrue(result["ready"])
-        self.assertEqual(urlopen.call_args.args[0].get_header("Authorization"), "Bearer legacy-secret")
+        result = run_ai_provider_test(provider["id"], db_path=self.db_path)
+        self.assertFalse(result["ready"])
+        self.assertEqual(result["code"], "migration_required")
         with connect(self.db_path) as conn:
             stored_reference = conn.execute(
                 "SELECT key_reference FROM ai_providers WHERE id = ?", (provider["id"],)
             ).fetchone()[0]
-        self.assertEqual(stored_reference, f"wincred:{provider['id']}")
+        self.assertEqual(stored_reference, "legacy-secret")
 
     def test_startup_migrates_legacy_keys_without_clearing_failed_entries(self):
         migratable = create_ai_provider("Migratable", "https://x", db_path=self.db_path)
@@ -161,7 +169,7 @@ class TestAIProvidersAPI(unittest.TestCase):
         with connect(self.db_path) as conn:
             conn.execute(
                 "UPDATE ai_providers SET key_reference = ? WHERE id = ?",
-                ("migrate-secret", migratable["id"]),
+                ("noauth", migratable["id"]),
             )
             conn.execute(
                 "UPDATE ai_providers SET key_reference = ? WHERE id = ?",
@@ -194,7 +202,7 @@ class TestAIProvidersAPI(unittest.TestCase):
 
     def test_key_reference_not_leaked_in_list(self):
         create_ai_provider(
-            "Secret", "https://x", key_reference="super-secret-key", db_path=self.db_path
+            "Secret", "https://x", api_key="super-secret-key", db_path=self.db_path
         )
         providers = list_ai_providers(db_path=self.db_path)
         for p in providers:

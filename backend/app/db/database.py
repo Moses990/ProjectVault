@@ -87,6 +87,23 @@ def apply_v2_schema(conn: sqlite3.Connection) -> None:
         INSERT OR REPLACE INTO app_metadata (key, value)
         VALUES ('schema_version', ?)
         """,
+        ("2",),
+    )
+    set_user_version(conn, 2)
+
+
+def apply_v3_schema(conn: sqlite3.Connection) -> None:
+    provider_columns = {
+        str(row[1]) for row in conn.execute("PRAGMA table_info(ai_providers)").fetchall()
+    }
+    if "auth_mode" not in provider_columns:
+        conn.execute(
+            "ALTER TABLE ai_providers ADD COLUMN auth_mode TEXT NOT NULL DEFAULT 'api_key' "
+            "CHECK(auth_mode IN ('api_key', 'none'))"
+        )
+    conn.execute("INSERT OR IGNORE INTO schema_migrations (version) VALUES ('3')")
+    conn.execute(
+        "INSERT OR REPLACE INTO app_metadata (key, value) VALUES ('schema_version', ?)",
         (str(CURRENT_SCHEMA_VERSION),),
     )
     set_user_version(conn, CURRENT_SCHEMA_VERSION)
@@ -94,23 +111,29 @@ def apply_v2_schema(conn: sqlite3.Connection) -> None:
 
 def migrate(conn: sqlite3.Connection) -> None:
     version = get_user_version(conn)
-    if version == 0:
-        apply_v1_schema(conn)
-        apply_v2_schema(conn)
-        return
-    if version == 1:
-        apply_v1_schema(conn)
-        apply_v2_schema(conn)
-        return
-    if version == CURRENT_SCHEMA_VERSION:
-        apply_v1_schema(conn)
-        apply_v2_schema(conn)
-        return
     if version > CURRENT_SCHEMA_VERSION:
         raise RuntimeError(
             f"Database schema version {version} is newer than supported "
             f"version {CURRENT_SCHEMA_VERSION}."
         )
+    if version == 0:
+        apply_v1_schema(conn)
+        apply_v2_schema(conn)
+        apply_v3_schema(conn)
+        return
+    if version == 1:
+        apply_v1_schema(conn)
+        apply_v2_schema(conn)
+        apply_v3_schema(conn)
+        return
+    if version == 2:
+        apply_v3_schema(conn)
+        return
+    if version == CURRENT_SCHEMA_VERSION:
+        apply_v1_schema(conn)
+        apply_v2_schema(conn)
+        apply_v3_schema(conn)
+        return
 
 
 def initialize_database(path: Path | None = None) -> Path:

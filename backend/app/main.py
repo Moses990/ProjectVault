@@ -1,4 +1,5 @@
 ﻿import asyncio
+import logging
 from contextlib import asynccontextmanager
 from collections import defaultdict
 import time
@@ -21,21 +22,28 @@ from app.api.providers import router as providers_router
 from app.api.search import router as search_router
 from app.api.settings import router as settings_router
 from app.api.system import router as system_router
-from app.core.config import get_settings
-from app.db.database import initialize_database
-from app.services.ai_providers import migrate_legacy_provider_keys
+from app.core.config import get_settings, resolve_runtime_database
+from app.db.database import connect, get_user_version, initialize_database
 from app.services.settings import settings_get
 from app.services.system import ScannerState, set_scanner_state
 from app.watcher.processor import run_watcher_loop
 from app.watcher.queue import DebouncedEventQueue
 from app.watcher.service import FileWatcherService
 
+logger = logging.getLogger("uvicorn.error")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     initialize_database()
-    migrate_legacy_provider_keys()
-
+    runtime_database = resolve_runtime_database()
+    with connect() as connection:
+        schema_version = get_user_version(connection)
+    logger.info("Project Vault v2.0.0-beta.1")
+    logger.info("Runtime mode: %s", runtime_database.mode)
+    logger.info("Database source: %s", runtime_database.source)
+    logger.info("Database path: %s", runtime_database.path.resolve())
+    logger.info("Schema version: %s", schema_version)
     # Start file watcher if root_path is configured
     watcher_service: FileWatcherService | None = None
     processor_task: asyncio.Task | None = None
@@ -43,7 +51,7 @@ async def lifespan(app: FastAPI):
 
     current_settings = settings_get()
     root_path = current_settings.get("root_path", "")
-    if root_path:
+    if root_path and current_settings.get("auto_scan", True):
         from pathlib import Path
 
         root = Path(root_path)
@@ -56,7 +64,11 @@ async def lifespan(app: FastAPI):
             try:
                 watcher_service.start(root)
                 processor_task = asyncio.create_task(
-                    run_watcher_loop(event_queue, scanner_state=state)
+                    run_watcher_loop(
+                        event_queue,
+                        scan_cooldown=float(current_settings.get("scan_interval", 60)),
+                        scanner_state=state,
+                    )
                 )
             except Exception:
                 watcher_service = None

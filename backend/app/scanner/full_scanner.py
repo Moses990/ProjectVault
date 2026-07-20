@@ -312,9 +312,9 @@ def scan_project(project_path: str | Path, db_path: Path | None = None) -> ScanR
                             stable_id(project_id, "drawing", record["relative_path"]),
                             project_id,
                             record["id"],
-                            drawing_category(absolute_path),
-            (extract_version_group(absolute_path.name) or ""),
-            (guess_version_number(absolute_path.name) or 0),
+                            drawing_category(Path(record["relative_path"])),
+                            extract_version_group(absolute_path.name) or "",
+                            guess_version_number(absolute_path.name),
                             record["last_modified"],
                         ),
                     )

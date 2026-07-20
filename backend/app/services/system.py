@@ -163,7 +163,11 @@ def _validate_backup_name(name: str) -> str:
     return name
 
 
-def create_database_backup(db_path: Path | None = None) -> dict[str, object]:
+def create_database_backup(
+    db_path: Path | None = None,
+    *,
+    label: str | None = None,
+) -> dict[str, object]:
     source = (db_path or Path()).resolve() if db_path else None
     if source is None:
         from app.db.database import get_database_path
@@ -172,7 +176,16 @@ def create_database_backup(db_path: Path | None = None) -> dict[str, object]:
     backup_dir = _backup_dir_for_database(source)
     backup_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_path = backup_dir / f"project_vault_{timestamp}.db"
+    safe_label = ""
+    if label:
+        safe_label = "_" + "".join(
+            character for character in str(label) if character.isalnum() or character in "-_"
+        )
+    backup_path = backup_dir / f"project_vault_{timestamp}{safe_label}.db"
+    suffix = 1
+    while backup_path.exists():
+        backup_path = backup_dir / f"project_vault_{timestamp}{safe_label}_{suffix}.db"
+        suffix += 1
 
     src = sqlite3.connect(source)
     dst = sqlite3.connect(backup_path)

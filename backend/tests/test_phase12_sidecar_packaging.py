@@ -39,6 +39,8 @@ class Phase12SidecarPackagingTests(unittest.TestCase):
         self.assertIn("src-tauri", content)
         self.assertIn("binaries", content)
         self.assertIn("--hidden-import app.api.knowledge", content)
+        self.assertIn("$LASTEXITCODE", content)
+        self.assertIn("exit $LASTEXITCODE", content)
 
     def test_desktop_build_rebuilds_frontend_and_sidecar(self):
         package_json = PROJECT_ROOT / "desktop" / "package.json"
@@ -81,7 +83,7 @@ class Phase12SidecarPackagingTests(unittest.TestCase):
         self.assertEqual("../../frontend/out", config["build"]["frontendDist"])
         self.assertNotIn(".next", config["build"]["frontendDist"])
         self.assertIn('output: "export"', next_config_content)
-        self.assertIn('assetPrefix: "."', next_config_content)
+        self.assertNotIn('assetPrefix: "."', next_config_content)
 
     def test_desktop_launcher_uses_tauri_sidecar_not_local_python(self):
         main_rs = PROJECT_ROOT / "desktop" / "src-tauri" / "src" / "main.rs"
@@ -154,11 +156,22 @@ class Phase12SidecarPackagingTests(unittest.TestCase):
         content = script.read_text(encoding="utf-8")
 
         self.assertTrue(mock_provider.exists())
+        self.assertIn("Content-Length", mock_provider.read_text(encoding="utf-8"))
         self.assertIn("function Remove-PathWithRetry", content)
         self.assertIn("function Stop-ProjectVaultRuntimeProcesses", content)
         self.assertIn("Refusing to recursively remove drive root", content)
         self.assertIn("Remove-PathWithRetry -Path $InstallDir", content)
         self.assertIn('mode = "ai"', content)
+        self.assertIn('api_key = $FixtureApiKey', content)
+        self.assertIn('confirmed_paths = @($fixture.projectDir)', content)
+        self.assertIn('$search.data.items', content)
+        self.assertIn('v2_knowledge_fts_sync', content)
+        self.assertIn('knowledge:$($fixture.projectId)', content)
+        self.assertIn('provider_id = $providerId', content)
+        self.assertIn('model_id = "fixture-model"', content)
+        self.assertIn('provider_secret_not_plaintext_in_sqlite', content)
+        self.assertIn('provider_delete_keeps_knowledge_and_removes_credential', content)
+        self.assertNotIn('key_reference = "fixture-key"', content)
         self.assertIn("v2_knowledge_create_ai_draft", content)
         self.assertIn("-WindowStyle Hidden", content)
         self.assertIn('release-validation\\v2.0.0-beta.1', content)
@@ -185,6 +198,26 @@ class Phase12SidecarPackagingTests(unittest.TestCase):
             Path(temp_dir) / "ProjectVault" / "database" / "project_vault.db",
             db_path,
         )
+
+    def test_runtime_modes_use_isolated_databases(self):
+        from app.core.config import resolve_runtime_database
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch.dict(os.environ, {"LOCALAPPDATA": temp_dir, "PROJECT_VAULT_RUNTIME_MODE": "desktop-debug"}, clear=False):
+                debug = resolve_runtime_database()
+            with patch.dict(os.environ, {"PROJECT_VAULT_RUNTIME_MODE": "backend-development"}, clear=False):
+                development = resolve_runtime_database()
+        self.assertEqual(debug.mode, "desktop-debug")
+        self.assertEqual(debug.path, Path(temp_dir) / "ProjectVaultDebug" / "database" / "project_vault.db")
+        self.assertEqual(development.mode, "backend-development")
+        self.assertIn("database/development/project_vault_dev.db", development.path.as_posix())
+
+    def test_desktop_capability_and_csp_are_limited_to_localhost(self):
+        capability = json.loads((PROJECT_ROOT / "desktop" / "src-tauri" / "capabilities" / "default.json").read_text(encoding="utf-8"))
+        main = (PROJECT_ROOT / "desktop" / "src-tauri" / "src" / "main.rs").read_text(encoding="utf-8")
+        self.assertEqual(capability["remote"]["urls"], ["http://127.0.0.1:*"])
+        self.assertIn("http://ipc.localhost", main)
+        self.assertIn("PROJECT_VAULT_RUNTIME_MODE", main)
 
 
 if __name__ == "__main__":

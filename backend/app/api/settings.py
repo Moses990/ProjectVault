@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.api.response import success_response
 from app.core_api import settings_get, settings_put
@@ -9,9 +9,14 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 
 
 class SettingsRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     root_path: str = ""
     scan_interval: int = 60
+    auto_scan: bool = True
+    backup_retention: int = 10
     theme: str = "system"
+    onboarding_completed: bool = False
 
 
 @router.get("")

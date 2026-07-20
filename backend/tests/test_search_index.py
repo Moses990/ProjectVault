@@ -48,6 +48,30 @@ class SearchIndexTests(unittest.TestCase):
         (project_dir / "materials" / "acoustic_panel_spec.pdf").write_bytes(b"pdf")
         return project_dir
 
+    def create_chinese_project(self, root: Path) -> Path:
+        project_dir = root / "示例展厅"
+        project_dir.mkdir()
+        data = {
+            "project_id": "project-chinese-search",
+            "name": "示例展厅",
+            "type": "商业展厅",
+            "phase": "深化",
+            "status": "healthy",
+            "manager": "",
+            "tags": ["品牌展厅"],
+            "ai": {"summary": "玻璃与金属材料策略"},
+            "schema_version": 1,
+        }
+        (project_dir / "project.json").write_text(
+            json.dumps(data, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        (project_dir / "03_CAD图纸").mkdir()
+        (project_dir / "03_CAD图纸" / "A-01 平面布置图.dwg").write_bytes(b"dwg")
+        (project_dir / "06_材料资料").mkdir()
+        (project_dir / "06_材料资料" / "玻璃材料.pdf").write_bytes(b"pdf")
+        return project_dir
+
     def test_rebuild_search_index_populates_all_v1_entity_types(self) -> None:
         with TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -117,6 +141,31 @@ class SearchIndexTests(unittest.TestCase):
             self.assertTrue(
                 any(item.entity_type == "knowledge" for item in search("strategy", category="knowledge", db_path=db_path))
             )
+
+    def test_search_finds_chinese_partial_terms_and_business_extensions(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            db_path = root / "project_vault.db"
+            initialize_database(db_path)
+            scan_project(self.create_chinese_project(root), db_path=db_path)
+            rebuild_search_index(db_path=db_path)
+
+            project_results = search("示例", db_path=db_path)
+            cad_results = search("平面", category="cad", db_path=db_path)
+            material_results = search("玻璃", category="materials", db_path=db_path)
+            cad_alias_results = search("CAD", category="cad", db_path=db_path)
+            pdf_alias_results = search("PDF", category="materials", db_path=db_path)
+            normalized_results = search("  示例　", db_path=db_path)
+
+            self.assertTrue(any(item.entity_id == "project-chinese-search" for item in project_results))
+            self.assertTrue(any(item.title == "A-01 平面布置图.dwg" for item in cad_results))
+            self.assertTrue(any(item.title == "玻璃材料.pdf" for item in material_results))
+            self.assertTrue(cad_alias_results)
+            self.assertTrue(pdf_alias_results)
+            self.assertTrue(normalized_results)
+
+            keys = [(item.entity_type, item.entity_id) for item in project_results]
+            self.assertEqual(len(keys), len(set(keys)))
 
     def test_search_10000_files_returns_under_100ms(self) -> None:
         with TemporaryDirectory() as temp_dir:

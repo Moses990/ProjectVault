@@ -22,7 +22,7 @@ def list_project_drawings(
         ensure_project_exists(conn, project_id)
         rows = conn.execute(
             f"""
-            SELECT d.id, d.project_id, f.file_name, f.relative_path,
+            SELECT d.id, d.file_id, d.project_id, f.file_name, f.relative_path, f.size_bytes, f.extension,
                    d.dwg_category, d.version_group, d.version_number,
                    d.is_current, d.last_modified
             FROM drawings d
@@ -49,16 +49,20 @@ def list_project_materials(
         ensure_project_exists(conn, project_id)
         rows = conn.execute(
             f"""
-            SELECT m.id, m.project_id, m.material_type, f.file_name,
-                   f.relative_path, f.extension, f.size_bytes, f.last_modified
+            SELECT m.id, m.file_id, m.project_id, m.material_type, f.file_name,
+                   f.relative_path, f.extension, f.size_bytes, f.last_modified,
+                   CASE WHEN f.id IS NULL THEN 0 ELSE 1 END AS available
             FROM materials m
-            JOIN files f ON f.id = m.file_id
+            LEFT JOIN files f ON f.id = m.file_id
             WHERE {' AND '.join(filters)}
             ORDER BY f.last_modified DESC, f.file_name ASC
             """,
             params,
         ).fetchall()
-    return [row_to_dict(row) for row in rows]
+    items = [row_to_dict(row) for row in rows]
+    for item in items:
+        item["available"] = bool(item["available"])
+    return items
 
 
 def drawings_center(
@@ -67,8 +71,9 @@ def drawings_center(
     sort_by: str = "last_modified",
     category: str | None = None,
     q: str | None = None,
+    project_id: str | None = None,
     db_path: Path | None = None,
-) -> tuple[list[dict[str, object]], int, int, int]:
+) -> tuple[list[dict[str, object]], int, int, int, dict[str, int]]:
     sort_columns = {
         "last_modified": "d.last_modified",
         "file_name": "f.file_name",
@@ -76,16 +81,22 @@ def drawings_center(
     }
     if sort_by not in sort_columns:
         raise ValueError("sort_by_invalid")
-    filters: list[str] = []
-    params: list[object] = []
+    base_filters: list[str] = []
+    base_params: list[object] = []
+    if project_id:
+        base_filters.append("d.project_id = ?")
+        base_params.append(project_id)
+    if q:
+        base_filters.append("(f.file_name LIKE ? OR f.relative_path LIKE ? OR p.name LIKE ?)")
+        pattern = f"%{q}%"
+        base_params.extend([pattern, pattern, pattern])
+    filters = [*base_filters]
+    params = [*base_params]
     if category:
         filters.append("d.dwg_category = ?")
         params.append(category)
-    if q:
-        filters.append("(f.file_name LIKE ? OR f.relative_path LIKE ? OR p.name LIKE ?)")
-        pattern = f"%{q}%"
-        params.extend([pattern, pattern, pattern])
     where = f"WHERE {' AND '.join(filters)}" if filters else ""
+    base_where = f"WHERE {' AND '.join(base_filters)}" if base_filters else ""
     resolved_page = clamp_page(page)
     resolved_limit = clamp_limit(limit)
     offset = (resolved_page - 1) * resolved_limit
@@ -106,7 +117,7 @@ def drawings_center(
             f"""
             SELECT d.id AS drawing_id, d.project_id, p.name AS project_name,
                    f.file_name, f.relative_path, d.dwg_category, d.version_group,
-                   d.version_number, d.last_modified
+                   d.version_number, d.last_modified, f.size_bytes
             FROM drawings d
             JOIN files f ON f.id = d.file_id
             JOIN projects p ON p.id = d.project_id
@@ -116,7 +127,20 @@ def drawings_center(
             """,
             [*params, resolved_limit, offset],
         ).fetchall()
-    return [row_to_dict(row) for row in rows], total, resolved_page, resolved_limit
+        category_rows = conn.execute(
+            f"""
+            SELECT COALESCE(d.dwg_category, 'UNCLASSIFIED') AS category,
+                   COUNT(*) AS total
+            FROM drawings d
+            JOIN files f ON f.id = d.file_id
+            JOIN projects p ON p.id = d.project_id
+            {base_where}
+            GROUP BY COALESCE(d.dwg_category, 'UNCLASSIFIED')
+            """,
+            base_params,
+        ).fetchall()
+    category_counts = {str(row["category"]): int(row["total"]) for row in category_rows}
+    return [row_to_dict(row) for row in rows], total, resolved_page, resolved_limit, category_counts
 
 
 def drawing_versions(drawing_id: str, db_path: Path | None = None) -> dict[str, object]:

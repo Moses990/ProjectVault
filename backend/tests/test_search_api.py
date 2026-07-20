@@ -10,6 +10,7 @@ from app.api.search import get_search
 from app.db.database import initialize_database
 from app.scanner.full_scanner import scan_project
 from app.search.indexer import rebuild_search_index
+from app.search.service import SearchPage, UnifiedSearchResult
 
 
 def write_project(project_dir: Path) -> None:
@@ -50,27 +51,56 @@ class SearchApiTests(unittest.TestCase):
             scan_project(project_dir, db_path=db_path)
             rebuild_search_index(db_path=db_path)
 
-            with patch("app.api.search.search") as mocked_search:
-                from app.search.service import search
-
-                mocked_search.side_effect = lambda *args, **kwargs: search(
-                    *args,
-                    db_path=db_path,
-                    **{key: value for key, value in kwargs.items() if key != "db_path"},
-                )
+            page = SearchPage(
+                query="marble",
+                items=(UnifiedSearchResult(
+                    result_id="file:file-search",
+                    entity_type="file",
+                    entity_id="file-search",
+                    project_id="project-api-search",
+                    project_name="Search API Store",
+                    title="marble_counter.pdf",
+                    relative_path="materials/marble_counter.pdf",
+                    parent_path="materials",
+                    extension=".pdf",
+                    category=None,
+                    file_id="file-search",
+                    available=True,
+                    labels=("file",),
+                    match_source="title",
+                    highlighted_content="marble_counter.pdf",
+                    score=-1.0,
+                ),),
+                total=1,
+                limit=20,
+                offset=0,
+                has_more=False,
+                elapsed_ms=1.0,
+            )
+            with patch("app.api.search.search_page", return_value=page):
                 body = get_search(q="marble", category=None, limit=20)
 
             self.assertEqual(body["status"], "success")
             self.assertEqual(body["message"], "search_completed")
-            self.assertIn("total", body["meta"])
-            self.assertTrue(body["data"])
+            self.assertEqual(body["data"]["total"], 1)
+            self.assertTrue(body["data"]["items"])
             self.assertEqual(
-                set(body["data"][0]),
+                set(body["data"]["items"][0]),
                 {
+                    "result_id",
                     "entity_id",
                     "entity_type",
-                    "title",
                     "project_id",
+                    "project_name",
+                    "title",
+                    "relative_path",
+                    "parent_path",
+                    "extension",
+                    "category",
+                    "file_id",
+                    "available",
+                    "labels",
+                    "match_source",
                     "highlighted_content",
                     "score",
                 },

@@ -12,15 +12,40 @@ try {
         $client = $listener.AcceptTcpClient()
         try {
             $stream = $client.GetStream()
-            $reader = New-Object System.IO.StreamReader($stream, [System.Text.Encoding]::UTF8, $false, 4096, $true)
-            $requestLine = $reader.ReadLine()
+            $headerBytes = New-Object System.Collections.Generic.List[byte]
+            while ($headerBytes.Count -lt 65536) {
+                $value = $stream.ReadByte()
+                if ($value -lt 0) { break }
+                $headerBytes.Add([byte]$value)
+                $count = $headerBytes.Count
+                if ($count -ge 4 -and
+                    $headerBytes[$count - 4] -eq 13 -and
+                    $headerBytes[$count - 3] -eq 10 -and
+                    $headerBytes[$count - 2] -eq 13 -and
+                    $headerBytes[$count - 1] -eq 10) {
+                    break
+                }
+            }
+            $headerText = [System.Text.Encoding]::ASCII.GetString($headerBytes.ToArray())
+            $headerLines = $headerText -split "`r`n"
+            $requestLine = $headerLines[0]
             if ([string]::IsNullOrWhiteSpace($requestLine)) {
                 continue
             }
-            while ($true) {
-                $line = $reader.ReadLine()
-                if ([string]::IsNullOrEmpty($line)) {
-                    break
+
+            $contentLength = 0
+            foreach ($line in $headerLines) {
+                if ($line -match '^Content-Length:\s*(\d+)$') {
+                    $contentLength = [int]$Matches[1]
+                }
+            }
+            if ($contentLength -gt 0) {
+                $requestBody = New-Object byte[] $contentLength
+                $offset = 0
+                while ($offset -lt $contentLength) {
+                    $read = $stream.Read($requestBody, $offset, $contentLength - $offset)
+                    if ($read -le 0) { break }
+                    $offset += $read
                 }
             }
 
@@ -32,10 +57,10 @@ try {
             elseif ($path -like "*/chat/completions") {
                 $content = @{
                     summary = "AI packaged draft packagebeta"
-                    core_needs = @("控制顾客动线")
-                    special_reqs = @("夜间施工")
-                    risks = @("交付周期紧")
-                    lessons = @("提前冻结材料样板")
+                    core_needs = @("control customer circulation")
+                    special_reqs = @("night construction")
+                    risks = @("tight delivery schedule")
+                    lessons = @("freeze material samples early")
                     tags = @("packagebeta", "fixture")
                 } | ConvertTo-Json -Depth 8 -Compress
                 $body = @{
@@ -49,8 +74,8 @@ try {
 
             $bytes = [System.Text.Encoding]::UTF8.GetBytes($body)
             $headers = "HTTP/1.1 $status`r`nContent-Type: application/json; charset=utf-8`r`nContent-Length: $($bytes.Length)`r`nConnection: close`r`n`r`n"
-            $headerBytes = [System.Text.Encoding]::ASCII.GetBytes($headers)
-            $stream.Write($headerBytes, 0, $headerBytes.Length)
+            $responseHeaderBytes = [System.Text.Encoding]::ASCII.GetBytes($headers)
+            $stream.Write($responseHeaderBytes, 0, $responseHeaderBytes.Length)
             $stream.Write($bytes, 0, $bytes.Length)
             $stream.Flush()
         }

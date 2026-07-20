@@ -9,7 +9,7 @@ from PIL import Image
 from starlette.responses import FileResponse
 
 from app.api.assets import get_asset_content, get_asset_thumbnail
-from app.api.dashboard import get_dashboard_metrics, get_recent_projects
+from app.api.dashboard import get_dashboard_metrics, get_dashboard_summary, get_recent_projects
 from app.api.drawings import get_drawing_versions, get_drawings_center, get_project_drawings
 from app.api.files import get_project_files
 from app.api.history import get_history
@@ -69,9 +69,19 @@ class Phase8CoreApiTests(unittest.TestCase):
             with patch("app.api.dashboard.get_database_path", return_value=db_path):
                 metrics = get_dashboard_metrics()
                 recent = get_recent_projects(limit=5)
+                summary = get_dashboard_summary()
             self.assertEqual(metrics["data"]["project_total"], 1)
             self.assertEqual(metrics["data"]["cad_total"], 1)
             self.assertEqual(recent["data"][0]["id"], "project-phase8")
+            self.assertEqual(summary["data"]["stats"], {
+                "projects": 1,
+                "indexed_files": 4,
+                "drawings": 1,
+                "materials": 1,
+            })
+            self.assertEqual(summary["data"]["recent_projects"][0]["status"], "healthy")
+            self.assertEqual(summary["data"]["recent_activity"]["status"], "ready")
+            self.assertEqual(len(summary["data"]["recent_activity"]["items"]), 1)
 
             with patch("app.api.projects.get_database_path", return_value=db_path):
                 projects = get_projects(q="Phase", phase="design", page=1, limit=10)
@@ -173,7 +183,7 @@ class Phase8CoreApiTests(unittest.TestCase):
                     )
                 )
                 settings = get_settings_api()
-            self.assertEqual(updated["data"]["root_path"], str(root))
+            self.assertTrue(Path(updated["data"]["root_path"]).samefile(root))
             self.assertEqual(settings["data"]["scan_interval"], 30)
 
             with patch("app.api.scanner.get_database_path", return_value=db_path):

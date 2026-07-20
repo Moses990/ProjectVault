@@ -18,6 +18,7 @@ import {
   Settings,
 } from "lucide-react";
 import { api, Project } from "@/lib/api";
+import { APP_VERSION } from "@/lib/presentation";
 
 const NAV_ITEMS = [
   { href: "/", label: "工作台", icon: LayoutDashboard, hint: "G D" },
@@ -35,7 +36,7 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch: () => void }) {
   const pathname = usePathname();
   const [favorites, setFavorites] = useState<Project[]>([]);
   const [phases, setPhases] = useState<string[]>([]);
-  const [rootConfigured, setRootConfigured] = useState(false);
+  const [rootPath, setRootPath] = useState("");
   const [projectTotal, setProjectTotal] = useState(0);
 
   useEffect(() => {
@@ -43,20 +44,20 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch: () => void }) {
     Promise.all([
       api.favoriteProjects().catch(() => [] as Project[]),
       api.projects({ page: 1, limit: 40 }).catch(() => ({ data: [] as Project[] })),
-      api.getSettings().catch(() => null),
-      api.dashboardMetrics().catch(() => null),
-    ]).then(([favoriteProjects, projectPage, settings, metrics]) => {
+      api.dashboardSummary().catch(() => null),
+    ]).then(([favoriteProjects, projectPage, summary]) => {
       if (cancelled) return;
       setFavorites(favoriteProjects.slice(0, 4));
       setPhases(Array.from(new Set(projectPage.data.map((p) => p.phase).filter(Boolean) as string[])).slice(0, 5));
-      setRootConfigured(Boolean(settings?.root_path));
-      setProjectTotal(metrics?.project_total ?? projectPage.data.length);
+      setRootPath(summary?.workspace.root_path ?? "");
+      setProjectTotal(summary?.stats.projects ?? projectPage.data.length);
     });
     return () => {
       cancelled = true;
     };
   }, []);
 
+  const rootConfigured = Boolean(rootPath);
   const readiness = projectTotal > 0 ? "ready" : rootConfigured ? "pending" : "empty";
   const readinessText = readiness === "ready" ? "Ready" : readiness === "pending" ? "待初始化" : "待配置";
 
@@ -68,8 +69,9 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch: () => void }) {
         </div>
         <div className="brand-copy">
           <span>Project Vault</span>
-          <small>本地工作区 · v1.3</small>
+          <small>本地工作区</small>
         </div>
+        <small className="version-tag" title={`v${APP_VERSION}`}>v{APP_VERSION}</small>
         <ChevronsUpDown size={14} aria-hidden={true} />
       </button>
 
@@ -140,9 +142,9 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch: () => void }) {
 
       <div className="sidebar-spacer" />
       <div className="sidebar-footer">
-        <div className="storage-line">
+        <div className="storage-path">
           <span>根路径</span>
-          <strong>{rootConfigured ? "已配置" : "未配置"}</strong>
+          <strong title={rootPath || "未配置"}>{rootPath || "未配置"}</strong>
         </div>
         <div className="storage-line">
           <span>项目</span>

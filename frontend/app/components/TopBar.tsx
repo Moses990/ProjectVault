@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const PAGE_TITLES: Record<string, { section: string; title: string }> = {
   "/": { section: "Vault", title: "工作台" },
   "/projects": { section: "Vault", title: "项目" },
+  "/search": { section: "Vault", title: "搜索" },
   "/project-detail": { section: "项目", title: "项目详情" },
   "/cad-center": { section: "资产", title: "CAD 中心" },
   "/history": { section: "系统", title: "历史记录" },

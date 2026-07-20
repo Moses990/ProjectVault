@@ -1,8 +1,10 @@
 import re
+import unicodedata
+from dataclasses import dataclass
 from pathlib import Path
 
 
-DRAWING_EXTENSIONS = {".dwg"}
+DRAWING_EXTENSIONS = {".dwg", ".dxf"}
 MATERIAL_EXTENSIONS = {
     ".pdf": "pdf",
     ".xls": "excel",
@@ -24,6 +26,32 @@ _VERSION_SUFFIX_PATTERNS = [
     re.compile(r"([_-])\d{4}[-]?\d{2}[-]?\d{2}$"),
 ]
 
+_CATEGORY_RULES = (
+    ("GENERAL_PLAN", ("master plan", "general plan", "总平面", "总平", "总图", "总体", "总布置")),
+    ("DOOR", ("door schedule", "door detail", "门表", "门图", "门节点")),
+    ("MATERIAL_SCHEDULE", ("finish schedule", "material schedule", "材料清单", "材料表", "饰面表")),
+    ("STRUCTURE", ("structural", "structure", "钢结构", "结构", "龙骨", "基础", "承重")),
+    # ponytail: ceiling precedes MEP so "照明布置/灯具天花" stays an RCP drawing.
+    ("CEILING", ("reflected ceiling", "ceiling", "照明布置", "灯具布置", "天花布置", "天花", "吊顶", "顶面", "rcp")),
+    ("MEP", ("electrical", "plumbing", "hvac", "mep", "给排水", "强电", "弱电", "暖通", "空调", "消防", "电气", "照明", "电力", "水电")),
+    ("FLOORING", ("floor finish", "flooring", "地坪", "地面", "铺装", "地材")),
+    ("ELEVATION", ("elevation", "立面")),
+    ("SECTION", ("section", "剖面", "剖视")),
+    ("DETAIL", ("安装节点", "固定节点", "节点", "收口", "接口", "连接", "node", "detail")),
+    ("ENLARGED", ("局部放大", "放大图", "大样", "详图")),
+    ("ELEVATION", ("墙面", "展墙")),
+    ("PLAN", ("floor plan", "layout", "平面布置", "家具布置", "功能布置", "平面", "平布", "plan")),
+    ("CONSTRUCTION", ("construction", "construct", "施工", "构造")),
+)
+
+
+@dataclass(frozen=True)
+class DrawingClassification:
+    category: str
+    matched_rule: str | None
+    matched_keyword: str | None
+    source: str | None
+
 
 def is_drawing(path: Path) -> bool:
     return path.suffix.lower() in DRAWING_EXTENSIONS
@@ -33,19 +61,39 @@ def material_type(path: Path) -> str | None:
     return MATERIAL_EXTENSIONS.get(path.suffix.lower())
 
 
+def _normalize_classification_text(value: str) -> str:
+    normalized = unicodedata.normalize("NFKC", value).casefold()
+    normalized = re.sub(r"[＊*_—－-]+", " ", normalized)
+    return " ".join(normalized.split())
+
+
+def _match_category(value: str, source: str) -> DrawingClassification | None:
+    for category, keywords in _CATEGORY_RULES:
+        for keyword in keywords:
+            if keyword in value:
+                return DrawingClassification(category, category, keyword, source)
+    return None
+
+
+def classify_drawing(path: Path) -> DrawingClassification:
+    filename = _normalize_classification_text(path.stem)
+    filename_match = _match_category(filename, "filename")
+    if filename_match:
+        return filename_match
+
+    if any(keyword in filename for keyword in ("图框", "图纸说明", "图纸目录", "设计说明")):
+        return DrawingClassification("UNCLASSIFIED", None, None, None)
+
+    # Callers pass a project-relative path, so project names never become evidence.
+    for directory in reversed(path.parent.parts):
+        directory_match = _match_category(_normalize_classification_text(directory), "directory")
+        if directory_match:
+            return directory_match
+    return DrawingClassification("UNCLASSIFIED", None, None, None)
+
+
 def drawing_category(path: Path) -> str:
-    name = path.stem.lower()
-    if any(token in name for token in ("plan", "floor", "平面")):
-        return "PLAN"
-    if any(token in name for token in ("elevation", "立面")):
-        return "ELEVATION"
-    if any(token in name for token in ("ceiling", "天花", "天花板")):
-        return "CEILING"
-    if any(token in name for token in ("detail", "node", "节点", "大样")):
-        return "DETAIL"
-    if any(token in name for token in ("construction", "construct", "施工", "构造")):
-        return "CONSTRUCTION"
-    return "UNKNOWN"
+    return classify_drawing(path).category
 
 
 def _strip_version_suffix(stem: str) -> str:

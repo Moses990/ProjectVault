@@ -12,8 +12,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 class Phase12SidecarPackagingTests(unittest.TestCase):
-    def test_v2_beta_version_is_consistent_across_runtime_surfaces(self):
-        expected = "2.0.0-beta.1"
+    def test_v2_version_is_consistent_across_runtime_surfaces(self):
+        expected = "2.0.0"
         frontend_package = json.loads((PROJECT_ROOT / "frontend" / "package.json").read_text(encoding="utf-8"))
         desktop_package = json.loads((PROJECT_ROOT / "desktop" / "package.json").read_text(encoding="utf-8"))
         tauri_config = json.loads((PROJECT_ROOT / "desktop" / "src-tauri" / "tauri.conf.json").read_text(encoding="utf-8"))
@@ -174,7 +174,7 @@ class Phase12SidecarPackagingTests(unittest.TestCase):
         self.assertNotIn('key_reference = "fixture-key"', content)
         self.assertIn("v2_knowledge_create_ai_draft", content)
         self.assertIn("-WindowStyle Hidden", content)
-        self.assertIn('release-validation\\v2.0.0-beta.1', content)
+        self.assertIn('release-validation\\v2.0.0', content)
         self.assertIn("StartsWith($installPrefix", content)
         self.assertNotIn('Where-Object { $_.ProcessName -like "project-vault*" }', content)
 
@@ -184,7 +184,7 @@ class Phase12SidecarPackagingTests(unittest.TestCase):
 
         self.assertIn(r"target\release\bundle\nsis", content)
         self.assertNotIn(r"target\debug\bundle\nsis", content)
-        self.assertIn(r"release-validation\v2.0.0-beta.1", content)
+        self.assertIn(r"release-validation\v2.0.0", content)
 
     def test_frozen_sidecar_uses_persistent_user_database_path(self):
         from app.core.config import default_database_path

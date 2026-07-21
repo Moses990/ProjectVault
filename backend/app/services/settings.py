@@ -49,6 +49,19 @@ def _is_readable_directory(path: Path) -> bool:
         return False
 
 
+_BLOCKED_ROOT_PREFIXES: list[Path] = []
+if os.name == "nt":
+    for env_var in ("SystemRoot", "ProgramFiles", "ProgramFiles(x86)", "ProgramData"):
+        val = os.environ.get(env_var)
+        if val:
+            _BLOCKED_ROOT_PREFIXES.append(Path(val).resolve())
+
+_BLOCKED_ROOT_NAMES = {
+    ".ssh", ".gnupg", ".aws", ".kube", ".config",
+    "appdata", ".qoderworkcn", ".git",
+}
+
+
 def _normalized_root_path(value: object) -> str:
     raw = str(value or "").strip()
     if not raw:
@@ -59,6 +72,12 @@ def _normalized_root_path(value: object) -> str:
         path = Path(raw).expanduser().resolve(strict=True)
     except OSError as exc:
         raise ValueError("root_path_invalid") from exc
+    # Security: reject system and sensitive directories
+    for blocked in _BLOCKED_ROOT_PREFIXES:
+        if path == blocked or blocked in path.parents:
+            raise ValueError("root_path_system_directory")
+    if path.name.lower().startswith(".") or path.name.lower() in _BLOCKED_ROOT_NAMES:
+        raise ValueError("root_path_sensitive_directory")
     if not _is_readable_directory(path):
         raise ValueError("root_path_unreadable")
     return str(path)

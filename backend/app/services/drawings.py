@@ -87,8 +87,9 @@ def drawings_center(
         base_filters.append("d.project_id = ?")
         base_params.append(project_id)
     if q:
-        base_filters.append("(f.file_name LIKE ? OR f.relative_path LIKE ? OR p.name LIKE ?)")
-        pattern = f"%{q}%"
+        base_filters.append("(f.file_name LIKE ? ESCAPE '\\' OR f.relative_path LIKE ? ESCAPE '\\' OR p.name LIKE ? ESCAPE '\\')")
+        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        pattern = f"%{escaped}%"
         base_params.extend([pattern, pattern, pattern])
     filters = [*base_filters]
     params = [*base_params]

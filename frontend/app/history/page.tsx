@@ -68,7 +68,7 @@ export default function HistoryPage() {
                 <th>时间</th>
                 <th>项目</th>
                 <th>操作</th>
-                <th>状态</th>
+                <th className="cell-center">状态</th>
                 <th>说明</th>
                 <th className="history-number-cell">耗时</th>
                 <th className="history-number-cell">文件</th>
@@ -91,7 +91,7 @@ export default function HistoryPage() {
                         ) : formatProjectName(item)}
                       </td>
                       <td className="text-sm history-event-cell">{formatEventType(item.event_type)}</td>
-                      <td>
+                      <td className="cell-center">
                         <span className={`badge ${status.badgeClass} status-badge-inline`}>
                           <span className={`status-dot-inline ${status.dotClass}`} />
                           {status.label}

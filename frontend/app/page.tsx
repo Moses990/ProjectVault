@@ -61,7 +61,6 @@ export default function DashboardPage() {
     <main className="vault-dashboard" aria-labelledby="dashboard-title">
       <header className="dashboard-hero">
         <div>
-          <div className="eyebrow">Local-first archive</div>
           <h1 id="dashboard-title">工作台</h1>
           <p>本地项目索引、CAD 图纸、材料文件与扫描状态。</p>
         </div>
@@ -116,10 +115,10 @@ function ProjectTable({ projects }: { projects: DashboardSummary["recent_project
   const onRowKeyDown = (event: KeyboardEvent<HTMLTableRowElement>, id: string) => {
     if (event.key === "Enter") openProject(id);
   };
-  return <div className="dashboard-table-wrap"><table className="archive-table dashboard-project-table"><thead><tr><th>项目</th><th>状态</th><th className="optional-file">文件</th><th>CAD</th><th className="optional-material">材料</th><th>最近更新</th><th><span className="sr-only">打开</span></th></tr></thead><tbody>{projects.map((project) => {
+  return <div className="dashboard-table-wrap"><table className="archive-table dashboard-project-table"><thead><tr><th>项目</th><th className="cell-center">状态</th><th className="optional-file">文件</th><th>CAD</th><th className="optional-material">材料</th><th>最近更新</th><th><span className="sr-only">打开</span></th></tr></thead><tbody>{projects.map((project) => {
     const status = formatStatus(project.status);
     return <tr key={project.id} tabIndex={0} onClick={() => openProject(project.id)} onKeyDown={(event) => onRowKeyDown(event, project.id)} aria-label={`打开项目 ${project.name}`}>
-      <td><strong>{project.name}</strong></td><td><span className={`badge ${status.badgeClass}`}>{status.label}</span></td><td className="optional-file">{project.file_count}</td><td>{project.cad_count}</td><td className="optional-material">{project.material_count}</td><td title={formatLocalDateTime(project.last_updated_at)}>{formatRelativeTime(project.last_updated_at)}</td><td><ArrowUpRight size={15} aria-hidden={true} /></td>
+      <td><strong>{project.name}</strong></td><td className="cell-center"><span className={`badge ${status.badgeClass}`}>{status.label}</span></td><td className="optional-file">{project.file_count}</td><td>{project.cad_count}</td><td className="optional-material">{project.material_count}</td><td title={formatLocalDateTime(project.last_updated_at)}>{formatRelativeTime(project.last_updated_at)}</td><td><ArrowUpRight size={15} aria-hidden={true} /></td>
     </tr>;
   })}</tbody></table></div>;
 }

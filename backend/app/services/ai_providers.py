@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import ipaddress
+import os
 import uuid
 import json
 import re
@@ -24,6 +26,39 @@ AUTH_MODES = {"api_key", "none"}
 
 
 REDIRECT_STATUS_CODES = {301, 302, 303, 307, 308}
+
+_BLOCKED_NETWORKS = [
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("169.254.0.0/16"),
+    ipaddress.ip_network("0.0.0.0/8"),
+    ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("fc00::/7"),
+    ipaddress.ip_network("fe80::/10"),
+]
+
+_LOCAL_PROVIDER_HOSTS: set[str] = {"127.0.0.1", "localhost"} | {
+    h.strip().lower()
+    for h in os.environ.get("PV_LOCAL_PROVIDER_HOSTS", "").split(",")
+    if h.strip()
+}
+
+
+def _is_private_ip(hostname: str) -> bool:
+    """Resolve hostname and check if it points to a private/reserved address."""
+    if hostname.lower() in _LOCAL_PROVIDER_HOSTS:
+        return False
+    try:
+        addrinfos = socket.getaddrinfo(hostname, None, proto=socket.IPPROTO_TCP)
+    except socket.gaierror:
+        return False
+    for _family, _type, _proto, _canonname, sockaddr in addrinfos:
+        ip = ipaddress.ip_address(sockaddr[0])
+        if any(ip in net for net in _BLOCKED_NETWORKS):
+            return True
+    return False
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -57,6 +92,8 @@ def _validated_http_url(value: str) -> tuple[str, Any]:
         or parsed.fragment
     ):
         raise ValueError("base_url_invalid")
+    if _is_private_ip(parsed.hostname):
+        raise ValueError("base_url_private_address")
     return normalized, parsed
 
 

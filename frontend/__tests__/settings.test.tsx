@@ -170,6 +170,6 @@ describe("Phase 6 sidebar", () => {
     apiMock.dashboardSummary.mockResolvedValue({ stats: { projects: 3, indexed_files: 444, drawings: 125, materials: 273 }, workspace: { root_path: "D:\\项目库", root_path_accessible: true } });
     render(<Sidebar onOpenSearch={vi.fn()} />);
     expect(await screen.findByTitle("D:\\项目库")).toHaveTextContent("D:\\项目库");
-    expect(screen.getByTitle("v2.0.0-beta.1")).toHaveTextContent("v2.0.0-beta.1");
+    expect(screen.getByTitle("v2.0.0")).toHaveTextContent("v2.0.0");
   });
 });

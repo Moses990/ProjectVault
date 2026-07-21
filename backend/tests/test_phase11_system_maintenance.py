@@ -89,7 +89,8 @@ class Phase11SystemMaintenanceTests(unittest.TestCase):
             self.assertTrue(revealed["data"]["success"])
             self.assertEqual(launcher.call_count, 2)
             self.assertEqual(launcher.call_args_list[0].args[0], (project_dir / "brief.txt").resolve())
-            self.assertEqual(launcher.call_args_list[1].args[0], project_dir.resolve())
+            self.assertEqual(launcher.call_args_list[1].args[0], (project_dir / "brief.txt").resolve())
+            self.assertTrue(launcher.call_args_list[1].kwargs.get("select_only"))
             self.assertEqual(missing.exception.status_code, 404)
 
             with closing(sqlite3.connect(db_path)) as conn:

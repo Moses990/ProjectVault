@@ -265,7 +265,6 @@ export function AiTab({ projectId }: { projectId: string }) {
   if (loadError) return <div className="card ai-card"><div className="empty-state"><p className="empty-title">项目知识暂时无法加载</p><p className="text-sm">未改动任何项目文件，请重新加载。</p><button className="btn btn-sm" type="button" onClick={() => void load()}>重新加载</button></div></div>;
 
   return <div className="knowledge-page">
-    <div className="knowledge-page-heading"><div><h2>项目知识</h2><p>从项目资料生成可审阅草稿；只有明确确认后才会写入 project.json。</p></div><span className="badge badge-accent">确认后写入</span></div>
     <div aria-live="polite" aria-busy={action !== null}>{error && <div className="inline-error">{error}</div>}{message && <div className="knowledge-status">{message}</div>}</div>
 
     <ConfirmedKnowledge knowledge={approved} />

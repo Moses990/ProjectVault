@@ -1,6 +1,6 @@
 [package]
 name = "project-vault"
-version = "2.0.0-beta.1"
+version = "2.0.0"
 description = "Project Vault desktop shell"
 authors = ["Project Vault"]
 edition = "2021"

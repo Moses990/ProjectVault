@@ -1,12 +1,11 @@
 {
   "name": "project-vault-frontend",
-  "version": "2.0.0-beta.1",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev -H 127.0.0.1 -p 3000",
     "build": "next build",
-    "start": "next start -H 127.0.0.1 -p 3000",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -23,6 +22,8 @@
     "@types/node": "24.10.3",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "16.1.0",
     "jsdom": "^26.1.0",
     "typescript": "5.9.3",
     "vitest": "^3.2.1"

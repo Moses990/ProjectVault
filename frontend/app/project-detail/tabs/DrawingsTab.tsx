@@ -60,9 +60,9 @@ export function DrawingsTab({ projectId }: { projectId: string }) {
           <thead>
             <tr>
               <th>名称</th>
-              <th>分类</th>
+              <th className="cell-center">分类</th>
               <th>版本</th>
-              <th>当前</th>
+              <th className="cell-center">当前</th>
               <th>所在目录</th>
               <th>修改时间</th>
               <th>大小</th>
@@ -72,10 +72,10 @@ export function DrawingsTab({ projectId }: { projectId: string }) {
           <tbody>
             {visible.map((d) => (
               <tr key={d.id}>
-                <td className="text-mono text-sm">{d.file_name}</td>
-                <td><span className="badge badge-accent">{formatDrawingCategory(d.dwg_category)}</span></td>
+                <td className="text-sm">{d.file_name}</td>
+                <td className="cell-center"><span className="badge badge-accent">{formatDrawingCategory(d.dwg_category)}</span></td>
                 <td className="text-sm">{d.version_number !== null ? `v${d.version_number}` : <span className="text-dim">-</span>}</td>
-                <td>{d.is_current ? <span className="badge badge-success">当前</span> : <span className="text-dim">-</span>}</td>
+                <td className="cell-center">{d.is_current ? <span className="badge badge-success">当前</span> : <span className="text-dim">-</span>}</td>
                 <td className="text-dim text-sm">{d.relative_path.split("/").slice(0, -1).join("/") || "项目根目录"}</td>
                 <td className="text-dim text-sm">{formatLocalDateTime(d.last_modified, "—")}</td>
                 <td className="text-sm">{formatBytes(d.size_bytes)}</td>

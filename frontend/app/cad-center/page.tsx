@@ -127,7 +127,7 @@ export default function CADCenterPage() {
       <section className="page-header">
         <div>
           <h1 className="page-title">CAD 中心</h1>
-          <p className="panel-subtitle">跨项目图纸汇总、分类和版本链</p>
+          <p className="page-description">跨项目图纸汇总、分类和版本链</p>
         </div>
         <div className="metric-inline">
           <FileText size={16} />
@@ -225,8 +225,8 @@ export default function CADCenterPage() {
               <tr>
                 <th>文件</th>
                 <th>项目</th>
-                <th>分类</th>
-                <th>版本</th>
+                <th className="cell-center">分类</th>
+                <th className="cell-center">版本</th>
                 <th>修改时间</th>
                 <th>大小</th>
                 <th>操作</th>
@@ -249,25 +249,27 @@ export default function CADCenterPage() {
                       {drawing.project_name}
                     </button>
                   </td>
-                  <td>
+                  <td className="cell-center">
                     <span className={`badge cad-category-badge ${categoryColors[drawing.dwg_category || "UNCLASSIFIED"] || categoryColors.UNCLASSIFIED}`}>
                       {formatDrawingCategory(drawing.dwg_category)}
                     </span>
                   </td>
-                  <td>
+                  <td className="cell-center">
                     <span className="mono-chip">{versionLabel(drawing.version_number)}</span>
                   </td>
                   <td className="cad-time-cell">{formatLocalDateTime(drawing.last_modified, "—")}</td>
                   <td className="cad-size-cell">{formatSize(drawing.size_bytes)}</td>
-                  <td className="actions-cell cad-actions-cell">
-                    <button className="icon-text-button" type="button" onClick={() => openVersionChain(drawing.drawing_id)}>
-                      <GitBranch size={14} />
-                      版本
-                    </button>
-                    <button className="icon-text-button" type="button" onClick={() => router.push(`/project-detail?id=${encodeURIComponent(drawing.project_id)}`)}>
-                      <FolderOpen size={14} />
-                      项目
-                    </button>
+                  <td className="cad-actions-cell">
+                    <div className="actions-cell">
+                      <button className="icon-text-button" type="button" onClick={() => openVersionChain(drawing.drawing_id)}>
+                        <GitBranch size={14} />
+                        版本
+                      </button>
+                      <button className="icon-text-button" type="button" onClick={() => router.push(`/project-detail?id=${encodeURIComponent(drawing.project_id)}`)}>
+                        <FolderOpen size={14} />
+                        项目
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

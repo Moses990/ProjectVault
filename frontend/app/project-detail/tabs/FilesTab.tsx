@@ -187,13 +187,13 @@ export function FilesTab({ projectId, projectName, fileCount = 0, directory, foc
         ) : (
           <section className="resource-section">
             {resources.files.length === 0 ? <div className="empty-state compact"><p>此目录下暂无文件。</p></div> : visibleFiles.length === 0 ? <div className="empty-state compact"><p>没有匹配的文件。</p></div> : <div className="file-table-scroll"><table className="data-table file-data-table">
-              <thead><tr><th>名称</th><th>类型</th><th>大小</th><th>修改时间</th><th>状态</th><th>操作</th></tr></thead>
+              <thead><tr><th>名称</th><th className="cell-center">类型</th><th>大小</th><th>修改时间</th><th className="cell-center">状态</th><th>操作</th></tr></thead>
               <tbody>{visibleFiles.map((file) => <tr id={file.id ? `file-row-${file.id}` : undefined} key={`${file.relative_path}-${file.id ?? "disk"}`} className={file.id === focusedFileId ? "file-row-focused" : undefined}>
                 <td className="file-name-cell" data-label="名称"><strong>{file.file_name}</strong><span>{file.relative_path}</span></td>
-                <td data-label="类型">{file.extension ? <span className="badge">{file.extension}</span> : "—"}</td>
+                <td className="cell-center" data-label="类型">{file.extension ? <span className="badge">{file.extension}</span> : "—"}</td>
                 <td data-label="大小">{formatBytes(file.size_bytes)}</td>
                 <td data-label="修改时间">{formatLocalDateTime(file.last_modified, "—")}</td>
-                <td data-label="状态">{!file.available ? <span className="badge badge-amber">文件不可用</span> : !file.indexed ? <span className="badge badge-gray">未索引</span> : <span className="badge badge-success">已索引</span>}</td>
+                <td className="cell-center" data-label="状态">{!file.available ? <span className="badge badge-amber">文件不可用</span> : !file.indexed ? <span className="badge badge-gray">未索引</span> : <span className="badge badge-success">已索引</span>}</td>
                 <td data-label="操作"><div className="actions-cell">
                   <button className="link-button" type="button" onClick={() => copyPath(file.relative_path)}>复制路径</button>
                   {file.id && file.available && canPreview(file.extension) && <button className="link-button" type="button" onClick={() => preview(file)}>预览</button>}

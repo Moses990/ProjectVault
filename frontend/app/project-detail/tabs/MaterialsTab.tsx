@@ -47,8 +47,8 @@ export function MaterialsTab({ projectId }: { projectId: string }) {
           <thead>
             <tr>
               <th>名称</th>
-              <th>类型</th>
-              <th>扩展名</th>
+              <th className="cell-center">类型</th>
+              <th className="cell-center">扩展名</th>
               <th>来源目录</th>
               <th>大小</th>
               <th>修改时间</th>
@@ -58,9 +58,9 @@ export function MaterialsTab({ projectId }: { projectId: string }) {
           <tbody>
             {visible.map((m) => (
               <tr key={m.id}>
-                <td className="text-mono text-sm">{m.file_name || "关联文件不可用"}</td>
-                <td><span className="badge">{formatMaterialType(m.material_type)}</span></td>
-                <td>{m.extension ? <span className="badge">{m.extension}</span> : <span className="text-dim">-</span>}</td>
+                <td className="text-sm">{m.file_name || "关联文件不可用"}</td>
+                <td className="cell-center"><span className="badge">{formatMaterialType(m.material_type)}</span></td>
+                <td className="cell-center">{m.extension ? <span className="badge">{m.extension}</span> : <span className="text-dim">-</span>}</td>
                 <td className="text-dim text-sm">{m.relative_path ? m.relative_path.split("/").slice(0, -1).join("/") || "项目根目录" : "—"}</td>
                 <td className="text-sm">{m.size_bytes === null ? "—" : formatBytes(m.size_bytes)}</td>
                 <td className="text-dim text-sm">{formatLocalDateTime(m.last_modified, "—")}</td>

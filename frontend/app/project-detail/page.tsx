@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { api, ProjectOverview } from "@/lib/api";
 import { OverviewTab } from "./tabs/OverviewTab";
 import { FilesTab } from "./tabs/FilesTab";
@@ -85,15 +86,17 @@ function ProjectDetailContent() {
   if (error && !overview) return <div className="project-detail-page"><div className="page-header project-detail-header"><h1 className="page-title">项目详情</h1><Link href="/projects" className="btn btn-sm">返回项目库</Link></div><div className="project-alert error">{error}<button className="btn btn-sm" type="button" onClick={loadOverview}>重新加载</button></div></div>;
 
   return <div className="project-detail-page">
-    <div className="page-header project-detail-header">
-      <div className="project-title-row">
-        <Link href="/projects" className="btn btn-sm">返回项目库</Link>
-        <div className="project-title-copy"><div className="project-title-badges"><h1 className="page-title project-title">{overview?.name ?? "项目"}</h1>{overview?.status && <span className={`badge ${formatStatus(overview.status).badgeClass}`}>{formatStatus(overview.status).label}</span>}</div>
-          <p className="project-header-meta" title={overview?.path}>{overview?.path}</p>
-          <p className="project-header-meta">最近更新：{formatLocalDateTime(overview?.last_updated_at, "—")}</p>
+    <div className="project-detail-header">
+      <Link href="/projects" className="back-link"><ArrowLeft size={14} />返回项目库</Link>
+      <div className="page-header project-detail-titlebar">
+        <div className="project-title-row">
+          <div className="project-title-copy"><div className="project-title-badges"><h1 className="page-title project-title">{overview?.name ?? "项目"}</h1>{overview?.status && <span className={`badge ${formatStatus(overview.status).badgeClass}`}>{formatStatus(overview.status).label}</span>}</div>
+            <p className="project-header-meta" title={overview?.path}>{overview?.path}</p>
+            <p className="project-header-meta">最近更新：{formatLocalDateTime(overview?.last_updated_at, "—")}</p>
+          </div>
         </div>
+        <button className="btn btn-sm" type="button" onClick={copyProjectPath}>复制路径</button>
       </div>
-      <button className="btn btn-sm" type="button" onClick={copyProjectPath}>复制路径</button>
     </div>
     {copyMessage && <div className="project-alert success">{copyMessage}</div>}
     {error && <div className="project-alert warn">{error}（显示已加载数据）</div>}

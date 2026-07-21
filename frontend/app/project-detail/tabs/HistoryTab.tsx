@@ -31,7 +31,7 @@ export function HistoryTab({ projectId }: { projectId: string }) {
             <tr>
               <th>时间</th>
               <th>事件</th>
-              <th>状态</th>
+              <th className="cell-center">状态</th>
               <th>消息</th>
               <th>耗时</th>
               <th>文件</th>
@@ -44,7 +44,7 @@ export function HistoryTab({ projectId }: { projectId: string }) {
                 <tr key={h.id}>
                   <td className="text-dim text-sm history-time-cell">{formatLocalDateTime(h.created_at)}</td>
                   <td className="text-sm">{formatEventType(h.event_type)}</td>
-                  <td><span className={`badge ${status.badgeClass}`}>{status.label}</span></td>
+                  <td className="cell-center"><span className={`badge ${status.badgeClass}`}>{status.label}</span></td>
                   <td className="text-sm history-message-cell">{formatScanMessage(h.message, h.status, h.event_type)}</td>
                   <td className="text-sm history-number-cell">{h.duration_ms !== null ? `${h.duration_ms} ms` : "—"}</td>
                   <td className="text-sm history-number-cell">{h.affected_files ?? "—"}</td>
